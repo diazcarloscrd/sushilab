@@ -30,6 +30,30 @@
     .notice strong{color:#ffb3b6}.lock{width:16px;flex:0 0 16px;margin-top:1px}
     .foot{text-align:center;color:#777b85;font-size:10px;letter-spacing:.5px;margin-top:24px}
     @media(max-width:480px){body{padding:20px}.card{padding:24px 20px}h1{font-size:29px}}
+
+    body.dashboard-mode{display:block;padding:0;overflow:auto}
+    #dashboard{position:relative;z-index:1;min-height:100vh;background:var(--bg);color:var(--text)}
+    .dash-top{display:flex;align-items:center;justify-content:space-between;padding:22px 5%;border-bottom:1px solid var(--line);background:#15191f}
+    .dash-brand{display:flex;align-items:center;gap:12px}.dash-brand .mark{width:40px;height:40px}
+    .dash-actions{display:flex;align-items:center;gap:12px}.dash-user{font-size:12px;color:var(--muted)}
+    .dash-btn{border:1px solid var(--line);background:#20242b;color:var(--text);border-radius:8px;padding:10px 14px;font:700 11px var(--sans);cursor:pointer}
+    .dash-wrap{width:min(1120px,90%);margin:42px auto}
+    .dash-eyebrow{color:var(--rose);font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 10px}
+    .dash-heading{font:500 30px var(--serif);margin:0 0 8px;text-align:left}
+    .dash-sub{color:var(--muted);font-size:13px;margin:0 0 30px;line-height:1.7}
+    .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:32px}
+    .stat{background:linear-gradient(145deg,#1c2026,#15191f);border:1px solid var(--line);border-radius:13px;padding:22px}
+    .stat-label{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+    .stat-value{font:500 34px var(--serif);margin:12px 0 4px}
+    .stat-note{font-size:11px;color:#858a95}
+    .dash-section-title{font:500 21px var(--serif);margin:0 0 14px}
+    .module-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .module{background:#181c22;border:1px solid var(--line);border-radius:12px;padding:19px}
+    .module h3{font-size:13px;margin:0 0 8px}.module p{font-size:11px;line-height:1.6;color:var(--muted);margin:0}
+    .module-tag{display:inline-block;margin-top:13px;color:var(--rose);font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+    .dash-status{margin-top:24px;padding:14px 16px;border:1px solid #57434a;background:#291c22;color:#d8bfc4;border-radius:9px;font-size:12px;line-height:1.6}
+    @media(max-width:700px){.stats,.module-grid{grid-template-columns:1fr}.dash-top{padding:16px 5%}.dash-user{display:none}.dash-wrap{margin:30px auto}.dash-heading{font-size:26px}}
+
   </style>
 </head>
 <body>
@@ -60,6 +84,33 @@
     </section>
     <p class="foot">YAN KUN SUSHI LAB · BAHÍA BLANCA</p>
   </main>
+
+  <section id="dashboard" hidden>
+    <header class="dash-top">
+      <div class="dash-brand"><div class="mark">Y</div><div class="brand-name">YanKun <span>SushiLab</span></div></div>
+      <div class="dash-actions"><span class="dash-user">Sesión de administrador</span><button class="dash-btn" id="refreshDashboard" type="button">Actualizar datos</button><button class="dash-btn" id="logoutButton" type="button">Cerrar sesión</button></div>
+    </header>
+    <main class="dash-wrap">
+      <p class="dash-eyebrow">Centro de operaciones</p>
+      <h1 class="dash-heading">Panel de administración</h1>
+      <p class="dash-sub">Bienvenido. Desde acá vas a gestionar el catálogo, los pedidos y los puntos de venta de YanKun SushiLab.</p>
+      <div class="stats">
+        <article class="stat"><div class="stat-label">Productos</div><div class="stat-value" id="productCount">—</div><div class="stat-note">Registrados en el catálogo</div></article>
+        <article class="stat"><div class="stat-label">Categorías</div><div class="stat-value" id="categoryCount">—</div><div class="stat-note">Organización del catálogo</div></article>
+        <article class="stat"><div class="stat-label">Pedidos</div><div class="stat-value" id="orderCount">—</div><div class="stat-note">Pedidos registrados</div></article>
+      </div>
+      <h2 class="dash-section-title">Módulos de gestión</h2>
+      <div class="module-grid">
+        <article class="module"><h3>Catálogo y productos</h3><p>Administración de productos, precios, disponibilidad, imágenes y categorías.</p><span class="module-tag">Próxima etapa</span></article>
+        <article class="module"><h3>Pedidos</h3><p>Seguimiento de pedidos, estados, datos del cliente y detalle de cada compra.</p><span class="module-tag">Próxima etapa</span></article>
+        <article class="module"><h3>Puntos de venta</h3><p>Local principal, food truck, salidas y ubicaciones de venta.</p><span class="module-tag">Próxima etapa</span></article>
+        <article class="module"><h3>Horarios y fechas especiales</h3><p>Configuración de días y horarios de atención, feriados y excepciones.</p><span class="module-tag">Próxima etapa</span></article>
+        <article class="module"><h3>Zonas de envío</h3><p>Configuración de zonas de reparto y sus costos de envío.</p><span class="module-tag">Próxima etapa</span></article>
+        <article class="module"><h3>Configuración</h3><p>Datos del negocio y reglas generales de funcionamiento.</p><span class="module-tag">Próxima etapa</span></article>
+      </div>
+      <div class="dash-status" id="dashboardMessage" role="status">Consultando los datos de Supabase...</div>
+    </main>
+  </section>
   <script>
     // El control de mostrar/ocultar contraseña funciona independientemente de Supabase.
     const passwordInput = document.getElementById('password');
@@ -77,7 +128,58 @@
     const SUPABASE_URL = "https://cdhnpsowlsesoobrytvh.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP";
 
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     const form = document.getElementById('loginForm');
+    const loginShell = document.querySelector('.shell');
+    const dashboard = document.getElementById('dashboard');
+    const dashboardMessage = document.getElementById('dashboardMessage');
+
+    async function loadDashboardData() {
+      dashboardMessage.textContent = 'Actualizando los indicadores desde Supabase...';
+      const [products, categories, orders] = await Promise.all([
+        client.from('products').select('*', { count: 'exact', head: true }),
+        client.from('categories').select('*', { count: 'exact', head: true }),
+        client.from('orders').select('*', { count: 'exact', head: true })
+      ]);
+      const errors = [products.error, categories.error, orders.error].filter(Boolean);
+      document.getElementById('productCount').textContent = products.error ? '—' : products.count;
+      document.getElementById('categoryCount').textContent = categories.error ? '—' : categories.count;
+      document.getElementById('orderCount').textContent = orders.error ? '—' : orders.count;
+      if (errors.length) {
+        console.error('Error al consultar indicadores:', errors);
+        dashboardMessage.textContent = 'La sesión está iniciada, pero no se pudieron consultar todos los indicadores. Revisaremos los permisos y las consultas en la siguiente etapa.';
+      } else {
+        dashboardMessage.textContent = 'Conexión correcta. Los indicadores muestran los registros actuales de la base de datos.';
+      }
+    }
+
+    function showDashboard() {
+      loginShell.hidden = true;
+      dashboard.hidden = false;
+      document.body.classList.add('dashboard-mode');
+      loadDashboardData().catch((error) => {
+        console.error(error);
+        dashboardMessage.textContent = 'No se pudieron cargar los indicadores. Podés volver a intentar con Actualizar datos.';
+      });
+    }
+
+    document.getElementById('refreshDashboard').addEventListener('click', () => {
+      loadDashboardData().catch((error) => {
+        console.error(error);
+        dashboardMessage.textContent = 'No se pudieron actualizar los indicadores.';
+      });
+    });
+
+    document.getElementById('logoutButton').addEventListener('click', async () => {
+      await client.auth.signOut();
+      dashboard.hidden = true;
+      loginShell.hidden = false;
+      document.body.classList.remove('dashboard-mode');
+      document.getElementById('password').value = '';
+      message.textContent = 'La sesión se cerró correctamente.';
+      submitButton.disabled = false;
+      submitButton.textContent = 'Ingresar';
+    });
     const submitButton = form.querySelector('button[type="submit"]');
     const message = document.getElementById('loginMessage');
 
@@ -101,7 +203,6 @@
       message.textContent = 'Comprobando tus credenciales de forma segura...';
 
       try {
-        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
         const { data, error } = await client.functions.invoke('admin-login', {
           body: { username, password: passwordValue }
         });
@@ -122,8 +223,7 @@
 
         if (sessionError) throw sessionError;
 
-        message.textContent = 'Credenciales verificadas correctamente. El acceso funciona; el panel de administración todavía está en construcción.';
-        submitButton.textContent = 'Acceso validado';
+        showDashboard();
       } catch (error) {
         console.error('Error de inicio de sesión:', error);
         message.textContent = error.message || 'No se pudo iniciar sesión. Revisá los datos e intentá nuevamente.';
