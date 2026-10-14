@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10141a">
+  <title>Acceso administrativo | YanKun SushiLab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root{color-scheme:dark;--bg:#10141a;--panel:#181c22;--panel2:#1c2026;--line:#393d45;--text:#dfe2eb;--muted:#a7aab4;--rose:#ffb3b6;--red:#e11d48;--serif:"Noto Serif",serif;--sans:"Manrope",sans-serif}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--sans);display:grid;place-items:center;padding:28px;overflow:hidden}
+    body:before,body:after{content:"";position:fixed;width:520px;height:520px;border-radius:50%;filter:blur(130px);pointer-events:none;z-index:0}
+    body:before{background:#e11d4818;top:-260px;left:calc(50% - 260px)}body:after{background:#e11d480c;bottom:-360px;right:-180px}
+    .shell{position:relative;z-index:1;width:min(100%,440px)}
+    .brand{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:34px}
+    .mark{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#34313a,#171b21);border:1px solid #6c444b;color:var(--rose);font-family:var(--serif);font-size:22px}
+    .brand-name{font-family:var(--serif);font-size:21px;letter-spacing:-.6px}.brand-name span{color:var(--red);font-weight:700}
+    .eyebrow{text-align:center;color:var(--rose);font-size:10px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;margin:0 0 12px}
+    h1{text-align:center;font-family:var(--serif);font-size:32px;font-weight:500;letter-spacing:-.8px;margin:0 0 10px}
+    .intro{text-align:center;color:var(--muted);font-size:13px;line-height:1.7;margin:0 auto 28px;max-width:320px}
+    .card{background:linear-gradient(145deg,#1c2026f5,#15191ff5);border:1px solid #39343b;border-radius:16px;padding:30px;box-shadow:0 24px 80px #0008}
+    label{display:block;font-size:11px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:#c9c3c8;margin:0 0 9px}
+    .field{margin-bottom:20px}input{width:100%;height:48px;border-radius:8px;border:1px solid #41434b;background:#10141a;color:var(--text);font:500 14px var(--sans);padding:0 14px;outline:none;transition:border .2s,box-shadow .2s}
+    input:focus{border-color:var(--rose);box-shadow:0 0 0 3px #ffb3b61c}input::placeholder{color:#777b85}
+    .password-wrap{position:relative}.password-wrap input{padding-right:54px}.toggle{position:absolute;right:8px;top:7px;height:34px;min-width:38px;border:0;border-radius:6px;background:transparent;color:#aaa;cursor:pointer;font:700 10px var(--sans)}
+    .submit{width:100%;height:49px;border:0;border-radius:8px;background:var(--red);color:#fff;font:800 11px var(--sans);letter-spacing:1.25px;text-transform:uppercase;cursor:not-allowed;opacity:.72;margin-top:5px}
+    .notice{display:flex;gap:10px;align-items:flex-start;padding:12px 13px;margin-top:19px;border:1px solid #57434a;border-radius:8px;background:#291c22;color:#d8bfc4;font-size:11px;line-height:1.6}
+    .notice strong{color:#ffb3b6}.lock{width:16px;flex:0 0 16px;margin-top:1px}
+    .foot{text-align:center;color:#777b85;font-size:10px;letter-spacing:.5px;margin-top:24px}
+    @media(max-width:480px){body{padding:20px}.card{padding:24px 20px}h1{font-size:29px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="brand"><div class="mark">Y</div><div class="brand-name">YanKun <span>SushiLab</span></div></div>
+    <p class="eyebrow">Panel de administración</p>
+    <h1>Bienvenido de nuevo</h1>
+    <p class="intro">Ingresá a tu espacio de gestión para administrar el catálogo, los pedidos y los puntos de venta.</p>
+    <section class="card" aria-label="Inicio de sesión">
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Usuario</label>
+          <input id="username" name="username" type="text" autocomplete="username" placeholder="Tu usuario administrador" value="adminsushilab" required>
+        </div>
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <div class="password-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Ingresá tu contraseña" required>
+            <button class="toggle" type="button" id="togglePassword" aria-label="Mostrar contraseña">VER</button>
+          </div>
+        </div>
+        <button class="submit" type="submit" disabled>Acceso próximamente</button>
+      </form>
+      <div class="notice" role="status">
+        <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <span><strong>Acceso en preparación.</strong> Estamos conectando el inicio de sesión seguro con Supabase. Esta pantalla es la primera parte del CRM; todavía no procesa credenciales.</span>
+      </div>
+    </section>
+    <p class="foot">YAN KUN SUSHI LAB · BAHÍA BLANCA</p>
+  </main>
+  <script>
+    const password = document.getElementById('password');
+    document.getElementById('togglePassword').addEventListener('click', () => {
+      const visible = password.type === 'password';
+      password.type = visible ? 'text' : 'password';
+      document.getElementById('togglePassword').textContent = visible ? 'OCULTAR' : 'VER';
+      document.getElementById('togglePassword').setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    });
+    document.getElementById('loginForm').addEventListener('submit', event => event.preventDefault());
+  </script>
+</body>
+</html>
