@@ -25,7 +25,7 @@
     .field{margin-bottom:20px}input{width:100%;height:48px;border-radius:8px;border:1px solid #41434b;background:#10141a;color:var(--text);font:500 14px var(--sans);padding:0 14px;outline:none;transition:border .2s,box-shadow .2s}
     input:focus{border-color:var(--rose);box-shadow:0 0 0 3px #ffb3b61c}input::placeholder{color:#777b85}
     .password-wrap{position:relative}.password-wrap input{padding-right:54px}.toggle{position:absolute;right:8px;top:7px;height:34px;min-width:38px;border:0;border-radius:6px;background:transparent;color:#aaa;cursor:pointer;font:700 10px var(--sans)}
-    .submit{width:100%;height:49px;border:0;border-radius:8px;background:var(--red);color:#fff;font:800 11px var(--sans);letter-spacing:1.25px;text-transform:uppercase;cursor:not-allowed;opacity:.72;margin-top:5px}
+    .submit{width:100%;height:49px;border:0;border-radius:8px;background:var(--red);color:#fff;font:800 11px var(--sans);letter-spacing:1.25px;text-transform:uppercase;cursor:pointer;opacity:1;margin-top:5px}.submit:disabled{cursor:wait;opacity:.65}
     .notice{display:flex;gap:10px;align-items:flex-start;padding:12px 13px;margin-top:19px;border:1px solid #57434a;border-radius:8px;background:#291c22;color:#d8bfc4;font-size:11px;line-height:1.6}
     .notice strong{color:#ffb3b6}.lock{width:16px;flex:0 0 16px;margin-top:1px}
     .foot{text-align:center;color:#777b85;font-size:10px;letter-spacing:.5px;margin-top:24px}
@@ -51,24 +51,70 @@
             <button class="toggle" type="button" id="togglePassword" aria-label="Mostrar contraseña">VER</button>
           </div>
         </div>
-        <button class="submit" type="submit" disabled>Acceso próximamente</button>
+        <button class="submit" type="submit">Ingresar</button>
       </form>
       <div class="notice" role="status">
         <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        <span><strong>Acceso en preparación.</strong> Estamos conectando el inicio de sesión seguro con Supabase. Esta pantalla es la primera parte del CRM; todavía no procesa credenciales.</span>
+        <span id="loginMessage"><strong>Acceso protegido.</strong> Ingresá con el usuario y la contraseña de administración.</span>
       </div>
     </section>
     <p class="foot">YAN KUN SUSHI LAB · BAHÍA BLANCA</p>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    const SUPABASE_URL = "https://cdhnpsowlsesoobrytvh.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
     const password = document.getElementById('password');
+    const form = document.getElementById('loginForm');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const message = document.getElementById('loginMessage');
+
     document.getElementById('togglePassword').addEventListener('click', () => {
       const visible = password.type === 'password';
       password.type = visible ? 'text' : 'password';
       document.getElementById('togglePassword').textContent = visible ? 'OCULTAR' : 'VER';
       document.getElementById('togglePassword').setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
     });
-    document.getElementById('loginForm').addEventListener('submit', event => event.preventDefault());
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const passwordValue = password.value;
+
+      if (!username || !passwordValue) return;
+
+      submitButton.disabled = true;
+      submitButton.textContent = 'Verificando...';
+      message.textContent = 'Comprobando tus credenciales de forma segura...';
+
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-login', {
+          body: { username, password: passwordValue }
+        });
+
+        if (error) throw error;
+        if (!data || !data.session) {
+          throw new Error(data?.error || 'No se pudo iniciar la sesión.');
+        }
+
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+
+        if (sessionError) throw sessionError;
+
+        message.textContent = '¡Acceso validado! La autenticación funciona correctamente. Estamos preparando el panel de administración.';
+        submitButton.textContent = 'Acceso validado';
+      } catch (error) {
+        console.error('Error de inicio de sesión:', error);
+        message.textContent = error.message || 'No se pudo iniciar sesión. Revisá los datos e intentá nuevamente.';
+        submitButton.disabled = false;
+        submitButton.textContent = 'Ingresar';
+      }
+    });
   </script>
 </body>
 </html>
