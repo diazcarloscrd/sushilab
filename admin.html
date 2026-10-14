@@ -54,6 +54,43 @@
     .dash-status{margin-top:24px;padding:14px 16px;border:1px solid #57434a;background:#291c22;color:#d8bfc4;border-radius:9px;font-size:12px;line-height:1.6}
     @media(max-width:700px){.stats,.module-grid{grid-template-columns:1fr}.dash-top{padding:16px 5%}.dash-user{display:none}.dash-wrap{margin:30px auto}.dash-heading{font-size:26px}}
 
+
+    .module[data-open-catalog]{cursor:pointer;transition:border-color .2s,transform .2s}
+    .module[data-open-catalog]:hover,.module[data-open-catalog]:focus{border-color:var(--rose);transform:translateY(-2px);outline:none}
+    .catalog-view{position:relative;z-index:1;min-height:100vh;background:var(--bg);color:var(--text);padding-bottom:50px}
+    .catalog-wrap{width:min(1120px,90%);margin:38px auto}
+    .catalog-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:26px}
+    .catalog-title{font:500 29px var(--serif);margin:0 0 7px}
+    .catalog-muted{color:var(--muted);font-size:12px;line-height:1.6;margin:0}
+    .catalog-tabs{display:flex;gap:8px;margin:0 0 20px;flex-wrap:wrap}
+    .catalog-tab{border:1px solid var(--line);background:#20242b;color:var(--muted);padding:11px 16px;border-radius:8px;font:700 11px var(--sans);cursor:pointer}
+    .catalog-tab.active{background:#39252c;border-color:#80515a;color:var(--rose)}
+    .catalog-panel{background:#181c22;border:1px solid var(--line);border-radius:13px;padding:20px;margin-bottom:18px}
+    .catalog-panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+    .catalog-panel h2{font:500 20px var(--serif);margin:0}
+    .catalog-primary{border:0;background:var(--red);color:#fff;border-radius:8px;padding:11px 15px;font:800 10px var(--sans);letter-spacing:.7px;cursor:pointer}
+    .catalog-secondary{border:1px solid var(--line);background:#20242b;color:var(--text);border-radius:8px;padding:10px 14px;font:700 10px var(--sans);cursor:pointer}
+    .catalog-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+    .catalog-field{display:flex;flex-direction:column;gap:7px}
+    .catalog-field.full{grid-column:1/-1}
+    .catalog-field label{font-size:10px;margin:0;color:#c9c3c8}
+    .catalog-field input,.catalog-field textarea,.catalog-field select{width:100%;min-height:42px;border-radius:7px;border:1px solid #41434b;background:#10141a;color:var(--text);font:500 12px var(--sans);padding:10px 12px}
+    .catalog-field textarea{min-height:76px;resize:vertical}
+    .catalog-check{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:11px}
+    .catalog-form-actions{grid-column:1/-1;display:flex;gap:9px;justify-content:flex-end;margin-top:4px}
+    .catalog-list{display:grid;gap:9px}
+    .catalog-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px;border:1px solid #343943;border-radius:9px;background:#15191f}
+    .catalog-row-main{min-width:0;display:flex;align-items:center;gap:12px}
+    .catalog-thumb{width:48px;height:48px;flex:0 0 48px;border-radius:7px;background:#242832;object-fit:cover}
+    .catalog-row-name{font-size:12px;font-weight:800;margin:0 0 4px;overflow-wrap:anywhere}
+    .catalog-row-meta{font-size:10px;color:var(--muted);line-height:1.5}
+    .catalog-row-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+    .catalog-row-actions button{border:1px solid var(--line);background:#20242b;color:var(--text);border-radius:7px;padding:8px 10px;font:700 9px var(--sans);cursor:pointer}
+    .catalog-empty{padding:24px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed #454954;border-radius:9px}
+    .catalog-message{margin:0 0 16px;padding:12px 14px;border:1px solid #57434a;background:#291c22;color:#e3cbd0;border-radius:8px;font-size:11px;line-height:1.6}
+    .catalog-message:empty{display:none}
+    @media(max-width:650px){.catalog-head{align-items:flex-start;flex-direction:column}.catalog-form{grid-template-columns:1fr}.catalog-field.full,.catalog-form-actions{grid-column:1}.catalog-row{align-items:flex-start;flex-direction:column}.catalog-row-actions{width:100%;justify-content:flex-start}}
+
   </style>
 </head>
 <body>
@@ -101,7 +138,7 @@
       </div>
       <h2 class="dash-section-title">Módulos de gestión</h2>
       <div class="module-grid">
-        <article class="module"><h3>Catálogo y productos</h3><p>Administración de productos, precios, disponibilidad, imágenes y categorías.</p><span class="module-tag">Próxima etapa</span></article>
+        <article class="module" data-open-catalog role="button" tabindex="0" aria-label="Abrir catálogo y productos"><h3>Catálogo y productos</h3><p>Administración de productos, precios, disponibilidad, imágenes y categorías.</p><span class="module-tag">Próxima etapa</span></article>
         <article class="module"><h3>Pedidos</h3><p>Seguimiento de pedidos, estados, datos del cliente y detalle de cada compra.</p><span class="module-tag">Próxima etapa</span></article>
         <article class="module"><h3>Puntos de venta</h3><p>Local principal, food truck, salidas y ubicaciones de venta.</p><span class="module-tag">Próxima etapa</span></article>
         <article class="module"><h3>Horarios y fechas especiales</h3><p>Configuración de días y horarios de atención, feriados y excepciones.</p><span class="module-tag">Próxima etapa</span></article>
@@ -111,6 +148,51 @@
       <div class="dash-status" id="dashboardMessage" role="status">Consultando los datos de Supabase...</div>
     </main>
   </section>
+
+  <section id="catalogView" class="catalog-view" hidden>
+    <header class="dash-top">
+      <div class="dash-brand"><div class="mark">Y</div><div class="brand-name">YanKun <span>SushiLab</span></div></div>
+      <div class="dash-actions"><span class="dash-user">Gestión del catálogo</span><button class="dash-btn" id="backToDashboard" type="button">Volver al panel</button><button class="dash-btn" id="catalogLogout" type="button">Cerrar sesión</button></div>
+    </header>
+    <main class="catalog-wrap">
+      <div class="catalog-head">
+        <div><p class="dash-eyebrow">Administración comercial</p><h1 class="catalog-title">Catálogo y productos</h1><p class="catalog-muted">Administrá las categorías, los productos, sus precios y su disponibilidad.</p></div>
+        <button class="catalog-secondary" id="reloadCatalog" type="button">Actualizar catálogo</button>
+      </div>
+      <div class="catalog-tabs">
+        <button class="catalog-tab active" type="button" data-catalog-tab="categories">Categorías</button>
+        <button class="catalog-tab" type="button" data-catalog-tab="products">Productos</button>
+      </div>
+      <p class="catalog-message" id="catalogMessage" role="status"></p>
+      <section id="categoriesPanel" class="catalog-panel">
+        <div class="catalog-panel-head"><h2>Categorías</h2><button class="catalog-primary" id="newCategory" type="button">+ Nueva categoría</button></div>
+        <form id="categoryForm" class="catalog-form" hidden>
+          <input type="hidden" id="categoryId">
+          <div class="catalog-field"><label for="categoryName">Nombre</label><input id="categoryName" maxlength="80" required placeholder="Ej. Rolls clásicos"></div>
+          <div class="catalog-field"><label for="categoryOrder">Orden de aparición</label><input id="categoryOrder" type="number" min="0" step="1" value="0"></div>
+          <div class="catalog-field full"><label for="categoryDescription">Descripción (opcional)</label><textarea id="categoryDescription" maxlength="500" placeholder="Una breve descripción de la categoría"></textarea></div>
+          <div class="catalog-form-actions"><button class="catalog-secondary" id="cancelCategory" type="button">Cancelar</button><button class="catalog-primary" type="submit">Guardar categoría</button></div>
+        </form>
+        <div class="catalog-list" id="categoryList"><div class="catalog-empty">Cargando categorías...</div></div>
+      </section>
+      <section id="productsPanel" class="catalog-panel" hidden>
+        <div class="catalog-panel-head"><h2>Productos</h2><button class="catalog-primary" id="newProduct" type="button">+ Nuevo producto</button></div>
+        <form id="productForm" class="catalog-form" hidden>
+          <input type="hidden" id="productId">
+          <div class="catalog-field"><label for="productName">Nombre</label><input id="productName" maxlength="120" required placeholder="Ej. Philadelphia roll"></div>
+          <div class="catalog-field"><label for="productPrice">Precio (ARS)</label><input id="productPrice" type="number" min="0" step="0.01" required placeholder="Ej. 12500"></div>
+          <div class="catalog-field"><label for="productCategory">Categoría</label><select id="productCategory"><option value="">Sin categoría</option></select></div>
+          <div class="catalog-field"><label for="productOrder">Orden de aparición</label><input id="productOrder" type="number" min="0" step="1" value="0"></div>
+          <div class="catalog-field full"><label for="productDescription">Descripción (opcional)</label><textarea id="productDescription" maxlength="1000" placeholder="Ingredientes o detalles del producto"></textarea></div>
+          <div class="catalog-field full"><label for="productImage">URL de imagen (opcional)</label><input id="productImage" type="url" maxlength="1000" placeholder="https://..."></div>
+          <label class="catalog-check full"><input id="productAvailable" type="checkbox" checked> Producto disponible para la venta</label>
+          <div class="catalog-form-actions"><button class="catalog-secondary" id="cancelProduct" type="button">Cancelar</button><button class="catalog-primary" type="submit">Guardar producto</button></div>
+        </form>
+        <div class="catalog-list" id="productList"><div class="catalog-empty">Cargando productos...</div></div>
+      </section>
+    </main>
+  </section>
+
   <script>
     // El control de mostrar/ocultar contraseña funciona independientemente de Supabase.
     const passwordInput = document.getElementById('password');
@@ -230,6 +312,253 @@
         submitButton.disabled = false;
         submitButton.textContent = 'Ingresar';
       }
+    });
+
+    // Gestión del catálogo: operaciones administrativas protegidas por RLS.
+    const catalogView = document.getElementById('catalogView');
+    const catalogMessage = document.getElementById('catalogMessage');
+    let catalogCategories = [];
+    let catalogProducts = [];
+
+    function escapeCatalog(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
+    function showCatalogMessage(text) {
+      catalogMessage.textContent = text || '';
+    }
+
+    function setCatalogTab(tab) {
+      document.querySelectorAll('[data-catalog-tab]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.catalogTab === tab);
+      });
+      document.getElementById('categoriesPanel').hidden = tab !== 'categories';
+      document.getElementById('productsPanel').hidden = tab !== 'products';
+      showCatalogMessage('');
+    }
+
+    async function loadCatalog() {
+      showCatalogMessage('Actualizando información desde Supabase...');
+      const [categoryResult, productResult] = await Promise.all([
+        client.from('categories').select('id,name,slug,description,sort_order,is_active').order('sort_order').order('name'),
+        client.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').order('sort_order').order('name')
+      ]);
+      if (categoryResult.error || productResult.error) {
+        console.error('Error cargando catálogo:', categoryResult.error, productResult.error);
+        showCatalogMessage('No se pudo cargar el catálogo. Verificá que la sesión siga activa e intentá actualizar. Si persiste, revisaremos los permisos.');
+        return;
+      }
+      catalogCategories = categoryResult.data || [];
+      catalogProducts = productResult.data || [];
+      renderCategories();
+      renderProducts();
+      populateProductCategories();
+      showCatalogMessage('Catálogo sincronizado correctamente.');
+    }
+
+    function renderCategories() {
+      const list = document.getElementById('categoryList');
+      if (!catalogCategories.length) {
+        list.innerHTML = '<div class="catalog-empty">Todavía no hay categorías. Creá la primera para organizar el catálogo.</div>';
+        return;
+      }
+      list.innerHTML = catalogCategories.map((category) => `
+        <article class="catalog-row">
+          <div class="catalog-row-main"><div><p class="catalog-row-name">${escapeCatalog(category.name)}</p><div class="catalog-row-meta">Orden: ${category.sort_order} · ${category.is_active ? 'Activa' : 'Inactiva'}</div>${category.description ? `<div class="catalog-row-meta">${escapeCatalog(category.description)}</div>` : ''}</div></div>
+          <div class="catalog-row-actions"><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button></div>
+        </article>`).join('');
+    }
+
+    function populateProductCategories() {
+      const select = document.getElementById('productCategory');
+      const selected = select.value;
+      select.innerHTML = '<option value="">Sin categoría</option>' + catalogCategories
+        .filter((category) => category.is_active)
+        .map((category) => `<option value="${category.id}">${escapeCatalog(category.name)}</option>`).join('');
+      if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+    }
+
+    function renderProducts() {
+      const list = document.getElementById('productList');
+      if (!catalogProducts.length) {
+        list.innerHTML = '<div class="catalog-empty">Todavía no hay productos. Cuando cargues el primero, aparecerá en esta lista.</div>';
+        return;
+      }
+      const categoryNames = new Map(catalogCategories.map((category) => [String(category.id), category.name]));
+      list.innerHTML = catalogProducts.map((product) => `
+        <article class="catalog-row">
+          <div class="catalog-row-main">${product.image_url ? `<img class="catalog-thumb" src="${escapeCatalog(product.image_url)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '<div class="catalog-thumb"></div>'}<div><p class="catalog-row-name">${escapeCatalog(product.name)}</p><div class="catalog-row-meta">${escapeCatalog(categoryNames.get(String(product.category_id)) || 'Sin categoría')} · $ ${Number(product.price).toLocaleString('es-AR')} · ${product.is_available ? 'Disponible' : 'Pausado'}</div>${product.description ? `<div class="catalog-row-meta">${escapeCatalog(product.description)}</div>` : ''}</div></div>
+          <div class="catalog-row-actions"><button type="button" data-product-edit="${product.id}">Editar</button><button type="button" data-product-toggle="${product.id}">${product.is_available ? 'Pausar' : 'Activar'}</button></div>
+        </article>`).join('');
+    }
+
+    function openCatalog() {
+      dashboard.hidden = true;
+      catalogView.hidden = false;
+      document.body.classList.add('dashboard-mode');
+      setCatalogTab('categories');
+      loadCatalog().catch((error) => {
+        console.error(error);
+        showCatalogMessage('Ocurrió un error al cargar el catálogo.');
+      });
+    }
+
+    document.querySelector('[data-open-catalog]').addEventListener('click', openCatalog);
+    document.querySelector('[data-open-catalog]').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openCatalog(); }
+    });
+    document.getElementById('backToDashboard').addEventListener('click', () => {
+      catalogView.hidden = true;
+      dashboard.hidden = false;
+    });
+    document.getElementById('catalogLogout').addEventListener('click', async () => {
+      await client.auth.signOut();
+      catalogView.hidden = true;
+      dashboard.hidden = true;
+      loginShell.hidden = false;
+      document.body.classList.remove('dashboard-mode');
+      passwordInput.value = '';
+      message.textContent = 'La sesión se cerró correctamente.';
+      submitButton.disabled = false;
+      submitButton.textContent = 'Ingresar';
+    });
+    document.getElementById('reloadCatalog').addEventListener('click', () => loadCatalog());
+    document.querySelectorAll('[data-catalog-tab]').forEach((button) => {
+      button.addEventListener('click', () => setCatalogTab(button.dataset.catalogTab));
+    });
+
+    const categoryForm = document.getElementById('categoryForm');
+    const productForm = document.getElementById('productForm');
+
+    document.getElementById('newCategory').addEventListener('click', () => {
+      categoryForm.reset();
+      document.getElementById('categoryId').value = '';
+      document.getElementById('categoryOrder').value = '0';
+      categoryForm.hidden = false;
+      document.getElementById('categoryName').focus();
+    });
+    document.getElementById('cancelCategory').addEventListener('click', () => { categoryForm.hidden = true; categoryForm.reset(); });
+    document.getElementById('newProduct').addEventListener('click', () => {
+      productForm.reset();
+      document.getElementById('productId').value = '';
+      document.getElementById('productOrder').value = '0';
+      document.getElementById('productAvailable').checked = true;
+      populateProductCategories();
+      productForm.hidden = false;
+      document.getElementById('productName').focus();
+    });
+    document.getElementById('cancelProduct').addEventListener('click', () => { productForm.hidden = true; productForm.reset(); });
+
+    document.getElementById('categoryList').addEventListener('click', async (event) => {
+      const editButton = event.target.closest('[data-category-edit]');
+      const toggleButton = event.target.closest('[data-category-toggle]');
+      if (editButton) {
+        const category = catalogCategories.find((item) => String(item.id) === editButton.dataset.categoryEdit);
+        if (!category) return;
+        document.getElementById('categoryId').value = category.id;
+        document.getElementById('categoryName').value = category.name;
+        document.getElementById('categoryDescription').value = category.description || '';
+        document.getElementById('categoryOrder').value = category.sort_order ?? 0;
+        categoryForm.hidden = false;
+        document.getElementById('categoryName').focus();
+      }
+      if (toggleButton) {
+        const category = catalogCategories.find((item) => String(item.id) === toggleButton.dataset.categoryToggle);
+        if (!category) return;
+        toggleButton.disabled = true;
+        const { error } = await client.from('categories').update({ is_active: !category.is_active }).eq('id', category.id);
+        if (error) { showCatalogMessage('No se pudo actualizar la categoría: ' + error.message); toggleButton.disabled = false; return; }
+        await loadCatalog();
+      }
+    });
+
+    document.getElementById('productList').addEventListener('click', async (event) => {
+      const editButton = event.target.closest('[data-product-edit]');
+      const toggleButton = event.target.closest('[data-product-toggle]');
+      if (editButton) {
+        const product = catalogProducts.find((item) => String(item.id) === editButton.dataset.productEdit);
+        if (!product) return;
+        document.getElementById('productId').value = product.id;
+        document.getElementById('productName').value = product.name;
+        document.getElementById('productPrice').value = product.price;
+        document.getElementById('productCategory').value = product.category_id ?? '';
+        document.getElementById('productOrder').value = product.sort_order ?? 0;
+        document.getElementById('productDescription').value = product.description || '';
+        document.getElementById('productImage').value = product.image_url || '';
+        document.getElementById('productAvailable').checked = product.is_available;
+        productForm.hidden = false;
+        document.getElementById('productName').focus();
+      }
+      if (toggleButton) {
+        const product = catalogProducts.find((item) => String(item.id) === toggleButton.dataset.productToggle);
+        if (!product) return;
+        toggleButton.disabled = true;
+        const { error } = await client.from('products').update({ is_available: !product.is_available }).eq('id', product.id);
+        if (error) { showCatalogMessage('No se pudo actualizar el producto: ' + error.message); toggleButton.disabled = false; return; }
+        await loadCatalog();
+      }
+    });
+
+    categoryForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const id = document.getElementById('categoryId').value;
+      const name = document.getElementById('categoryName').value.trim();
+      const description = document.getElementById('categoryDescription').value.trim();
+      const sortOrder = Number(document.getElementById('categoryOrder').value || 0);
+      if (!name || !Number.isInteger(sortOrder) || sortOrder < 0) { showCatalogMessage('Revisá el nombre y el orden de la categoría.'); return; }
+      const slug = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const payload = { name, slug, description: description || null, sort_order: sortOrder };
+      const saveButton = categoryForm.querySelector('[type="submit"]');
+      saveButton.disabled = true;
+      const result = id
+        ? await client.from('categories').update(payload).eq('id', id)
+        : await client.from('categories').insert(payload);
+      saveButton.disabled = false;
+      if (result.error) { showCatalogMessage('No se pudo guardar la categoría: ' + result.error.message); return; }
+      categoryForm.hidden = true;
+      categoryForm.reset();
+      await loadCatalog();
+      showCatalogMessage('Categoría guardada correctamente.');
+    });
+
+    productForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const id = document.getElementById('productId').value;
+      const name = document.getElementById('productName').value.trim();
+      const price = Number(document.getElementById('productPrice').value);
+      const categoryValue = document.getElementById('productCategory').value;
+      const sortOrder = Number(document.getElementById('productOrder').value || 0);
+      const imageUrl = document.getElementById('productImage').value.trim();
+      if (!name || !Number.isFinite(price) || price < 0 || !Number.isInteger(sortOrder) || sortOrder < 0) {
+        showCatalogMessage('Revisá el nombre, el precio y el orden del producto.');
+        return;
+      }
+      if (imageUrl && !/^https:\/\//i.test(imageUrl)) {
+        showCatalogMessage('La imagen debe tener una dirección segura que comience con https://');
+        return;
+      }
+      const payload = {
+        name,
+        price,
+        category_id: categoryValue ? Number(categoryValue) : null,
+        description: document.getElementById('productDescription').value.trim() || null,
+        image_url: imageUrl || null,
+        is_available: document.getElementById('productAvailable').checked,
+        sort_order: sortOrder
+      };
+      const saveButton = productForm.querySelector('[type="submit"]');
+      saveButton.disabled = true;
+      const result = id
+        ? await client.from('products').update(payload).eq('id', id)
+        : await client.from('products').insert(payload);
+      saveButton.disabled = false;
+      if (result.error) { showCatalogMessage('No se pudo guardar el producto: ' + result.error.message); return; }
+      productForm.hidden = true;
+      productForm.reset();
+      await loadCatalog();
+      showCatalogMessage('Producto guardado correctamente.');
     });
   </script>
 </body>
