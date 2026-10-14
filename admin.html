@@ -171,7 +171,7 @@
         <form id="categoryForm" class="catalog-form" hidden>
           <input type="hidden" id="categoryId">
           <div class="catalog-field"><label for="categoryName">Nombre</label><input id="categoryName" maxlength="80" required placeholder="Ej. Rolls clásicos"></div>
-          <div class="catalog-field"><label for="categoryOrder">Orden de aparición</label><input id="categoryOrder" type="number" min="0" step="1" value="0"></div>
+          <div class="catalog-field"><label for="categoryOrder">Posición en la lista</label><input id="categoryOrder" type="number" min="1" step="1" value="1"><span class="catalog-row-meta">Si indicás una posición mayor a las disponibles, la categoría se ubicará al final.</span></div>
           <div class="catalog-field full"><label for="categoryDescription">Descripción (opcional)</label><textarea id="categoryDescription" maxlength="500" placeholder="Una breve descripción de la categoría"></textarea></div>
           <div class="catalog-form-actions"><button class="catalog-secondary" id="cancelCategory" type="button">Cancelar</button><button class="catalog-primary" type="submit">Guardar categoría</button></div>
         </form>
@@ -360,6 +360,23 @@
       showCatalogMessage('Catálogo sincronizado correctamente.');
     }
 
+    async function persistCategoryOrder(orderedCategories) {
+      const results = await Promise.all(orderedCategories.map((category, index) =>
+        client.from('categories').update({ sort_order: index + 1 }).eq('id', category.id)
+      ));
+      return results.find((result) => result.error)?.error || null;
+    }
+
+    function moveCategoryToPosition(categories, categoryId, requestedPosition) {
+      const reordered = [...categories];
+      const currentIndex = reordered.findIndex((item) => String(item.id) === String(categoryId));
+      if (currentIndex < 0) return reordered;
+      const [category] = reordered.splice(currentIndex, 1);
+      const targetIndex = Math.min(Math.max(requestedPosition - 1, 0), reordered.length);
+      reordered.splice(targetIndex, 0, category);
+      return reordered;
+    }
+
     function renderCategories() {
       const list = document.getElementById('categoryList');
       if (!catalogCategories.length) {
@@ -369,7 +386,7 @@
       list.innerHTML = catalogCategories.map((category, index) => `
         <article class="catalog-row">
           <div class="catalog-row-main"><div><p class="catalog-row-name">${escapeCatalog(category.name)}</p><div class="catalog-row-meta">Orden: ${category.sort_order} · ${category.is_active ? 'Activa' : 'Inactiva'}</div>${category.description ? `<div class="catalog-row-meta">${escapeCatalog(category.description)}</div>` : ''}</div></div>
-          <div class="catalog-row-actions"><button class="category-move" type="button" data-category-up="${category.id}" aria-label="Subir ${escapeCatalog(category.name)}" title="Subir categoría" ${index === 0 ? 'disabled' : ''}>↑</button><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button></div>
+          <div class="catalog-row-actions"><button class="category-move" type="button" data-category-up="${category.id}" aria-label="Subir ${escapeCatalog(category.name)}" title="Subir categoría" ${index === 0 ? 'disabled' : ''}>↑</button><button class="category-move" type="button" data-category-down="${category.id}" aria-label="Bajar ${escapeCatalog(category.name)}" title="Bajar categoría" ${index === catalogCategories.length - 1 ? 'disabled' : ''}>↓</button><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button></div>
         </article>`).join('');
     }
 
@@ -442,7 +459,7 @@
     document.getElementById('newCategory').addEventListener('click', () => {
       categoryForm.reset();
       document.getElementById('categoryId').value = '';
-      document.getElementById('categoryOrder').value = '0';
+      document.getElementById('categoryOrder').value = String(catalogCategories.length + 1);
       categoryForm.hidden = false;
       document.getElementById('categoryName').focus();
     });
@@ -460,21 +477,21 @@
 
     document.getElementById('categoryList').addEventListener('click', async (event) => {
       const upButton = event.target.closest('[data-category-up]');
+      const downButton = event.target.closest('[data-category-down]');
       const editButton = event.target.closest('[data-category-edit]');
       const toggleButton = event.target.closest('[data-category-toggle]');
-      if (upButton) {
-        const currentIndex = catalogCategories.findIndex((item) => String(item.id) === upButton.dataset.categoryUp);
-        if (currentIndex <= 0) return;
+      if (upButton || downButton) {
+        const categoryId = (upButton || downButton).dataset.categoryUp || (upButton || downButton).dataset.categoryDown;
+        const currentIndex = catalogCategories.findIndex((item) => String(item.id) === categoryId);
+        const targetIndex = currentIndex + (upButton ? -1 : 1);
+        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= catalogCategories.length) return;
         const reordered = [...catalogCategories];
-        [reordered[currentIndex - 1], reordered[currentIndex]] = [reordered[currentIndex], reordered[currentIndex - 1]];
-        document.querySelectorAll('[data-category-up]').forEach((button) => { button.disabled = true; });
+        [reordered[currentIndex], reordered[targetIndex]] = [reordered[targetIndex], reordered[currentIndex]];
+        document.querySelectorAll('[data-category-up], [data-category-down]').forEach((button) => { button.disabled = true; });
         showCatalogMessage('Guardando el nuevo orden de las categorías...');
-        const updates = await Promise.all(reordered.map((category, index) =>
-          client.from('categories').update({ sort_order: index + 1 }).eq('id', category.id)
-        ));
-        const failed = updates.find((result) => result.error);
-        if (failed) {
-          console.error('Error guardando el orden:', failed.error);
+        const orderError = await persistCategoryOrder(reordered);
+        if (orderError) {
+          console.error('Error guardando el orden:', orderError);
           showCatalogMessage('No se pudo guardar el nuevo orden. Se volverá a cargar el orden guardado.');
           await loadCatalog();
           return;
@@ -488,7 +505,7 @@
         document.getElementById('categoryId').value = category.id;
         document.getElementById('categoryName').value = category.name;
         document.getElementById('categoryDescription').value = category.description || '';
-        document.getElementById('categoryOrder').value = category.sort_order ?? 0;
+        document.getElementById('categoryOrder').value = category.sort_order ?? 1;
         categoryForm.hidden = false;
         document.getElementById('categoryName').focus();
       }
@@ -534,21 +551,49 @@
       const id = document.getElementById('categoryId').value;
       const name = document.getElementById('categoryName').value.trim();
       const description = document.getElementById('categoryDescription').value.trim();
-      const sortOrder = Number(document.getElementById('categoryOrder').value || 0);
-      if (!name || !Number.isInteger(sortOrder) || sortOrder < 0) { showCatalogMessage('Revisá el nombre y el orden de la categoría.'); return; }
+      const requestedPosition = Number(document.getElementById('categoryOrder').value || 1);
+      if (!name || !Number.isInteger(requestedPosition) || requestedPosition < 1) { showCatalogMessage('Revisá el nombre y la posición de la categoría.'); return; }
       const slug = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const payload = { name, slug, description: description || null, sort_order: sortOrder };
+      const payload = { name, slug, description: description || null };
       const saveButton = categoryForm.querySelector('[type="submit"]');
       saveButton.disabled = true;
-      const result = id
-        ? await client.from('categories').update(payload).eq('id', id)
-        : await client.from('categories').insert(payload);
+
+      let reordered = [...catalogCategories];
+      let saveError = null;
+      if (id) {
+        const result = await client.from('categories').update(payload).eq('id', id);
+        if (result.error) {
+          saveError = result.error;
+        } else {
+          const editedCategory = reordered.find((category) => String(category.id) === id);
+          if (editedCategory) {
+            reordered = reordered.map((category) => String(category.id) === id ? { ...category, ...payload } : category);
+            reordered = moveCategoryToPosition(reordered, id, Math.min(requestedPosition, reordered.length));
+          }
+        }
+      } else {
+        const result = await client.from('categories').insert({ ...payload, sort_order: catalogCategories.length + 1 }).select('id').single();
+        if (result.error) {
+          saveError = result.error;
+        } else {
+          const newCategory = { id: result.data.id, ...payload, is_active: true, sort_order: catalogCategories.length + 1 };
+          reordered.push(newCategory);
+          reordered = moveCategoryToPosition(reordered, newCategory.id, Math.min(requestedPosition, reordered.length));
+        }
+      }
+
+      if (!saveError) saveError = await persistCategoryOrder(reordered);
       saveButton.disabled = false;
-      if (result.error) { showCatalogMessage('No se pudo guardar la categoría: ' + result.error.message); return; }
+      if (saveError) {
+        console.error('Error guardando categoría/posición:', saveError);
+        showCatalogMessage('No se pudo completar el guardado: ' + saveError.message);
+        await loadCatalog();
+        return;
+      }
       categoryForm.hidden = true;
       categoryForm.reset();
       await loadCatalog();
-      showCatalogMessage('Categoría guardada correctamente.');
+      showCatalogMessage('Categoría guardada y posiciones reorganizadas correctamente.');
     });
 
     productForm.addEventListener('submit', async (event) => {
