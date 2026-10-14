@@ -79,7 +79,9 @@
     .catalog-check{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:11px}
     .catalog-form-actions{grid-column:1/-1;display:flex;gap:9px;justify-content:flex-end;margin-top:4px}
     .catalog-list{display:grid;gap:9px}
-    .catalog-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px;border:1px solid #343943;border-radius:9px;background:#15191f}
+    .catalog-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px;border:1px solid #343943;border-radius:9px;background:#15191f;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
+    .catalog-row.category-selected{border-color:var(--rose);background:#2a2026;box-shadow:0 0 0 2px #ffb3b61a}
+    .catalog-row:focus-visible{outline:2px solid var(--rose);outline-offset:2px}
     .catalog-row-main{min-width:0;display:flex;align-items:center;gap:12px}
     .catalog-thumb{width:48px;height:48px;flex:0 0 48px;border-radius:7px;background:#242832;object-fit:cover}
     .catalog-row-name{font-size:12px;font-weight:800;margin:0 0 4px;overflow-wrap:anywhere}
@@ -321,6 +323,15 @@
     const catalogMessage = document.getElementById('catalogMessage');
     let catalogCategories = [];
     let catalogProducts = [];
+    let selectedCategoryId = null;
+
+    function selectCategory(categoryId, shouldScroll = false) {
+      selectedCategoryId = String(categoryId);
+      renderCategories();
+      if (shouldScroll) {
+        document.querySelector('[data-category-row].category-selected')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
 
     function escapeCatalog(value) {
       return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -384,7 +395,7 @@
         return;
       }
       list.innerHTML = catalogCategories.map((category, index) => `
-        <article class="catalog-row">
+        <article class="catalog-row ${String(category.id) === String(selectedCategoryId) ? 'category-selected' : ''}" data-category-row="${category.id}" tabindex="0" aria-pressed="${String(category.id) === String(selectedCategoryId)}" title="Seleccionar categoría">
           <div class="catalog-row-main"><div><p class="catalog-row-name">${escapeCatalog(category.name)}</p><div class="catalog-row-meta">Orden: ${category.sort_order} · ${category.is_active ? 'Activa' : 'Inactiva'}</div>${category.description ? `<div class="catalog-row-meta">${escapeCatalog(category.description)}</div>` : ''}</div></div>
           <div class="catalog-row-actions"><button class="category-move" type="button" data-category-up="${category.id}" aria-label="Subir ${escapeCatalog(category.name)}" title="Subir categoría" ${index === 0 ? 'disabled' : ''}>↑</button><button class="category-move" type="button" data-category-down="${category.id}" aria-label="Bajar ${escapeCatalog(category.name)}" title="Bajar categoría" ${index === catalogCategories.length - 1 ? 'disabled' : ''}>↓</button><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button></div>
         </article>`).join('');
@@ -480,6 +491,8 @@
       const downButton = event.target.closest('[data-category-down]');
       const editButton = event.target.closest('[data-category-edit]');
       const toggleButton = event.target.closest('[data-category-toggle]');
+      const row = event.target.closest('[data-category-row]');
+      if (row) selectCategory(row.dataset.categoryRow);
       if (upButton || downButton) {
         const categoryId = (upButton || downButton).dataset.categoryUp || (upButton || downButton).dataset.categoryDown;
         const currentIndex = catalogCategories.findIndex((item) => String(item.id) === categoryId);
@@ -497,11 +510,13 @@
           return;
         }
         await loadCatalog();
+        selectCategory(categoryId, true);
         showCatalogMessage('Orden de categorías actualizado.');
       }
       if (editButton) {
         const category = catalogCategories.find((item) => String(item.id) === editButton.dataset.categoryEdit);
         if (!category) return;
+        selectCategory(category.id, true);
         document.getElementById('categoryId').value = category.id;
         document.getElementById('categoryName').value = category.name;
         document.getElementById('categoryDescription').value = category.description || '';
@@ -583,6 +598,7 @@
       }
 
       if (!saveError) saveError = await persistCategoryOrder(reordered);
+      if (!saveError) selectedCategoryId = String(id || reordered.find((category) => !catalogCategories.some((existing) => String(existing.id) === String(category.id)))?.id || selectedCategoryId);
       saveButton.disabled = false;
       if (saveError) {
         console.error('Error guardando categoría/posición:', saveError);
@@ -593,6 +609,7 @@
       categoryForm.hidden = true;
       categoryForm.reset();
       await loadCatalog();
+      if (selectedCategoryId) selectCategory(selectedCategoryId, true);
       showCatalogMessage('Categoría guardada y posiciones reorganizadas correctamente.');
     });
 
