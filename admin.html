@@ -60,53 +60,69 @@
     </section>
     <p class="foot">YAN KUN SUSHI LAB · BAHÍA BLANCA</p>
   </main>
+  <script>
+    // El control de mostrar/ocultar contraseña funciona independientemente de Supabase.
+    const passwordInput = document.getElementById('password');
+    const toggleButton = document.getElementById('togglePassword');
+
+    toggleButton.addEventListener('click', () => {
+      const visible = passwordInput.type === 'password';
+      passwordInput.type = visible ? 'text' : 'password';
+      toggleButton.textContent = visible ? 'OCULTAR' : 'VER';
+      toggleButton.setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    });
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://cdhnpsowlsesoobrytvh.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-    const password = document.getElementById('password');
     const form = document.getElementById('loginForm');
     const submitButton = form.querySelector('button[type="submit"]');
     const message = document.getElementById('loginMessage');
 
-    document.getElementById('togglePassword').addEventListener('click', () => {
-      const visible = password.type === 'password';
-      password.type = visible ? 'text' : 'password';
-      document.getElementById('togglePassword').textContent = visible ? 'OCULTAR' : 'VER';
-      document.getElementById('togglePassword').setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
-    });
-
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const username = document.getElementById('username').value.trim();
-      const passwordValue = password.value;
+      const passwordValue = passwordInput.value;
 
-      if (!username || !passwordValue) return;
+      if (!username || !passwordValue) {
+        message.textContent = 'Completá el usuario y la contraseña.';
+        return;
+      }
+
+      if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+        message.textContent = 'No se pudo cargar el componente de conexión. Recargá la página y volvé a intentar.';
+        return;
+      }
 
       submitButton.disabled = true;
       submitButton.textContent = 'Verificando...';
       message.textContent = 'Comprobando tus credenciales de forma segura...';
 
       try {
-        const { data, error } = await supabase.functions.invoke('admin-login', {
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        const { data, error } = await client.functions.invoke('admin-login', {
           body: { username, password: passwordValue }
         });
 
-        if (error) throw error;
-        if (!data || !data.session) {
-          throw new Error(data?.error || 'No se pudo iniciar la sesión.');
+        if (error) {
+          const detail = error.context?.json ? await error.context.json().catch(() => null) : null;
+          throw new Error(detail?.error || error.message || 'No se pudo contactar al servidor.');
         }
 
-        const { error: sessionError } = await supabase.auth.setSession({
+        if (!data || !data.session) {
+          throw new Error(data?.error || 'El servidor no devolvió una sesión válida.');
+        }
+
+        const { error: sessionError } = await client.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token
         });
 
         if (sessionError) throw sessionError;
 
-        message.textContent = '¡Acceso validado! La autenticación funciona correctamente. Estamos preparando el panel de administración.';
+        message.textContent = 'Credenciales verificadas correctamente. El acceso funciona; el panel de administración todavía está en construcción.';
         submitButton.textContent = 'Acceso validado';
       } catch (error) {
         console.error('Error de inicio de sesión:', error);
