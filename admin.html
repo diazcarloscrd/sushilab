@@ -375,8 +375,7 @@
       const select = document.getElementById('productCategory');
       const selected = select.value;
       select.innerHTML = '<option value="">Sin categoría</option>' + catalogCategories
-        .filter((category) => category.is_active)
-        .map((category) => `<option value="${category.id}">${escapeCatalog(category.name)}</option>`).join('');
+        .map((category) => `<option value="${category.id}" ${category.is_active ? '' : 'disabled'}>${escapeCatalog(category.name)}${category.is_active ? '' : ' (Inactiva)'}</option>`).join('');
       if ([...select.options].some((option) => option.value === selected)) select.value = selected;
     }
 
