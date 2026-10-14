@@ -86,6 +86,8 @@
     .catalog-row-meta{font-size:10px;color:var(--muted);line-height:1.5}
     .catalog-row-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
     .catalog-row-actions button{border:1px solid var(--line);background:#20242b;color:var(--text);border-radius:7px;padding:8px 10px;font:700 9px var(--sans);cursor:pointer}
+    .catalog-row-actions button.category-move{font-size:15px;line-height:1;padding:6px 10px;color:var(--rose)}
+    .catalog-row-actions button:disabled{opacity:.35;cursor:not-allowed}
     .catalog-empty{padding:24px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed #454954;border-radius:9px}
     .catalog-message{margin:0 0 16px;padding:12px 14px;border:1px solid #57434a;background:#291c22;color:#e3cbd0;border-radius:8px;font-size:11px;line-height:1.6}
     .catalog-message:empty{display:none}
@@ -364,10 +366,10 @@
         list.innerHTML = '<div class="catalog-empty">Todavía no hay categorías. Creá la primera para organizar el catálogo.</div>';
         return;
       }
-      list.innerHTML = catalogCategories.map((category) => `
+      list.innerHTML = catalogCategories.map((category, index) => `
         <article class="catalog-row">
           <div class="catalog-row-main"><div><p class="catalog-row-name">${escapeCatalog(category.name)}</p><div class="catalog-row-meta">Orden: ${category.sort_order} · ${category.is_active ? 'Activa' : 'Inactiva'}</div>${category.description ? `<div class="catalog-row-meta">${escapeCatalog(category.description)}</div>` : ''}</div></div>
-          <div class="catalog-row-actions"><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button></div>
+          <div class="catalog-row-actions"><button class="category-move" type="button" data-category-up="${category.id}" aria-label="Subir ${escapeCatalog(category.name)}" title="Subir categoría" ${index === 0 ? 'disabled' : ''}>↑</button><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button></div>
         </article>`).join('');
     }
 
@@ -408,9 +410,15 @@
     document.querySelector('[data-open-catalog]').addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openCatalog(); }
     });
-    document.getElementById('backToDashboard').addEventListener('click', () => {
+    document.getElementById('backToDashboard').addEventListener('click', async () => {
       catalogView.hidden = true;
       dashboard.hidden = false;
+      try {
+        await loadDashboardData();
+      } catch (error) {
+        console.error('Error actualizando el panel al volver del catálogo:', error);
+        dashboardMessage.textContent = 'No se pudieron actualizar los indicadores automáticamente. Podés reintentar con Actualizar datos.';
+      }
     });
     document.getElementById('catalogLogout').addEventListener('click', async () => {
       await client.auth.signOut();
@@ -451,8 +459,29 @@
     document.getElementById('cancelProduct').addEventListener('click', () => { productForm.hidden = true; productForm.reset(); });
 
     document.getElementById('categoryList').addEventListener('click', async (event) => {
+      const upButton = event.target.closest('[data-category-up]');
       const editButton = event.target.closest('[data-category-edit]');
       const toggleButton = event.target.closest('[data-category-toggle]');
+      if (upButton) {
+        const currentIndex = catalogCategories.findIndex((item) => String(item.id) === upButton.dataset.categoryUp);
+        if (currentIndex <= 0) return;
+        const reordered = [...catalogCategories];
+        [reordered[currentIndex - 1], reordered[currentIndex]] = [reordered[currentIndex], reordered[currentIndex - 1]];
+        document.querySelectorAll('[data-category-up]').forEach((button) => { button.disabled = true; });
+        showCatalogMessage('Guardando el nuevo orden de las categorías...');
+        const updates = await Promise.all(reordered.map((category, index) =>
+          client.from('categories').update({ sort_order: index + 1 }).eq('id', category.id)
+        ));
+        const failed = updates.find((result) => result.error);
+        if (failed) {
+          console.error('Error guardando el orden:', failed.error);
+          showCatalogMessage('No se pudo guardar el nuevo orden. Se volverá a cargar el orden guardado.');
+          await loadCatalog();
+          return;
+        }
+        await loadCatalog();
+        showCatalogMessage('Orden de categorías actualizado.');
+      }
       if (editButton) {
         const category = catalogCategories.find((item) => String(item.id) === editButton.dataset.categoryEdit);
         if (!category) return;
