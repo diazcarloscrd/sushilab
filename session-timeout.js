@@ -132,10 +132,10 @@
           !frame ||
           frame.contentWindow !== event.source ||
           event.data?.type !== 'yankun-admin-activity') return;
-      const now = Number(event.data.at) || Date.now();
+      const now = Date.now();
       localStorage.setItem(STORAGE_KEY, String(now));
       lastWrite = now;
-      if (warningVisible && now < Date.now() && Date.now() - now < IDLE_LIMIT) closeWarning();
+      if (warningVisible) closeWarning();
     });
     window.addEventListener('storage', function (event) {
       if (event.key === STORAGE_KEY && event.newValue) {
