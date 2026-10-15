@@ -100,6 +100,18 @@ Deno.serve(async (req: Request) => {
     }
     if ((count || 0) >= 3) return json({ error: "Ya recibimos varios pedidos con ese teléfono. Contactanos por WhatsApp." }, 429, origin);
 
+    const requestedIds = [...new Set(items.map((item: { product_id: number }) => Number(item.product_id)))];
+    const { data: requestedProducts, error: productsError } = await admin.from("products")
+      .select("id,name").in("id", requestedIds);
+    if (productsError) {
+      console.error("No se pudieron validar los productos del pedido:", productsError.message);
+      return json({ error: "No se pudo validar el carrito. Intentá nuevamente." }, 503, origin);
+    }
+    const quoteProduct = (requestedProducts || []).find((product) =>
+      String(product.name || "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().includes("bombas de salmon")
+    );
+    if (quoteProduct) return json({ error: "Bombas de Salmón se cotiza por WhatsApp y no puede agregarse al total automático del pedido." }, 422, origin);
+
     const notes = [
       payload?.requested_time ? "Horario solicitado: " + String(payload.requested_time).slice(0, 80) : "",
       payload?.payment_method ? "Medio de pago: " + String(payload.payment_method).slice(0, 80) : "",
