@@ -624,6 +624,12 @@
         resize();
         setTimeout(resize, 250);
         setTimeout(resize, 900);
+        if (typeof ResizeObserver !== "undefined") {
+          const observer = new ResizeObserver(resize);
+          observer.observe(doc.body);
+          observer.observe(doc.documentElement);
+        }
+        doc.defaultView.addEventListener("resize", resize);
       } catch (error) {
         console.warn("No se pudo adaptar el módulo al panel principal:", error);
       }
