@@ -1267,7 +1267,6 @@
     if(payment&&Array.isArray(publicSettings.payment_methods)&&publicSettings.payment_methods.length){payment.innerHTML='';publicSettings.payment_methods.forEach(method=>{const option=document.createElement('option');option.value=method;option.textContent=method;payment.appendChild(option);});}
     await loadUpsellProduct();
     if(typeof window.renderCartSummary==='function')window.renderCartSummary();
-    loadCatalog().catch(error=>console.warn('No se pudo actualizar la carta con la configuración pública.',error));
   }
 
   async function loadSchedule() {
@@ -1315,19 +1314,18 @@
   }
 
   document.addEventListener('DOMContentLoaded',()=> {
-    loadCatalog().catch(error=>{console.error(error);});
     loadSchedule().catch(error=>{console.error(error);});
-    loadPublicSettings().then(()=>renderTimeSlots()).catch(error=>{console.error(error);publicSettingsKnown=true;window.yankunPublicSettingsKnown=true;});
+    loadPublicSettings().then(()=>{renderTimeSlots();return loadCatalog();}).catch(error=>{console.error(error);publicSettingsKnown=true;window.yankunPublicSettingsKnown=true;loadCatalog().catch(catalogError=>console.error(catalogError));});
     db.channel('public-catalog-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>{loadCatalog();loadUpsellProduct();})
       .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadCatalog())
       .on('postgres_changes',{event:'*',schema:'public',table:'business_hours'},()=>loadSchedule())
       .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>loadSchedule())
-      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings().then(()=>loadCatalog()).catch(error=>console.warn(error)))
       .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>loadPublicSettings())
       .on('postgres_changes',{event:'*',schema:'public',table:'delivery_zones'},()=>loadPublicSettings())
       .subscribe();
-    window.setInterval(()=>{loadCatalog().catch(()=>{});loadSchedule().catch(()=>{});loadPublicSettings().catch(()=>{});},60000);
+    window.setInterval(()=>{loadPublicSettings().then(()=>loadCatalog()).catch(()=>{});loadSchedule().catch(()=>{});},60000);
   });
 })();
 </script>
