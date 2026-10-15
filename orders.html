@@ -81,6 +81,7 @@ el("search").addEventListener("input",e=>{term=e.target.value.trim().toLowerCase
 el("filter").addEventListener("change",e=>{filter=e.target.value;paint()});
 el("refresh").addEventListener("click",load);
 const ordersChannel=db.channel("admin-orders-live").on("postgres_changes",{event:"*",schema:"public",table:"orders"},()=>{load()}).subscribe((status)=>{if(status==="SUBSCRIBED")note("Conectado · esperando pedidos nuevos")});
+window.setInterval(()=>{if(!document.hidden)load()},30000);
 window.addEventListener("focus",()=>load());
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
 (async()=>{const {data,error}=await db.auth.getSession();if(error||!data.session){note("Sesión no activa. Iniciá sesión desde el panel administrador.");el("list").innerHTML='<div class="empty">No hay sesión activa.</div>';return}const admin=await db.from("admin_users").select("user_id").eq("user_id",data.session.user.id).maybeSingle();if(admin.error||!admin.data){note("Esta cuenta no tiene permisos de administrador.");return}const sessionActive=await window.startYanKunIdleSession(db,false);if(!sessionActive){note("La sesión se cerró por inactividad. Iniciá sesión nuevamente.");window.location.href="admin.html?session-expired=1";return}await load()})().catch(e=>{console.error(e);note("Error al iniciar el módulo de pedidos.")});
