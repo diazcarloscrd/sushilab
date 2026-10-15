@@ -621,8 +621,8 @@
         style.textContent = `
           :root{color-scheme:dark!important;--yk-bg:#0d1015;--yk-surface:#171d26;--yk-surface-2:#1d2530;--yk-line:rgba(239,232,226,.10);--yk-text:#f1eee9;--yk-muted:#a6a7ad;--yk-rose:#ffb3b6;--yk-red:#e11d48}
           *,*::before,*::after{box-sizing:border-box}
-          html{min-height:100%;background:#0d1015!important}
-          body{min-height:100vh!important;margin:0!important;padding:0!important;color:var(--yk-text)!important;font-family:Manrope,Arial,sans-serif!important;background:radial-gradient(ellipse at 82% 0%,rgba(225,29,72,.13),transparent 38%),radial-gradient(ellipse at 8% 55%,rgba(88,103,139,.09),transparent 42%),linear-gradient(145deg,#111720,#0d1015 68%)!important}
+          html{min-height:100%;background:transparent!important}
+          body{min-height:100vh!important;margin:0!important;padding:0!important;color:var(--yk-text)!important;font-family:Manrope,Arial,sans-serif!important;background:transparent!important}
           body>header{display:none!important}
           body>main{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
           body>main>h1{font:500 clamp(27px,3vw,36px) Georgia,serif!important;color:#f5f0eb!important;margin:0 0 8px!important}
@@ -651,7 +651,12 @@
           body>main{font-family:Manrope,Arial,sans-serif!important;color:#f1eee9!important}
           body>main>h1,.head h1{font-family:"Noto Serif",Georgia,serif!important;font-size:clamp(27px,3vw,35px)!important;font-weight:500!important;letter-spacing:-.65px!important;line-height:1.2!important;margin:0 0 9px!important}
           body>main>p,.head p{font-family:Manrope,Arial,sans-serif!important;font-size:12px!important;line-height:1.7!important;color:#a6a7ad!important}
-          .head{align-items:center!important;gap:18px!important;margin:0 0 26px!important}
+          .head{align-items:flex-start!important;gap:18px!important;margin:0 0 26px!important}
+          .head>div>p:first-child{margin:0 0 9px!important;color:var(--yk-rose)!important;font:800 9px Manrope,Arial,sans-serif!important;letter-spacing:2px!important;text-transform:uppercase!important}
+          .head>div>p:last-child{margin:9px 0 0!important;color:var(--yk-muted)!important;font:400 12px/1.7 Manrope,Arial,sans-serif!important}
+          .head h1{margin:0!important}
+          .head>div{min-width:0;flex:1}
+          .head>button,.head>.btn,.head>.primary{flex:0 0 auto}
           .head>div{min-width:0;flex:1}
           .head>button,.head>.btn,.head>.primary{flex:0 0 auto}
           .panel{padding:clamp(16px,2vw,22px)!important;margin:0 0 18px!important;border:1px solid rgba(239,232,226,.10)!important;border-radius:16px!important;background:linear-gradient(145deg,rgba(29,37,48,.96),rgba(19,25,33,.98))!important;box-shadow:0 18px 45px rgba(0,0,0,.16)!important}
