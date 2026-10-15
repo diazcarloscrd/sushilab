@@ -108,7 +108,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: "No se pudo validar el carrito. Intentá nuevamente." }, 503, origin);
     }
     const quoteProduct = (requestedProducts || []).find((product) =>
-      String(product.name || "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().includes("bombas de salmon")
+      String(product.name || "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().includes("bombas de salmon")
     );
     if (quoteProduct) return json({ error: "Bombas de Salmón se cotiza por WhatsApp y no puede agregarse al total automático del pedido." }, 422, origin);
 
