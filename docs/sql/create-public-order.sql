@@ -27,6 +27,16 @@ DECLARE
   v_address text;
   v_notes text;
   v_fee numeric(12,2);
+  v_local_now timestamp without time zone;
+  v_local_date date;
+  v_local_day smallint;
+  v_local_time time without time zone;
+  v_event_type text;
+  v_event_open time without time zone;
+  v_event_close time without time zone;
+  v_day_open boolean;
+  v_day_open_time time without time zone;
+  v_day_close_time time without time zone;
   v_subtotal numeric(12,2) := 0;
   v_quantity integer;
   v_product_id bigint;
@@ -50,13 +60,14 @@ BEGIN
   IF v_phone IS NULL OR length(regexp_replace(v_phone, '[^0-9]', '', 'g')) NOT BETWEEN 8 AND 20 THEN
     RAISE EXCEPTION 'Teléfono inválido';
   END IF;
-  IF v_mode NOT IN ('delivery_bahia', 'pickup', 'otra_zona') THEN RAISE EXCEPTION 'Modalidad inválida'; END IF;
+  IF v_mode IS NULL OR v_mode NOT IN ('delivery_bahia', 'pickup', 'otra_zona') THEN RAISE EXCEPTION 'Modalidad inválida'; END IF;
   IF v_mode IN ('delivery_bahia', 'otra_zona') AND v_address IS NULL THEN
     RAISE EXCEPTION 'Falta la dirección de entrega';
   END IF;
-  IF jsonb_typeof(p_payload->'items') <> 'array'
-     OR jsonb_array_length(p_payload->'items') < 1
-     OR jsonb_array_length(p_payload->'items') > 20 THEN
+  IF p_payload->'items' IS NULL OR jsonb_typeof(p_payload->'items') <> 'array' THEN
+    RAISE EXCEPTION 'El pedido no contiene productos válidos';
+  END IF;
+  IF jsonb_array_length(p_payload->'items') < 1 OR jsonb_array_length(p_payload->'items') > 20 THEN
     RAISE EXCEPTION 'El pedido no contiene productos válidos';
   END IF;
 
@@ -65,6 +76,51 @@ BEGIN
   WHERE sl.code = 'bahia-blanca-store' AND sl.location_type = 'store' AND sl.is_active = true
   LIMIT 1;
   IF v_store_id IS NULL THEN RAISE EXCEPTION 'El punto de venta no está disponible'; END IF;
+  -- Recheck opening hours on the server so a browser cannot bypass the public schedule.
+  v_local_now := now() AT TIME ZONE 'America/Argentina/Buenos_Aires';
+  v_local_date := v_local_now::date;
+  v_local_day := extract(dow FROM v_local_now)::smallint;
+  v_local_time := v_local_now::time;
+
+  SELECT se.event_type, se.opens_at, se.closes_at
+    INTO v_event_type, v_event_open, v_event_close
+  FROM public.special_events se
+  WHERE se.sales_location_id = v_store_id
+    AND se.event_date = v_local_date
+    AND se.is_active = true
+  ORDER BY se.id DESC
+  LIMIT 1;
+
+  IF FOUND THEN
+    IF v_event_type = 'exceptional_closure' THEN
+      RAISE EXCEPTION 'El local está cerrado por excepción';
+    ELSIF v_event_type = 'special_opening' THEN
+      IF v_event_open IS NULL OR v_event_close IS NULL
+         OR v_local_time < v_event_open OR v_local_time >= v_event_close THEN
+        RAISE EXCEPTION 'El local está fuera del horario de apertura especial';
+      END IF;
+    END IF;
+  ELSE
+    SELECT bh.is_open, bh.opens_at, bh.closes_at
+      INTO v_day_open, v_day_open_time, v_day_close_time
+    FROM public.business_hours bh
+    WHERE bh.sales_location_id = v_store_id
+      AND bh.schedule_type = 'weekly'
+      AND bh.day_of_week = v_local_day
+    ORDER BY bh.id DESC
+    LIMIT 1;
+
+    IF FOUND THEN
+      IF NOT v_day_open OR v_day_open_time IS NULL OR v_day_close_time IS NULL
+         OR v_local_time < v_day_open_time OR v_local_time >= v_day_close_time THEN
+        RAISE EXCEPTION 'El local está fuera del horario de atención';
+      END IF;
+    ELSIF v_local_day NOT IN (2,3,4,5,6)
+       OR v_local_time < time '18:30' OR v_local_time >= time '21:00' THEN
+      RAISE EXCEPTION 'El local está fuera del horario de atención';
+    END IF;
+  END IF;
+
 
   v_method := CASE WHEN v_mode = 'pickup' THEN 'takeaway' ELSE 'delivery' END;
   v_fee := CASE WHEN v_mode = 'delivery_bahia' THEN 6000 ELSE 0 END;
