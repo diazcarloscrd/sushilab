@@ -1339,7 +1339,7 @@
     setText('termsDeliveryInfo','Cadetería urbana en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana')+' con tarifa de '+feeLabel+'. Zonas especiales o periféricas se cotizan por WhatsApp.');
     setText('termsPreparation','Elaboración al momento: '+prepLabel+', según demanda de cocina.');
     setText('deliveryOptionLabel','Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana'));
-    document.querySelectorAll('a[data-business-whatsapp]').forEach(link=>{if(publicSettings.whatsapp_number)link.href='https://wa.me/'+publicSettings.whatsapp_number;if(link.textContent.includes('+54'))link.textContent=publicSettings.whatsapp_display||link.textContent;});
+    document.querySelectorAll('a[data-business-whatsapp]').forEach(link=>{if(publicSettings.qa_mode===true){link.removeAttribute('href');link.removeAttribute('target');link.setAttribute('aria-disabled','true');link.setAttribute('tabindex','-1');link.title='Deshabilitado en QA';link.textContent='WhatsApp deshabilitado en QA';return;}if(publicSettings.whatsapp_number)link.href='https://wa.me/'+publicSettings.whatsapp_number;if(link.textContent.includes('+54'))link.textContent=publicSettings.whatsapp_display||link.textContent;});
     const payment=document.getElementById('paymentMethod');
     if(payment&&Array.isArray(publicSettings.payment_methods)&&publicSettings.payment_methods.length){payment.innerHTML='';publicSettings.payment_methods.forEach(method=>{const option=document.createElement('option');option.value=method;option.textContent=method;payment.appendChild(option);});}
     await loadUpsellProduct();
