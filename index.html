@@ -1102,15 +1102,25 @@
         const card = document.createElement('article');
         card.className = 'p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60 min-w-0';
         const safeImage = safeImageUrl(product.image_url);
+        const quoteOnly = isQuoteProduct(product);
         const image = safeImage ? '<img src="' + esc(safeImage) + '" alt="' + esc(product.name) + '" loading="lazy" class="w-full h-36 object-cover rounded-md mb-3">' : '';
+        const priceLabel = quoteOnly ? 'Precio a consultar' : money(product.price);
         card.innerHTML = image +
           '<div class="mb-3"><h4 class="font-headline-sm text-[16px] text-on-surface font-semibold">' + esc(product.name) + '</h4>' +
           '<p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-3">' + esc(product.description || '') + '</p></div>' +
-          '<div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">' + esc(money(product.price)) + '</span></div>';
+          '<div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">' + esc(priceLabel) + '</span></div>';
         const button = document.createElement('button');
         button.type='button'; button.className='yk-add-product mt-2 w-full px-2 py-2 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 cursor-pointer';
-        button.textContent='＋ Sumar al pedido';
-        button.addEventListener('click',()=>window.addToCart(Number(product.id),product.name,Number(product.price),category.name));
+        button.textContent=quoteOnly ? 'Consultar por WhatsApp' : '＋ Sumar al pedido';
+        button.addEventListener('click',()=>{
+          if(quoteOnly){
+            const phone=String(publicSettings?.whatsapp_number||'5492915101491').replace(/\\D/g,'');
+            const message=encodeURIComponent('Hola, quisiera consultar el precio y los detalles de '+product.name+'.');
+            window.open('https://wa.me/'+phone+'?text='+message,'_blank','noopener');
+            return;
+          }
+          window.addToCart(Number(product.id),product.name,Number(product.price),category.name);
+        });
         card.lastElementChild.appendChild(button);
         grid.appendChild(card);
       });
