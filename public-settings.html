@@ -92,8 +92,11 @@ function fillForm(){
  el("paymentMethods").value=Array.isArray(s.payment_methods)?s.payment_methods.join("\n"):"";
  el("packagingNote").value=s.packaging_note||"";
  el("upsellEnabled").checked=!!s.upsell_enabled;
- el("upsellProduct").innerHTML=products.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+'</option>').join("");
- if(s.upsell_product_id&&products.some(p=>String(p.id)===String(s.upsell_product_id)))el("upsellProduct").value=String(s.upsell_product_id);
+ const selectedId=String(s.upsell_product_id||"");
+ const options=products.map(p=>{const current=String(p.id)===selectedId;return '<option value="'+p.id+'" '+(!p.is_available&&!current?'disabled':'')+'>'+escapeHtml(p.name)+(p.is_available?'':' · Pausado')+'</option>'}).join("");
+ const configuredMissing=selectedId&&!products.some(p=>String(p.id)===selectedId);
+ el("upsellProduct").innerHTML=options+(configuredMissing?'<option value="'+escapeHtml(selectedId)+'" selected disabled>Producto configurado no disponible</option>':"");
+ if(selectedId)el("upsellProduct").value=selectedId;
  const selected=products.find(p=>String(p.id)===el("upsellProduct").value);
  syncUpsellPriceField(selected);
  el("upsellNote").value=selected?.description||"";
@@ -103,7 +106,7 @@ async function load(){
  el("loading").classList.remove("hidden");el("settingsForm").classList.add("hidden");
  const [settingsResult,productsResult]=await Promise.all([
   db.from("business_settings").select("value").eq("key","public_site").maybeSingle(),
-  db.from("products").select("id,name,description,price,is_available,category_id").eq("is_available",true).order("sort_order").order("name")
+  db.from("products").select("id,name,description,price,is_available,category_id").order("sort_order").order("name")
  ]);
  if(settingsResult.error)throw settingsResult.error;if(productsResult.error)throw productsResult.error;
  if(!settingsResult.data)throw new Error("No existe la configuración pública del comercio.");
@@ -118,12 +121,12 @@ el("settingsForm").addEventListener("submit",async event=>{
  const product=products.find(p=>String(p.id)===el("upsellProduct").value),price=Number(el("upsellPrice").value);
  if(!Number.isFinite(fee)||fee<0||!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>360){note("Revisá los valores","La tarifa debe ser positiva y los tiempos deben ser válidos; el máximo no puede ser menor que el mínimo.",true);return}
  if(phone.length<8||phone.length>20||!el("whatsappDisplay").value.trim()||!methods.length){note("Faltan datos","Completá el WhatsApp y al menos un medio de pago.",true);return}
- if(el("upsellEnabled").checked&&(!product||!Number.isFinite(price)||price<0)){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido.",true);return}
+ if(el("upsellEnabled").checked&&(!product||!product.is_available||!Number.isFinite(price)||price<0)){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido. Si el producto está pausado, activalo desde Catálogo o deshabilitá la sugerencia.",true);return}
  if(!await confirmSave())return;
  busy=true;el("save").disabled=true;el("save").textContent="Guardando…";el("refresh").disabled=true;
  try{
   const productDescription=el("upsellNote").value.trim()||null;
-  if(product&&(Number(product.price)!==price||(product.description||null)!==productDescription)){
+  if(el("upsellEnabled").checked&&product&&product.is_available&&(Number(product.price)!==price||(product.description||null)!==productDescription)){
    const productUpdate={price,description:productDescription};
    const updated=await db.from("products").update(productUpdate).eq("id",product.id).eq("is_available",true).select("id,price,description").maybeSingle();
    if(updated.error)throw updated.error;if(!updated.data)throw new Error("No se pudo actualizar el producto sugerido.");
