@@ -804,7 +804,8 @@
     window.yankunOrderSubmitting = true;
     const submitButton = document.querySelector('[onclick*="checkoutViaWhatsApp"]');
     if (submitButton) { submitButton.disabled = true; submitButton.dataset.originalText = submitButton.textContent; submitButton.textContent = 'REGISTRANDO...'; }
-    const waTab = window.open('about:blank', '_blank');
+    const isQAMode = window.yankunPublicSettings?.qa_mode === true;
+    const waTab = isQAMode ? null : window.open('about:blank', '_blank');
     const requestedTime = document.getElementById('deliveryTimeSlot')?.value || '';
     const paymentMethod = document.getElementById('paymentMethod')?.value || '';
     const customerNotes = document.getElementById('generalNotes')?.value.trim() || '';
@@ -824,7 +825,7 @@
       const previous = JSON.parse(sessionStorage.getItem('yankun_pending_order') || 'null');
       requestId = previous && previous.fingerprint === fingerprint ? previous.request_id : crypto.randomUUID();
       sessionStorage.setItem('yankun_pending_order', JSON.stringify({ fingerprint, request_id: requestId }));
-      const response = await fetch('https://cdhnpsowlsesoobrytvh.supabase.co/functions/v1/create-order', {
+      const response = await fetch('https://hafcadevjgcvcbkyqgae.supabase.co/functions/v1/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -839,6 +840,13 @@
       try {
         localStorage.setItem('yankun_last_order', JSON.stringify({ items: cartState.items, deliveryMode: cartState.deliveryMode }));
       } catch (e) {}
+      if (isQAMode) {
+        sessionStorage.removeItem('yankun_pending_order');
+        cartState.items = {};
+        renderCart();
+        window.showOrderFeedback?.('Pedido de prueba registrado', 'El pedido quedó guardado únicamente en el entorno QA. No se abrió WhatsApp ni se envió ningún mensaje.');
+        return;
+      }
       const detailLines = itemsList.map(item => '- ' + item.quantity + ' x ' + item.name).join('\n');
       const message = [
         'Hola, acabo de registrar un pedido en YanKun SushiLab.',
@@ -1022,8 +1030,8 @@
 <script id="yankun-live-integration">
 (function () {
   'use strict';
-  const SUPABASE_URL = 'https://cdhnpsowlsesoobrytvh.supabase.co';
-  const PUBLISHABLE_KEY = 'sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP';
+  const SUPABASE_URL = 'https://hafcadevjgcvcbkyqgae.supabase.co';
+  const PUBLISHABLE_KEY = 'sb_publishable_YlTMpPXItwM5RFyG2SCNsw_2HuuvlF_';
   const db = window.supabase.createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
   });
@@ -1148,7 +1156,15 @@
         button.textContent=quoteOnly ? 'Consultar por WhatsApp' : '＋ Sumar al pedido';
         button.addEventListener('click',()=>{
           if(quoteOnly){
-            const phone=String(publicSettings?.whatsapp_number||'5492915101491').replace(/\\D/g,'');
+            if (publicSettings?.qa_mode === true) {
+              window.showOrderFeedback?.('Consulta deshabilitada en QA', 'El entorno de prueba no abre WhatsApp ni contacta al teléfono real.');
+              return;
+            }
+            const phone=String(publicSettings?.whatsapp_number||'').replace(/\\D/g,'');
+            if (!phone) {
+              window.showOrderFeedback?.('WhatsApp no configurado', 'No hay un destino de WhatsApp habilitado para esta consulta.');
+              return;
+            }
             const message=encodeURIComponent('Hola, quisiera consultar el precio y los detalles de '+product.name+'.');
             window.open('https://wa.me/'+phone+'?text='+message,'_blank','noopener');
             return;
