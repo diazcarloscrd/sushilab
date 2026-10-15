@@ -517,13 +517,15 @@
       list.innerHTML = filtered.map((product) => {
         const category = escapeCatalog(categoryNames.get(String(product.category_id)) || 'Sin categoría');
         const photo = product.image_url ? '<img class="' + (productView === 'cards' ? 'product-card-image' : 'catalog-thumb') + '" src="' + escapeCatalog(product.image_url) + '" alt="' + escapeCatalog(product.name) + '" loading="lazy" onerror="this.style.display=\'none\'">' : (productView === 'cards' ? '<div class="product-card-placeholder">Sin fotografía</div>' : '<div class="catalog-thumb"></div>');
-        const price = '$ ' + Number(product.price).toLocaleString('es-AR');
+        const requiresQuote = /bombas de salm[oó]n/i.test(String(product.name || ''));
+        const price = requiresQuote ? 'Precio a consultar' : '$ ' + Number(product.price).toLocaleString('es-AR');
         const isCartOffer = cartOfferProductId !== null && String(product.id) === cartOfferProductId;
         const status = product.is_available ? '<span class="product-status">● Disponible</span>' : '<span class="product-status paused">● Pausado</span>';
         const offerBadge = isCartOffer ? '<span class="cart-offer-badge">✦ SUGERENCIA DEL CARRITO</span>' : '';
         const offerNote = isCartOffer ? '<p class="cart-offer-note">Este producto aparece como venta sugerida junto al carrito en la carta pública. No forma parte de la grilla habitual del catálogo.</p>' : '';
-        if (productView === 'cards') return '<article class="product-card ' + (isCartOffer ? 'is-cart-offer' : '') + '">' + photo + '<div class="product-card-body">' + offerBadge + '<p class="product-card-name">' + escapeCatalog(product.name) + '</p><p class="product-card-category">' + category + '</p><p class="product-card-price">' + price + '</p>' + status + offerNote + (product.description ? '<p class="catalog-row-meta">' + escapeCatalog(product.description) + '</p>' : '') + '<div class="product-card-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></div></article>';
-        return '<article class="catalog-row ' + (isCartOffer ? 'is-cart-offer' : '') + '"><div class="catalog-row-main">' + photo + '<div>' + offerBadge + '<p class="catalog-row-name">' + escapeCatalog(product.name) + '</p><div class="catalog-row-meta">' + category + ' · ' + price + ' · ' + (product.is_available ? 'Disponible' : 'Pausado') + '</div>' + offerNote + (product.description ? '<div class="catalog-row-meta">' + escapeCatalog(product.description) + '</div>' : '') + '</div></div><div class="catalog-row-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></article>';
+        const quoteNote = requiresQuote ? '<p class="cart-offer-note">Precio a consultar: no se agrega al carrito ni se cobra automáticamente. La consulta se realiza por WhatsApp.</p>' : '';
+        if (productView === 'cards') return '<article class="product-card ' + (isCartOffer ? 'is-cart-offer' : '') + '">' + photo + '<div class="product-card-body">' + offerBadge + '<p class="product-card-name">' + escapeCatalog(product.name) + '</p><p class="product-card-category">' + category + '</p><p class="product-card-price">' + price + '</p>' + status + offerNote + quoteNote + (product.description ? '<p class="catalog-row-meta">' + escapeCatalog(product.description) + '</p>' : '') + '<div class="product-card-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></div></article>';
+        return '<article class="catalog-row ' + (isCartOffer ? 'is-cart-offer' : '') + '"><div class="catalog-row-main">' + photo + '<div>' + offerBadge + '<p class="catalog-row-name">' + escapeCatalog(product.name) + '</p><div class="catalog-row-meta">' + category + ' · ' + price + ' · ' + (product.is_available ? 'Disponible' : 'Pausado') + '</div>' + offerNote + quoteNote + (product.description ? '<div class="catalog-row-meta">' + escapeCatalog(product.description) + '</div>' : '') + '</div></div><div class="catalog-row-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></article>';
       }).join('');
     }
     function openCatalog() {
@@ -828,7 +830,12 @@
         document.getElementById('productId').value = product.id;
         document.getElementById('productFormTitle').textContent = 'Editar producto';
         document.getElementById('productName').value = product.name;
-        document.getElementById('productPrice').value = product.price;
+        const quoteProduct = /bombas de salm[oó]n/i.test(String(product.name || ''));
+        const priceInput = document.getElementById('productPrice');
+        priceInput.value = quoteProduct ? '' : product.price;
+        priceInput.disabled = quoteProduct;
+        priceInput.placeholder = quoteProduct ? 'Precio a consultar' : 'Ej. 12500';
+        priceInput.previousElementSibling.textContent = quoteProduct ? 'Precio · A consultar' : 'Precio (ARS)';
         document.getElementById('productCategory').value = product.category_id ?? '';
         document.getElementById('productOrder').value = product.sort_order ?? 0;
         document.getElementById('productDescription').value = product.description || '';
@@ -917,7 +924,9 @@
       event.preventDefault();
       const id = document.getElementById('productId').value;
       const name = document.getElementById('productName').value.trim();
-      const price = Number(document.getElementById('productPrice').value);
+      const existingProduct = id ? catalogProducts.find((item) => String(item.id) === String(id)) : null;
+      const quoteProduct = /bombas de salm[oó]n/i.test(String(existingProduct?.name || name));
+      const price = quoteProduct ? Number(existingProduct?.price) : Number(document.getElementById('productPrice').value);
       const categoryValue = document.getElementById('productCategory').value;
       const sortOrder = Number(document.getElementById('productOrder').value || 0);
       let imageUrl = document.getElementById('productImage').value.trim();
