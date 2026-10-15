@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configuración comercial | YanKun SushiLab</title>
+<style>
+:root{color-scheme:dark;--bg:#10141a;--panel:#181c22;--line:#393d45;--text:#dfe2eb;--muted:#a7aab4;--rose:#ffb3b6;--red:#e11d48}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Arial,sans-serif}
+header{padding:20px 5%;background:#181c22;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+header a{display:inline-flex;align-items:center;padding:10px 13px;border:1px solid #454954;border-radius:8px;background:#252a32;color:#e5e7eb;text-decoration:none;font-size:12px;font-weight:700}
+main{width:min(1040px,92%);margin:34px auto 60px}h1{font:500 30px Georgia,serif;margin:0 0 8px}h2{font:20px Georgia,serif;margin:0 0 8px}p{color:var(--muted);line-height:1.6}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:20px;margin-bottom:16px}
+.panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:7px;min-width:0}.field.full{grid-column:1/-1}
+label{font-size:10px;color:#c9c3c8;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
+input,select,textarea{width:100%;min-width:0;min-height:43px;border:1px solid #41434b;border-radius:8px;background:#10141a;color:var(--text);padding:10px 12px;font:13px Arial,sans-serif}
+textarea{min-height:88px;resize:vertical;line-height:1.5}
+.hint{font-size:11px;color:var(--muted);margin:0}.checkline{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:9px;background:#15191f}.checkline input{width:18px;min-height:18px;accent-color:var(--red)}
+.actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}.btn{border:1px solid #454954;background:#252a32;color:#e5e7eb;border-radius:8px;padding:11px 15px;font-weight:700;cursor:pointer}.primary{background:var(--red);border:0;color:white;border-radius:8px;padding:12px 17px;font-weight:800;cursor:pointer}.btn:disabled,.primary:disabled{opacity:.55;cursor:wait}
+.notice{position:fixed;right:18px;bottom:18px;z-index:1200;max-width:min(420px,calc(100vw - 36px));background:#202630;border:1px solid #647a9b;border-radius:11px;padding:14px 16px;box-shadow:0 12px 40px #0009;display:none}.notice.show{display:block}.notice.error{border-color:#a64a5c}.notice strong{display:block;margin-bottom:4px}.notice span{font-size:12px;color:var(--muted);line-height:1.5}
+.overlay{position:fixed;inset:0;z-index:1100;background:#000b;display:flex;align-items:center;justify-content:center;padding:18px}.overlay.hidden{display:none}.dialog{width:min(440px,100%);background:#1b2028;border:1px solid #555c68;border-radius:15px;padding:22px;box-shadow:0 22px 70px #0009}.dialog h2{font-size:20px}.dialog p{font-size:13px;margin:8px 0 20px}.dialog-actions{display:flex;justify-content:flex-end;gap:9px}
+#loading{padding:20px;text-align:center;color:var(--muted)}.hidden{display:none!important}
+@media(max-width:620px){main{margin:24px auto 42px}.panel{padding:15px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.head h1{font-size:26px}.actions>*{flex:1}}
+</style>
+</head>
+<body>
+<header><strong>YanKun SushiLab · Configuración</strong><a href="admin.html">← Volver al panel</a></header>
+<main>
+<div class="head"><div><p style="color:#ffb3b6;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Administración comercial</p><h1>Configuración pública</h1><p style="margin:0">Los datos que guardes aquí se reflejan en la carta, el carrito y el registro de pedidos.</p></div><button class="btn" id="refresh" type="button">Actualizar</button></div>
+<div id="loading">Cargando configuración del comercio…</div>
+<form id="settingsForm" class="hidden">
+<section class="panel">
+<div class="panel-head"><div><h2>Delivery y preparación</h2><p class="hint">Estos valores se muestran en la página y se vuelven a validar al registrar cada pedido.</p></div></div>
+<div class="grid">
+<div class="field"><label for="deliveryFee">Tarifa de delivery en Bahía Blanca (ARS)</label><input id="deliveryFee" type="number" min="0" step="100" required></div>
+<div class="field"><label for="deliveryArea">Nombre de la zona</label><input id="deliveryArea" maxlength="80" required></div>
+<div class="field full"><label for="deliveryDescription">Descripción de cobertura</label><input id="deliveryDescription" maxlength="180"></div>
+<div class="field"><label for="prepMin">Preparación mínima (minutos)</label><input id="prepMin" type="number" min="1" max="360" step="1" required></div>
+<div class="field"><label for="prepMax">Preparación máxima (minutos)</label><input id="prepMax" type="number" min="1" max="360" step="1" required></div>
+</div>
+</section>
+<section class="panel">
+<div class="panel-head"><div><h2>Producto sugerido en el carrito</h2><p class="hint">Elegí un producto de la base de datos y definí el precio desde su ficha. El backend usará ese mismo precio al registrar el pedido.</p></div></div>
+<div class="grid">
+<div class="field full"><label class="checkline"><input id="upsellEnabled" type="checkbox"><span>Mostrar una sugerencia de producto en el carrito</span></label></div>
+<div class="field full"><label for="upsellProduct">Producto sugerido</label><select id="upsellProduct" required></select></div>
+<div class="field"><label for="upsellPrice">Precio del producto (ARS)</label><input id="upsellPrice" type="number" min="0" step="100" required></div>
+<div class="field"><label for="upsellNote">Descripción corta</label><input id="upsellNote" maxlength="180"></div>
+<p class="hint full">El producto sugerido se administra como un producto real. No se duplica en la carta principal mientras esté seleccionado como sugerencia.</p>
+</div>
+</section>
+<section class="panel">
+<div class="panel-head"><div><h2>Contacto y medios de pago</h2><p class="hint">Se actualizan los enlaces de WhatsApp y las opciones del checkout.</p></div></div>
+<div class="grid">
+<div class="field"><label for="whatsappNumber">WhatsApp comercial (solo números)</label><input id="whatsappNumber" inputmode="numeric" maxlength="20" required></div>
+<div class="field"><label for="whatsappDisplay">WhatsApp visible</label><input id="whatsappDisplay" maxlength="40" required></div>
+<div class="field full"><label for="paymentMethods">Medios de pago (uno por línea)</label><textarea id="paymentMethods" required></textarea></div>
+</div>
+</section>
+<section class="panel">
+<div class="panel-head"><div><h2>Packaging y conservación</h2><p class="hint">El texto se muestra en la información del local, el carrito y los términos de retiro.</p></div></div>
+<div class="field"><label for="packagingNote">Aviso de empaque</label><textarea id="packagingNote" maxlength="500"></textarea></div>
+</section>
+<div class="actions"><button class="btn" id="cancel" type="button">Descartar cambios</button><button class="primary" id="save" type="submit">Guardar configuración</button></div>
+</form>
+</main>
+<div class="notice" id="notice" role="status" aria-live="polite"><strong id="noticeTitle"></strong><span id="noticeText"></span></div>
+<div class="overlay hidden" id="confirmOverlay"><section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle"><h2 id="confirmTitle">¿Guardar los cambios?</h2><p id="confirmText">La carta pública comenzará a mostrar la nueva configuración.</p><div class="dialog-actions"><button class="btn" id="confirmNo" type="button">Volver</button><button class="primary" id="confirmYes" type="button">Sí, guardar</button></div></section></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="session-timeout.js"></script>
+<script>
+const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
+const el=id=>document.getElementById(id);
+let currentSettings={},products=[],busy=false,confirmResolve=null,noticeTimer=null;
+function note(title,message,error=false){el("noticeTitle").textContent=title;el("noticeText").textContent=message;el("notice").classList.toggle("error",error);el("notice").classList.add("show");clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>el("notice").classList.remove("show"),5200)}
+function confirmSave(){el("confirmOverlay").classList.remove("hidden");return new Promise(resolve=>{confirmResolve=resolve})}
+function closeConfirm(value){el("confirmOverlay").classList.add("hidden");if(confirmResolve){confirmResolve(value);confirmResolve=null}}
+el("confirmNo").addEventListener("click",()=>closeConfirm(false));el("confirmYes").addEventListener("click",()=>closeConfirm(true));
+el("upsellProduct").addEventListener("change",()=>{const product=products.find(p=>String(p.id)===el("upsellProduct").value);if(product){el("upsellPrice").value=Number(product.price);el("upsellNote").value=product.description||""}});
+function fillForm(){
+ const s=currentSettings;
+ el("deliveryFee").value=Number(s.delivery_fee_bahia??0);
+ el("deliveryArea").value=s.delivery_area_label||"Bahía Blanca";
+ el("deliveryDescription").value=s.delivery_area_description||"";
+ el("prepMin").value=Number(s.preparation_min_minutes??30);
+ el("prepMax").value=Number(s.preparation_max_minutes??45);
+ el("whatsappNumber").value=s.whatsapp_number||"";
+ el("whatsappDisplay").value=s.whatsapp_display||"";
+ el("paymentMethods").value=Array.isArray(s.payment_methods)?s.payment_methods.join("\n"):"";
+ el("packagingNote").value=s.packaging_note||"";
+ el("upsellEnabled").checked=!!s.upsell_enabled;
+ el("upsellProduct").innerHTML=products.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+'</option>').join("");
+ if(s.upsell_product_id&&products.some(p=>String(p.id)===String(s.upsell_product_id)))el("upsellProduct").value=String(s.upsell_product_id);
+ const selected=products.find(p=>String(p.id)===el("upsellProduct").value);
+ el("upsellPrice").value=selected?Number(selected.price):0;
+ el("upsellNote").value=selected?.description||"";
+}
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+async function load(){
+ el("loading").classList.remove("hidden");el("settingsForm").classList.add("hidden");
+ const [settingsResult,productsResult]=await Promise.all([
+  db.from("business_settings").select("value").eq("key","public_site").maybeSingle(),
+  db.from("products").select("id,name,description,price,is_available,category_id").eq("is_available",true).order("sort_order").order("name")
+ ]);
+ if(settingsResult.error)throw settingsResult.error;if(productsResult.error)throw productsResult.error;
+ if(!settingsResult.data)throw new Error("No existe la configuración pública del comercio.");
+ currentSettings=settingsResult.data.value||{};products=productsResult.data||[];
+ if(!products.length)throw new Error("No hay productos disponibles para configurar la sugerencia del carrito.");
+ fillForm();el("loading").classList.add("hidden");el("settingsForm").classList.remove("hidden");
+}
+el("settingsForm").addEventListener("submit",async event=>{
+ event.preventDefault();if(busy)return;
+ const fee=Number(el("deliveryFee").value),min=Number(el("prepMin").value),max=Number(el("prepMax").value);
+ const phone=el("whatsappNumber").value.replace(/\D/g,""),methods=el("paymentMethods").value.split("\n").map(x=>x.trim()).filter(Boolean);
+ const product=products.find(p=>String(p.id)===el("upsellProduct").value),price=Number(el("upsellPrice").value);
+ if(!Number.isFinite(fee)||fee<0||!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>360){note("Revisá los valores","La tarifa debe ser positiva y los tiempos deben ser válidos; el máximo no puede ser menor que el mínimo.",true);return}
+ if(phone.length<8||phone.length>20||!el("whatsappDisplay").value.trim()||!methods.length){note("Faltan datos","Completá el WhatsApp y al menos un medio de pago.",true);return}
+ if(el("upsellEnabled").checked&&(!product||!Number.isFinite(price)||price<0)){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido.",true);return}
+ if(!await confirmSave())return;
+ busy=true;el("save").disabled=true;el("save").textContent="Guardando…";el("refresh").disabled=true;
+ try{
+  if(product&&Number(product.price)!==price){
+   const updated=await db.from("products").update({price}).eq("id",product.id).eq("is_available",true).select("id,price").maybeSingle();
+   if(updated.error)throw updated.error;if(!updated.data)throw new Error("No se pudo actualizar el precio del producto sugerido.");
+   product.price=price;
+  }
+  const next={...currentSettings,
+   delivery_fee_bahia:fee,delivery_area_label:el("deliveryArea").value.trim(),
+   delivery_area_description:el("deliveryDescription").value.trim(),
+   preparation_min_minutes:min,preparation_max_minutes:max,
+   whatsapp_number:phone,whatsapp_display:el("whatsappDisplay").value.trim(),
+   payment_methods:methods,packaging_note:el("packagingNote").value.trim(),
+   upsell_enabled:el("upsellEnabled").checked,upsell_product_id:product?Number(product.id):null
+  };
+  const saved=await db.from("business_settings").update({value:next,updated_at:new Date().toISOString()}).eq("key","public_site").select("key").maybeSingle();
+  if(saved.error)throw saved.error;if(!saved.data)throw new Error("No se pudo guardar la configuración. Verificá los permisos de administrador.");
+  currentSettings=next;note("Configuración guardada","La carta pública recibirá los nuevos valores automáticamente.");await load();
+ }catch(error){console.error(error);note("No se pudo guardar",error.message||"Intentá nuevamente.",true)}
+ finally{busy=false;el("save").disabled=false;el("save").textContent="Guardar configuración";el("refresh").disabled=false}
+});
+el("cancel").addEventListener("click",()=>fillForm());
+el("refresh").addEventListener("click",async()=>{if(busy)return;try{await load();note("Datos actualizados","Se cargó la configuración más reciente.")}catch(error){note("No se pudo actualizar",error.message,true)}});
+(async()=>{
+ try{
+  const {data,error}=await db.auth.getSession();if(error||!data.session)throw new Error("Sesión no activa. Iniciá sesión desde el panel administrador.");
+  const admin=await db.from("admin_users").select("user_id").eq("user_id",data.session.user.id).maybeSingle();
+  if(admin.error||!admin.data)throw new Error("Esta cuenta no tiene permisos de administrador.");
+  const active=await window.startYanKunIdleSession(db,false);if(!active){window.location.href="admin.html?session-expired=1";return}
+  await load();
+ }catch(error){console.error(error);el("loading").textContent=error.message||"Error al iniciar el módulo.";note("No se pudo iniciar",error.message||"Revisá la sesión.",true)}
+})();
+</script>
+</body></html>
