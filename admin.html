@@ -380,33 +380,7 @@
       }
     });
 
-    // Acceso al módulo de pedidos.
-    const ordersCard = document.querySelector('[data-open-orders]');
-    ordersCard.addEventListener('click', () => { window.location.href = 'orders.html'; });
-    ordersCard.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        window.location.href = 'orders.html';
-      }
-    });
-
-    const salesLocationsCard = document.querySelector("[data-open-sales-locations]");
-    salesLocationsCard.addEventListener("click", () => { window.location.href = "sales-locations.html"; });
-    salesLocationsCard.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        window.location.href = "sales-locations.html";
-      }
-    });
-
-    const hoursCard = document.querySelector("[data-open-hours]");
-    hoursCard.addEventListener("click", () => { window.location.href = "business-hours.html"; });
-    hoursCard.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        window.location.href = "business-hours.html";
-      }
-    });
+    // Los accesos rápidos se gestionan una sola vez desde el controlador del workspace.
 
     // Gestión del catálogo: operaciones administrativas protegidas por RLS.
     const catalogView = document.getElementById('catalogView');
