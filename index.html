@@ -23,8 +23,8 @@
 <div class="absolute top-1/2 -left-20 w-96 h-96 bg-primary-container/5 blur-[100px] rounded-full pointer-events-none"></div>
 <div class="max-w-[1280px] mx-auto px-gutter lg:px-gutter-desktop pt-space-lg lg:pt-space-xl">
 <!-- Top Announcement Ribbon -->
-<div class="flex flex-wrap items-center justify-between gap-space-sm mb-space-lg p-space-sm sm:px-space-md rounded-lg bg-surface-container-low">
-<div class="flex items-center gap-space-xs text-on-surface"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="statusDot"></span><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold" id="statusText">Bahia Blanca</span><span id="publicHoursRibbon" class="hidden md:inline font-body-sm text-body-sm text-tertiary">Horario actualizado desde YanKun</span></div>
+<div class="flex flex-wrap items-center justify-center gap-space-sm mb-space-lg p-space-sm sm:px-space-md rounded-lg bg-surface-container-low text-center">
+<div class="flex flex-wrap items-center justify-center gap-space-xs text-on-surface"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="statusDot"></span><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold" id="statusText">Bahía Blanca</span><span id="publicHoursRibbon" class="font-body-sm text-body-sm text-tertiary text-center">Horario actualizado desde YanKun</span></div>
 <div class="flex items-center gap-space-sm">
 <span class="font-label-sm text-label-sm text-tertiary uppercase tracking-widest">Retiro: <span id="publicAddressRibbon">—</span></span>
 <span class="px-space-xs py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase">Carta conectada al catálogo</span>
@@ -72,14 +72,14 @@
 <!-- QUICK INFO BARRIER -->
 <section class="w-full bg-surface-container-low py-space-md">
 <div class="max-w-[1280px] mx-auto px-gutter lg:px-gutter-desktop flex flex-wrap items-center justify-between gap-space-md text-tertiary">
-<div class="flex items-center gap-space-sm">
+<div class="flex flex-col items-center justify-center text-center flex-1 min-w-0 gap-1">
 <span class="material-symbols-outlined text-primary-container">store</span>
 <div>
 <span class="font-label-md text-label-md text-on-surface block">Punto YanKun Oficial</span>
 <span class="font-body-sm text-body-sm" id="publicAddressQuick">Punto de retiro</span>
 </div>
 </div>
-<div class="flex items-center gap-space-sm">
+<div class="flex flex-col items-center justify-center text-center flex-1 min-w-0 gap-1">
 <span class="material-symbols-outlined text-primary-container">alarm</span>
 <div>
 <span class="font-label-md text-label-md text-on-surface block">Franja de Cocina</span>
@@ -93,7 +93,7 @@
 <span class="font-body-sm text-body-sm">Sellado premium, presentacion cuidada</span>
 </div>
 </div>
-<div class="flex items-center gap-space-sm">
+<div class="flex flex-col items-center justify-center text-center flex-1 min-w-0 gap-1">
 <span class="material-symbols-outlined text-primary-container">local_shipping</span>
 <div>
 <span class="font-label-md text-label-md text-on-surface block">Envios Bahia Blanca</span>
@@ -1194,7 +1194,7 @@
     const aviso=document.getElementById('avisoCerradoTexto');
     if(aviso&&!state.open)aviso.textContent=state.text+'. Los pedidos se habilitan únicamente dentro de los horarios configurados.';
     const summary=weeklySummary();
-    ['publicHoursRibbon','publicHoursQuick','publicHoursFooter'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=summary||'Horario en actualización';el.classList.toggle('hidden',!summary&&id==='publicHoursRibbon');}});
+    ['publicHoursRibbon','publicHoursQuick','publicHoursFooter'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=summary||'Horario en actualización';el.classList.toggle('hidden',!summary&&id==='publicHoursRibbon');el.style.textAlign='center';el.style.lineHeight='1.65';}});
     document.querySelectorAll('[onclick*="addToCart("], [onclick*="checkoutViaWhatsApp"], .yk-add-product').forEach(button=>{
       button.classList.toggle('pedido-bloqueado',!state.open);
       button.setAttribute('aria-disabled',String(!state.open));
@@ -1311,6 +1311,8 @@
       .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadCatalog())
       .on('postgres_changes',{event:'*',schema:'public',table:'business_hours'},()=>loadSchedule())
       .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings())
+      .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>loadPublicSettings())
       .subscribe();
     window.setInterval(()=>{loadCatalog().catch(()=>{});loadSchedule().catch(()=>{});},60000);
   });
