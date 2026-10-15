@@ -738,6 +738,7 @@
       productForm.reset();
       const priceInput = document.getElementById('productPrice');
       priceInput.disabled = false; priceInput.placeholder = 'Ej. 12500'; priceInput.previousElementSibling.textContent = 'Precio (ARS)';
+      document.getElementById('productName').disabled = false;
       document.getElementById('productId').value = '';
       document.getElementById('productFormTitle').textContent = 'Nuevo producto';
       document.getElementById('productOrder').value = '0';
@@ -748,7 +749,7 @@
       document.getElementById('productModal').hidden = false;
       document.getElementById('productName').focus();
     });
-    document.getElementById('cancelProduct').addEventListener('click', () => { document.getElementById('productModal').hidden = true; productForm.reset(); const priceInput=document.getElementById('productPrice'); priceInput.disabled=false; priceInput.placeholder='Ej. 12500'; priceInput.previousElementSibling.textContent='Precio (ARS)'; document.getElementById('productImagePreview').innerHTML = ''; });
+    document.getElementById('cancelProduct').addEventListener('click', () => { document.getElementById('productModal').hidden = true; productForm.reset(); const priceInput=document.getElementById('productPrice'); priceInput.disabled=false; priceInput.placeholder='Ej. 12500'; priceInput.previousElementSibling.textContent='Precio (ARS)'; document.getElementById('productName').disabled=false; document.getElementById('productImagePreview').innerHTML = ''; });
     document.getElementById('productImageFile').addEventListener('change', (event) => {
       const file = event.target.files?.[0], preview = document.getElementById('productImagePreview');
       if (!file) { preview.innerHTML = ''; return; }
@@ -837,6 +838,7 @@
         priceInput.value = quoteProduct ? '' : product.price;
         priceInput.disabled = quoteProduct;
         priceInput.placeholder = quoteProduct ? 'Precio a consultar' : 'Ej. 12500';
+        document.getElementById('productName').disabled = quoteProduct;
         priceInput.previousElementSibling.textContent = quoteProduct ? 'Precio · A consultar' : 'Precio (ARS)';
         document.getElementById('productCategory').value = product.category_id ?? '';
         document.getElementById('productOrder').value = product.sort_order ?? 0;
@@ -968,6 +970,7 @@
       productForm.reset();
       const priceInput = document.getElementById('productPrice');
       priceInput.disabled = false; priceInput.placeholder = 'Ej. 12500'; priceInput.previousElementSibling.textContent = 'Precio (ARS)';
+      document.getElementById('productName').disabled = false;
       document.getElementById('productImagePreview').innerHTML = '';
       await loadCatalog();
       showCatalogMessage('Producto guardado correctamente.');
