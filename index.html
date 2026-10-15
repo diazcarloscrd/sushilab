@@ -971,7 +971,7 @@
     return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   }
   function money(value) {
-    return '</html> + Number(value || 0).toLocaleString('es-AR') + ' ARS';
+    return String.fromCharCode(36) + Number(value || 0).toLocaleString('es-AR') + ' ARS';
   }
   function showFeedback(title, message, link) {
     let overlay = document.getElementById('yk-order-feedback');
