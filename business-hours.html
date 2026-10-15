@@ -85,16 +85,61 @@ const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"
 function note(v){el("status").textContent=v||""}
 function formatDate(v){const d=new Date(v+"T12:00:00Z");return new Intl.DateTimeFormat("es-AR",{dateStyle:"full",timeZone:"UTC"}).format(d)}
 function shiftMarkup(row){return '<div class="shift-row" data-id="'+safe(row.id||"")+'"><div class="time-field"><label>Desde</label><input type="time" data-open value="'+safe(row.opens_at||"")+'" required></div><div class="time-field"><label>Hasta</label><input type="time" data-close value="'+safe(row.closes_at||"")+'" required></div><button class="remove-shift" type="button" data-remove-shift aria-label="Quitar turno" title="Quitar turno">×</button></div>'}
-function groupMarkup(day,rows){const closed=rows.length===0||rows.some(x=>!x.is_open);const openRows=rows.filter(x=>x.is_open);const shown=closed?[]:(openRows.length?openRows:[{}]);return '<article class="day-card" data-day="'+day.value+'"><div class="day-head"><h3>'+day.label+'</h3><label class="closed-control"><input type="checkbox" data-closed '+(closed?"checked":"")+'> Cerrado</label></div><div class="shifts '+(closed?"hidden":"")+'">'+shown.map(shiftMarkup).join("")+'</div><div class="day-actions"><button class="add-shift" type="button" data-add-shift '+(closed?"disabled":"")+' style="'+(closed?"opacity:.4;cursor:not-allowed":"")+'">+ Agregar turno</button><button class="primary save-day" type="button" data-save-day>Guardar</button></div></article>'}
+function groupMarkup(day,rows){const openRows=rows.filter(x=>x.is_open);const closed=rows.length===0||openRows.length===0;const shown=closed?[]:openRows;return '<article class="day-card" data-day="'+day.value+'"><div class="day-head"><h3>'+day.label+'</h3><label class="closed-control"><input type="checkbox" data-closed '+(closed?"checked":"")+' /> Cerrado</label></div><div class="shifts '+(closed?"hidden":"")+'">'+shown.map(shiftMarkup).join("")+'</div><div class="day-actions"><button class="add-shift" type="button" data-add-shift '+(closed?"disabled":"")+' style="'+(closed?"opacity:.4;cursor:not-allowed":"")+'">+ Agregar turno</button><button class="primary save-day" type="button" data-save-day>Guardar</button></div></article>'}
 function renderWeekly(){el("weeklyGrid").innerHTML=days.map(d=>groupMarkup(d,weeklyRecords.filter(x=>x.day_of_week===d.value))).join("")}
 async function loadWeekly(){schedulesReady=false;el("weeklyGrid").innerHTML='<div class="empty">Cargando horarios...</div>';if(!currentLocationId){el("weeklyGrid").innerHTML='<div class="empty">No hay un punto de venta activo de este tipo.</div>';return}const {data,error}=await db.from("business_hours").select("id,day_of_week,is_open,opens_at,closes_at").eq("sales_location_id",currentLocationId).eq("schedule_type","weekly").order("day_of_week").order("opens_at");if(error){console.error(error);weeklyRecords=[];el("weeklyGrid").innerHTML='<div class="empty">No se pudieron cargar los horarios. Actualizá para volver a intentar.</div>';note("Error al cargar horarios: "+error.message);return}weeklyRecords=data||[];schedulesReady=true;renderWeekly()}
 function collectDay(card){if(card.querySelector("[data-closed]").checked)return {closed:true,rows:[]};const rows=[...card.querySelectorAll(".shift-row")].map(row=>({id:row.dataset.id||null,opens_at:row.querySelector("[data-open]").value,closes_at:row.querySelector("[data-close]").value}));if(!rows.length)throw new Error("Agregá al menos un turno o marcá el día como cerrado.");for(const r of rows){if(!r.opens_at||!r.closes_at)throw new Error("Completá la hora de apertura y de cierre de todos los turnos.");if(r.opens_at===r.closes_at)throw new Error("La hora de apertura y cierre no pueden ser iguales.")}return {closed:false,rows}}
-async function saveDay(card){if(!schedulesReady||busy){note("Esperá a que los horarios terminen de cargar.");return}let desired;try{desired=collectDay(card)}catch(e){note(e.message);return}const day=Number(card.dataset.day);const old=weeklyRecords.filter(x=>x.day_of_week===day);const targets=desired.closed?[{id:old[0]?.id||null,is_open:false,opens_at:null,closes_at:null}]:desired.rows.map(x=>({...x,is_open:true}));const keep=targets.filter(x=>x.id).map(x=>x.id);const stale=old.filter(x=>x.id&&!keep.includes(x.id));if(stale.length&&!window.confirm("Se eliminarán "+stale.length+" turno(s) que ya estaban guardados. ¿Querés continuar?"))return;
-busy=true;const button=card.querySelector("[data-save-day]");button.disabled=true;button.textContent="Guardando...";el("refresh").disabled=true;let failure=null;
-try{for(const row of targets){const payload={sales_location_id:currentLocationId,schedule_type:"weekly",day_of_week:day,specific_date:null,is_open:row.is_open,opens_at:row.opens_at,closes_at:row.closes_at};let result;if(row.id){result=await db.from("business_hours").update(payload).eq("id",row.id).eq("sales_location_id",currentLocationId).select("id").maybeSingle();if(!result.error&&!result.data)result.error=new Error("No se encontró el turno que se quería actualizar.")}else result=await db.from("business_hours").insert(payload).select("id").single();if(result.error){failure=result.error;break}}
-if(!failure&&stale.length){const result=await db.from("business_hours").delete().in("id",stale.map(x=>x.id)).eq("sales_location_id",currentLocationId);if(result.error)failure=result.error}
-if(failure){console.error(failure);note("No se pudieron guardar todos los cambios: "+failure.message+". Actualizá para revisar el estado.");}else note(days.find(x=>x.value===day).label+" guardado correctamente.");
-} catch(e){console.error(e);note("Ocurrió un error al guardar: "+e.message)} finally {busy=false;button.disabled=false;button.textContent="Guardar";el("refresh").disabled=false;await loadWeekly()}}
+async function saveDay(card){
+if(!schedulesReady||busy){note("Esperá a que los horarios terminen de cargar.");return}
+let desired;try{desired=collectDay(card)}catch(e){note(e.message);return}
+const day=Number(card.dataset.day);
+const old=weeklyRecords.filter(x=>x.day_of_week===day);
+const targets=desired.closed?[{id:old.find(x=>x.is_open)?.id||old[0]?.id||null,is_open:false,opens_at:null,closes_at:null}]:desired.rows.map(x=>({...x,is_open:true}));
+const keep=targets.filter(x=>x.id).map(x=>x.id);
+const stale=old.filter(x=>x.id&&!keep.includes(x.id));
+if(stale.length&&!window.confirm("Se eliminarán "+stale.length+" turno(s) que quitaste de este día. ¿Querés continuar?"))return;
+busy=true;const button=card.querySelector("[data-save-day]");button.disabled=true;button.textContent="Guardando...";el("refresh").disabled=true;
+let failure=null;const savedRows=[];
+try{
+ for(const row of targets){
+  const payload={sales_location_id:currentLocationId,schedule_type:"weekly",day_of_week:day,specific_date:null,is_open:row.is_open,opens_at:row.opens_at,closes_at:row.closes_at};
+  const result=row.id
+   ?await db.from("business_hours").update(payload).eq("id",row.id).eq("sales_location_id",currentLocationId).select("id,day_of_week,is_open,opens_at,closes_at").maybeSingle()
+   :await db.from("business_hours").insert(payload).select("id,day_of_week,is_open,opens_at,closes_at").single();
+  if(result.error){failure=result.error;break}
+  if(!result.data){failure=new Error("No se encontró el turno que se quería actualizar.");break}
+  savedRows.push(result.data);
+ }
+ if(!failure&&stale.length){
+  const result=await db.from("business_hours").delete().in("id",stale.map(x=>x.id)).eq("sales_location_id",currentLocationId).select("id");
+  if(result.error)failure=result.error;
+ }
+ if(failure){
+  console.error(failure);note("No se pudieron guardar todos los cambios: "+failure.message+". Revisá este día antes de volver a guardar.");
+  const refreshed=await db.from("business_hours").select("id,day_of_week,is_open,opens_at,closes_at").eq("sales_location_id",currentLocationId).eq("schedule_type","weekly").eq("day_of_week",day).order("opens_at");
+  if(!refreshed.error){weeklyRecords=weeklyRecords.filter(x=>x.day_of_week!==day).concat(refreshed.data||[]);renderDayFromRecords(card,day);}
+ }else{
+  weeklyRecords=weeklyRecords.filter(x=>x.day_of_week!==day).concat(savedRows);
+  const visibleRows=[...card.querySelectorAll(".shift-row")];
+  if(desired.closed){
+   card.querySelector("[data-closed]").checked=true;
+   card.querySelector(".shifts").classList.add("hidden");
+   card.querySelector("[data-add-shift]").disabled=true;
+  }else{
+   card.querySelector("[data-closed]").checked=false;
+   card.querySelector(".shifts").classList.remove("hidden");
+   card.querySelector("[data-add-shift]").disabled=false;
+   visibleRows.forEach((row,index)=>{if(savedRows[index])row.dataset.id=savedRows[index].id;});
+  }
+  note(days.find(x=>x.value===day).label+" guardado correctamente. Podés seguir modificándolo cuando quieras.");
+ }
+}catch(e){
+ console.error(e);note("Ocurrió un error al guardar: "+e.message);
+}finally{
+ busy=false;button.disabled=false;button.textContent="Guardar";el("refresh").disabled=false;
+}
+}
+function renderDayFromRecords(card,day){const recordRows=weeklyRecords.filter(x=>x.day_of_week===day);const markup=groupMarkup(days.find(x=>x.value===day),recordRows);const wrapper=document.createElement("div");wrapper.innerHTML=markup;card.replaceWith(wrapper.firstElementChild);}
 function updateEventType(){const opening=el("eventType").value==="special_opening";el("eventOpenField").classList.toggle("hidden",!opening);el("eventCloseField").classList.toggle("hidden",!opening);el("eventOpen").required=opening;el("eventClose").required=opening}
 function resetEventForm(){el("eventForm").reset();el("eventId").value="";el("eventActive").checked=true;el("eventFormTitle").textContent="Crear evento";el("eventSave").textContent="Guardar evento";el("eventCancel").classList.add("hidden");updateEventType()}
 function renderEvents(){if(!events.length){el("eventList").innerHTML='<div class="empty">Todavía no hay eventos registrados. Podés crear el primero desde el formulario.</div>';return}el("eventList").innerHTML=events.map(ev=>{const loc=locations.find(x=>String(x.id)===String(ev.sales_location_id));const opening=ev.event_type==="special_opening";return '<article class="event-card" data-event-id="'+ev.id+'"><div class="event-card-head"><div><div class="event-title">'+safe(ev.event_name)+'</div><div class="event-meta">'+safe(loc?.name||"Punto de venta")+' · '+safe(formatDate(ev.event_date))+'</div><div class="event-meta">'+(opening?"Apertura especial · "+safe((ev.opens_at||"").slice(0,5))+" a "+safe((ev.closes_at||"").slice(0,5)):"Cierre excepcional")+'</div>'+(ev.description?'<div class="event-meta">'+safe(ev.description)+'</div>':"")+'</div><span class="badge '+(!ev.is_active?"off":opening?"":"closed")+'">'+(!ev.is_active?"Inactivo":opening?"Apertura especial":"Cierre excepcional")+'</span></div><div class="event-actions"><button class="btn" type="button" data-edit-event>Editar</button><button class="btn" type="button" data-toggle-event>'+(ev.is_active?"Desactivar":"Activar")+'</button><button class="danger" type="button" data-delete-event>Eliminar</button></div></article>'}).join("")}
