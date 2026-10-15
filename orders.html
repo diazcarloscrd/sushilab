@@ -6,14 +6,14 @@
 <title>Pedidos | YanKun SushiLab</title>
 <style>
 body{margin:0;background:#10141a;color:#dfe2eb;font:14px Arial,sans-serif}
-header{padding:20px 5%;background:#181c22;border-bottom:1px solid #393d45;display:flex;justify-content:space-between}
+header{padding:20px 5%;background:#181c22;border-bottom:1px solid #393d45;display:flex;justify-content:space-between;align-items:center;gap:12px}header a{display:inline-flex;align-items:center;gap:8px;padding:10px 13px;border:1px solid #454954;border-radius:8px;background:#252a32;color:#e5e7eb;text-decoration:none;font-size:12px;font-weight:700;transition:border-color .2s,background .2s}header a:hover{border-color:#ffb3b6;background:#30242b}header a svg{width:16px;height:16px;flex:0 0 16px}
 main{width:min(1100px,90%);margin:40px auto}
 h1{font-family:Georgia,serif;font-size:30px}
 p{color:#a7aab4}
 </style>
 </head>
 <body>
-<header><strong>YanKun SushiLab</strong><a href="admin.html">Volver al panel</a></header>
+<header><strong>YanKun SushiLab</strong><a href="admin.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/><path d="M9 12h12"/></svg>Volver al panel</a></header>
 <main><h1>Pedidos</h1><p>Gestión administrativa de pedidos.</p><p>Gestioná los pedidos que ingresen al sistema.</p>
 <style>
 .wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:16px;margin-top:22px}
@@ -44,6 +44,7 @@ button{cursor:pointer}.btn{border:1px solid #454954;background:#252a32;color:#e5
 <section class="panel"><div id="detail"><div class="empty">Elegí un pedido para ver sus datos, productos e historial.</div></div></section>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="session-timeout.js"></script>
 <script>
 const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
 const el=id=>document.getElementById(id);
@@ -79,7 +80,7 @@ el("list").addEventListener("click",e=>{const b=e.target.closest("[data-order]")
 el("search").addEventListener("input",e=>{term=e.target.value.trim().toLowerCase();paint()});
 el("filter").addEventListener("change",e=>{filter=e.target.value;paint()});
 el("refresh").addEventListener("click",load);
-(async()=>{const {data,error}=await db.auth.getSession();if(error||!data.session){note("Sesión no activa. Iniciá sesión desde el panel administrador.");el("list").innerHTML='<div class="empty">No hay sesión activa.</div>';return}const admin=await db.from("admin_users").select("user_id").eq("user_id",data.session.user.id).maybeSingle();if(admin.error||!admin.data){note("Esta cuenta no tiene permisos de administrador.");return}await load()})().catch(e=>{console.error(e);note("Error al iniciar el módulo de pedidos.")});
+(async()=>{const {data,error}=await db.auth.getSession();if(error||!data.session){note("Sesión no activa. Iniciá sesión desde el panel administrador.");el("list").innerHTML='<div class="empty">No hay sesión activa.</div>';return}const admin=await db.from("admin_users").select("user_id").eq("user_id",data.session.user.id).maybeSingle();if(admin.error||!admin.data){note("Esta cuenta no tiene permisos de administrador.");return}const sessionActive=await window.startYanKunIdleSession(db,false);if(!sessionActive){note("La sesión se cerró por inactividad. Iniciá sesión nuevamente.");window.location.href="admin.html?session-expired=1";return}await load()})().catch(e=>{console.error(e);note("Error al iniciar el módulo de pedidos.")});
 </script>
 </main>
 </body>
