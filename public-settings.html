@@ -78,8 +78,7 @@ function note(title,message,error=false){el("noticeTitle").textContent=title;el(
 function confirmSave(){el("confirmOverlay").classList.remove("hidden");return new Promise(resolve=>{confirmResolve=resolve})}
 function closeConfirm(value){el("confirmOverlay").classList.add("hidden");if(confirmResolve){confirmResolve(value);confirmResolve=null}}
 el("confirmNo").addEventListener("click",()=>closeConfirm(false));el("confirmYes").addEventListener("click",()=>closeConfirm(true));
-function isQuoteProduct(product){return /bombas de salm[oó]n/i.test(String(product?.name||""))}
-function syncUpsellPriceField(product){const quote=isQuoteProduct(product);el("upsellPrice").disabled=quote;el("upsellPrice").required=!quote;el("upsellPrice").value=quote?"":Number(product?.price||0);el("upsellPrice").placeholder=quote?"Precio a consultar":"Ej. 14500";el("upsellPriceLabel").textContent=quote?"Precio del producto · A consultar":"Precio del producto (ARS)";el("upsellQuoteHint").hidden=!quote}
+function syncUpsellPriceField(product){el("upsellPrice").disabled=false;el("upsellPrice").required=true;el("upsellPrice").value=product?Number(product.price||0):"";el("upsellPrice").placeholder="Ej. 14500";el("upsellPriceLabel").textContent="Precio del producto (ARS)";el("upsellQuoteHint").hidden=true}
 el("upsellProduct").addEventListener("change",()=>{const product=products.find(p=>String(p.id)===el("upsellProduct").value);if(product){syncUpsellPriceField(product);el("upsellNote").value=product.description||""}});
 function fillForm(){
  const s=currentSettings;
@@ -116,19 +115,19 @@ el("settingsForm").addEventListener("submit",async event=>{
  event.preventDefault();if(busy)return;
  const fee=Number(el("deliveryFee").value),min=Number(el("prepMin").value),max=Number(el("prepMax").value);
  const phone=el("whatsappNumber").value.replace(/\D/g,""),methods=el("paymentMethods").value.split("\n").map(x=>x.trim()).filter(Boolean);
- const product=products.find(p=>String(p.id)===el("upsellProduct").value),quoteProduct=isQuoteProduct(product),price=Number(el("upsellPrice").value);
+ const product=products.find(p=>String(p.id)===el("upsellProduct").value),price=Number(el("upsellPrice").value);
  if(!Number.isFinite(fee)||fee<0||!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>360){note("Revisá los valores","La tarifa debe ser positiva y los tiempos deben ser válidos; el máximo no puede ser menor que el mínimo.",true);return}
  if(phone.length<8||phone.length>20||!el("whatsappDisplay").value.trim()||!methods.length){note("Faltan datos","Completá el WhatsApp y al menos un medio de pago.",true);return}
- if(el("upsellEnabled").checked&&(!product||(!quoteProduct&&(!Number.isFinite(price)||price<0)))){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido.",true);return}
+ if(el("upsellEnabled").checked&&(!product||!Number.isFinite(price)||price<0)){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido.",true);return}
  if(!await confirmSave())return;
  busy=true;el("save").disabled=true;el("save").textContent="Guardando…";el("refresh").disabled=true;
  try{
   const productDescription=el("upsellNote").value.trim()||null;
-  if(product&&((!quoteProduct&&Number(product.price)!==price)||(product.description||null)!==productDescription)){
-   const productUpdate={description:productDescription};if(!quoteProduct)productUpdate.price=price;
+  if(product&&(Number(product.price)!==price||(product.description||null)!==productDescription)){
+   const productUpdate={price,description:productDescription};
    const updated=await db.from("products").update(productUpdate).eq("id",product.id).eq("is_available",true).select("id,price,description").maybeSingle();
    if(updated.error)throw updated.error;if(!updated.data)throw new Error("No se pudo actualizar el producto sugerido.");
-   if(!quoteProduct)product.price=price;product.description=productDescription;
+   product.price=price;product.description=productDescription;
   }
   const next={...currentSettings,
    delivery_fee_bahia:fee,delivery_area_label:el("deliveryArea").value.trim(),
