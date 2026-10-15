@@ -81,6 +81,11 @@
     .catalog-list{display:grid;gap:9px}
     .catalog-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px;border:1px solid #343943;border-radius:9px;background:#15191f;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
     .catalog-row.category-selected{border-color:var(--rose);background:#2a2026;box-shadow:0 0 0 2px #ffb3b61a}
+    .category-search{width:100%;margin:0 0 12px}
+    .catalog-position{display:inline-flex;border:1px solid #57434a;border-radius:20px;padding:3px 8px;color:var(--rose);font-size:9px;font-weight:800;margin-right:6px}
+    .catalog-upload-preview{display:flex;align-items:center;gap:12px;margin-top:8px;color:var(--muted);font-size:10px}
+    .catalog-upload-preview img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+    .catalog-upload-help{font-size:10px;color:var(--muted);line-height:1.5}
     .catalog-row:focus-visible{outline:2px solid var(--rose);outline-offset:2px}
     .catalog-row-main{min-width:0;display:flex;align-items:center;gap:12px}
     .catalog-thumb{width:48px;height:48px;flex:0 0 48px;border-radius:7px;background:#242832;object-fit:cover}
@@ -177,6 +182,7 @@
           <div class="catalog-field full"><label for="categoryDescription">Descripción (opcional)</label><textarea id="categoryDescription" maxlength="500" placeholder="Una breve descripción de la categoría"></textarea></div>
           <div class="catalog-form-actions"><button class="catalog-secondary" id="cancelCategory" type="button">Cancelar</button><button class="catalog-primary" type="submit">Guardar categoría</button></div>
         </form>
+        <input class="category-search" id="categorySearch" type="search" placeholder="Buscar una categoría..." aria-label="Buscar categorías">
         <div class="catalog-list" id="categoryList"><div class="catalog-empty">Cargando categorías...</div></div>
       </section>
       <section id="productsPanel" class="catalog-panel" hidden>
@@ -188,7 +194,7 @@
           <div class="catalog-field"><label for="productCategory">Categoría</label><select id="productCategory"><option value="">Sin categoría</option></select></div>
           <div class="catalog-field"><label for="productOrder">Orden de aparición</label><input id="productOrder" type="number" min="0" step="1" value="0"></div>
           <div class="catalog-field full"><label for="productDescription">Descripción (opcional)</label><textarea id="productDescription" maxlength="1000" placeholder="Ingredientes o detalles del producto"></textarea></div>
-          <div class="catalog-field full"><label for="productImage">URL de imagen (opcional)</label><input id="productImage" type="url" maxlength="1000" placeholder="https://..."></div>
+          <div class="catalog-field full"><label for="productImageFile">Foto del producto</label><input id="productImageFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="catalog-upload-help">Elegí una foto desde esta computadora. Formatos JPG, PNG o WEBP; máximo 5 MB.</span><div class="catalog-upload-preview" id="productImagePreview"></div><input id="productImage" type="hidden"></div>
           <label class="catalog-check full"><input id="productAvailable" type="checkbox" checked> Producto disponible para la venta</label>
           <div class="catalog-form-actions"><button class="catalog-secondary" id="cancelProduct" type="button">Cancelar</button><button class="catalog-primary" type="submit">Guardar producto</button></div>
         </form>
@@ -324,6 +330,7 @@
     let catalogCategories = [];
     let catalogProducts = [];
     let selectedCategoryId = null;
+    let categorySearchTerm = '';
 
     function selectCategory(categoryId, shouldScroll = false) {
       selectedCategoryId = String(categoryId);
@@ -394,11 +401,15 @@
         list.innerHTML = '<div class="catalog-empty">Todavía no hay categorías. Creá la primera para organizar el catálogo.</div>';
         return;
       }
-      list.innerHTML = catalogCategories.map((category, index) => `
+      const filteredCategories = catalogCategories.filter((category) => category.name.toLocaleLowerCase('es').includes(categorySearchTerm));
+      list.innerHTML = filteredCategories.length ? filteredCategories.map((category) => {
+        const index = catalogCategories.findIndex((item) => String(item.id) === String(category.id));
+        return `
         <article class="catalog-row ${String(category.id) === String(selectedCategoryId) ? 'category-selected' : ''}" data-category-row="${category.id}" tabindex="0" aria-pressed="${String(category.id) === String(selectedCategoryId)}" title="Seleccionar categoría">
-          <div class="catalog-row-main"><div><p class="catalog-row-name">${escapeCatalog(category.name)}</p><div class="catalog-row-meta">Orden: ${category.sort_order} · ${category.is_active ? 'Activa' : 'Inactiva'}</div>${category.description ? `<div class="catalog-row-meta">${escapeCatalog(category.description)}</div>` : ''}</div></div>
+          <div class="catalog-row-main"><div><p class="catalog-row-name">${escapeCatalog(category.name)}</p><div class="catalog-row-meta"><span class="catalog-position">${index + 1} de ${catalogCategories.length}</span>${category.is_active ? 'Activa' : 'Inactiva'}</div>${category.description ? `<div class="catalog-row-meta">${escapeCatalog(category.description)}</div>` : ''}</div></div>
           <div class="catalog-row-actions"><button class="category-move" type="button" data-category-up="${category.id}" aria-label="Subir ${escapeCatalog(category.name)}" title="Subir categoría" ${index === 0 ? 'disabled' : ''}>↑</button><button class="category-move" type="button" data-category-down="${category.id}" aria-label="Bajar ${escapeCatalog(category.name)}" title="Bajar categoría" ${index === catalogCategories.length - 1 ? 'disabled' : ''}>↓</button><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button></div>
-        </article>`).join('');
+        </article>`;
+      }).join('') : '<div class="catalog-empty">No se encontraron categorías con ese nombre.</div>';
     }
 
     function populateProductCategories() {
@@ -460,6 +471,7 @@
       submitButton.textContent = 'Ingresar';
     });
     document.getElementById('reloadCatalog').addEventListener('click', () => loadCatalog());
+    document.getElementById('categorySearch').addEventListener('input', (event) => { categorySearchTerm = event.target.value.trim().toLocaleLowerCase('es'); renderCategories(); });
     document.querySelectorAll('[data-catalog-tab]').forEach((button) => {
       button.addEventListener('click', () => setCatalogTab(button.dataset.catalogTab));
     });
@@ -480,11 +492,20 @@
       document.getElementById('productId').value = '';
       document.getElementById('productOrder').value = '0';
       document.getElementById('productAvailable').checked = true;
+      document.getElementById('productImageFile').value = '';
+      document.getElementById('productImagePreview').innerHTML = '';
       populateProductCategories();
       productForm.hidden = false;
       document.getElementById('productName').focus();
     });
-    document.getElementById('cancelProduct').addEventListener('click', () => { productForm.hidden = true; productForm.reset(); });
+    document.getElementById('cancelProduct').addEventListener('click', () => { productForm.hidden = true; productForm.reset(); document.getElementById('productImagePreview').innerHTML = ''; });
+    document.getElementById('productImageFile').addEventListener('change', (event) => {
+      const file = event.target.files?.[0], preview = document.getElementById('productImagePreview');
+      if (!file) { preview.innerHTML = ''; return; }
+      if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { event.target.value = ''; preview.textContent = 'Archivo no válido. Elegí JPG, PNG o WEBP de hasta 5 MB.'; return; }
+      const localUrl = URL.createObjectURL(file);
+      preview.innerHTML = `<img src="${localUrl}" alt="Vista previa"><span>${escapeCatalog(file.name)} · ${(file.size / 1024 / 1024).toFixed(2)} MB</span>`;
+    });
 
     document.getElementById('categoryList').addEventListener('click', async (event) => {
       const upButton = event.target.closest('[data-category-up]');
@@ -511,7 +532,9 @@
         }
         await loadCatalog();
         selectCategory(categoryId, true);
-        showCatalogMessage('Orden de categorías actualizado.');
+        const movedCategory = catalogCategories.find((item) => String(item.id) === categoryId);
+        const newPosition = catalogCategories.findIndex((item) => String(item.id) === categoryId) + 1;
+        showCatalogMessage(`${movedCategory?.name || 'La categoría'} ahora está en la posición ${newPosition} de ${catalogCategories.length}.`);
       }
       if (editButton) {
         const category = catalogCategories.find((item) => String(item.id) === editButton.dataset.categoryEdit);
@@ -547,6 +570,8 @@
         document.getElementById('productOrder').value = product.sort_order ?? 0;
         document.getElementById('productDescription').value = product.description || '';
         document.getElementById('productImage').value = product.image_url || '';
+        document.getElementById('productImageFile').value = '';
+        document.getElementById('productImagePreview').innerHTML = product.image_url ? `<img src="${escapeCatalog(product.image_url)}" alt="Foto actual"><span>Foto actual. Si elegís otra, se reemplazará.</span>` : '';
         document.getElementById('productAvailable').checked = product.is_available;
         productForm.hidden = false;
         document.getElementById('productName').focus();
@@ -620,7 +645,8 @@
       const price = Number(document.getElementById('productPrice').value);
       const categoryValue = document.getElementById('productCategory').value;
       const sortOrder = Number(document.getElementById('productOrder').value || 0);
-      const imageUrl = document.getElementById('productImage').value.trim();
+      let imageUrl = document.getElementById('productImage').value.trim();
+      const imageFile = document.getElementById('productImageFile').files?.[0];
       if (!name || !Number.isFinite(price) || price < 0 || !Number.isInteger(sortOrder) || sortOrder < 0) {
         showCatalogMessage('Revisá el nombre, el precio y el orden del producto.');
         return;
@@ -628,6 +654,15 @@
       if (imageUrl && !/^https:\/\//i.test(imageUrl)) {
         showCatalogMessage('La imagen debe tener una dirección segura que comience con https://');
         return;
+      }
+      const saveButton = productForm.querySelector('[type="submit"]');
+      saveButton.disabled = true;
+      if (imageFile) {
+        const extension = imageFile.type === 'image/png' ? 'png' : imageFile.type === 'image/webp' ? 'webp' : 'jpg';
+        const filePath = `products/${crypto.randomUUID()}.${extension}`;
+        const { data: uploadedFile, error: uploadError } = await client.storage.from('product-images').upload(filePath, imageFile, { contentType: imageFile.type, upsert: false });
+        if (uploadError) { saveButton.disabled = false; showCatalogMessage('No se pudo subir la foto: ' + uploadError.message); return; }
+        imageUrl = client.storage.from('product-images').getPublicUrl(uploadedFile.path).data.publicUrl;
       }
       const payload = {
         name,
@@ -638,8 +673,6 @@
         is_available: document.getElementById('productAvailable').checked,
         sort_order: sortOrder
       };
-      const saveButton = productForm.querySelector('[type="submit"]');
-      saveButton.disabled = true;
       const result = id
         ? await client.from('products').update(payload).eq('id', id)
         : await client.from('products').insert(payload);
@@ -647,6 +680,7 @@
       if (result.error) { showCatalogMessage('No se pudo guardar el producto: ' + result.error.message); return; }
       productForm.hidden = true;
       productForm.reset();
+      document.getElementById('productImagePreview').innerHTML = '';
       await loadCatalog();
       showCatalogMessage('Producto guardado correctamente.');
     });
