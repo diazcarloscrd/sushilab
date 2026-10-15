@@ -46,7 +46,7 @@ textarea{min-height:88px;resize:vertical;line-height:1.5}
 <div class="grid">
 <div class="field full"><label class="checkline"><input id="upsellEnabled" type="checkbox"><span>Mostrar una sugerencia de producto en el carrito</span></label></div>
 <div class="field full"><label for="upsellProduct">Producto sugerido</label><select id="upsellProduct" required></select></div>
-<div class="field"><label for="upsellPrice">Precio del producto (ARS)</label><input id="upsellPrice" type="number" min="0" step="100" required></div>
+<div class="field"><label id="upsellPriceLabel" for="upsellPrice">Precio del producto (ARS)</label><input id="upsellPrice" type="number" min="0" step="100" required><p class="hint" id="upsellQuoteHint" hidden>Este producto no tiene precio fijo. Se consulta por WhatsApp y no se incorpora al total del pedido.</p></div>
 <div class="field"><label for="upsellNote">Descripción corta</label><input id="upsellNote" maxlength="180"></div>
 <p class="hint full">El producto sugerido se administra como un producto real. No se duplica en la carta principal mientras esté seleccionado como sugerencia.</p>
 </div>
@@ -78,7 +78,9 @@ function note(title,message,error=false){el("noticeTitle").textContent=title;el(
 function confirmSave(){el("confirmOverlay").classList.remove("hidden");return new Promise(resolve=>{confirmResolve=resolve})}
 function closeConfirm(value){el("confirmOverlay").classList.add("hidden");if(confirmResolve){confirmResolve(value);confirmResolve=null}}
 el("confirmNo").addEventListener("click",()=>closeConfirm(false));el("confirmYes").addEventListener("click",()=>closeConfirm(true));
-el("upsellProduct").addEventListener("change",()=>{const product=products.find(p=>String(p.id)===el("upsellProduct").value);if(product){el("upsellPrice").value=Number(product.price);el("upsellNote").value=product.description||""}});
+function isQuoteProduct(product){return /bombas de salm[oó]n/i.test(String(product?.name||""))}
+function syncUpsellPriceField(product){const quote=isQuoteProduct(product);el("upsellPrice").disabled=quote;el("upsellPrice").required=!quote;el("upsellPrice").value=quote?"":Number(product?.price||0);el("upsellPrice").placeholder=quote?"Precio a consultar":"Ej. 14500";el("upsellPriceLabel").textContent=quote?"Precio del producto · A consultar":"Precio del producto (ARS)";el("upsellQuoteHint").hidden=!quote}
+el("upsellProduct").addEventListener("change",()=>{const product=products.find(p=>String(p.id)===el("upsellProduct").value);if(product){syncUpsellPriceField(product);el("upsellNote").value=product.description||""}});
 function fillForm(){
  const s=currentSettings;
  el("deliveryFee").value=Number(s.delivery_fee_bahia??0);
@@ -94,7 +96,7 @@ function fillForm(){
  el("upsellProduct").innerHTML=products.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+'</option>').join("");
  if(s.upsell_product_id&&products.some(p=>String(p.id)===String(s.upsell_product_id)))el("upsellProduct").value=String(s.upsell_product_id);
  const selected=products.find(p=>String(p.id)===el("upsellProduct").value);
- el("upsellPrice").value=selected?Number(selected.price):0;
+ syncUpsellPriceField(selected);
  el("upsellNote").value=selected?.description||"";
 }
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
@@ -114,18 +116,19 @@ el("settingsForm").addEventListener("submit",async event=>{
  event.preventDefault();if(busy)return;
  const fee=Number(el("deliveryFee").value),min=Number(el("prepMin").value),max=Number(el("prepMax").value);
  const phone=el("whatsappNumber").value.replace(/\D/g,""),methods=el("paymentMethods").value.split("\n").map(x=>x.trim()).filter(Boolean);
- const product=products.find(p=>String(p.id)===el("upsellProduct").value),price=Number(el("upsellPrice").value);
+ const product=products.find(p=>String(p.id)===el("upsellProduct").value),quoteProduct=isQuoteProduct(product),price=Number(el("upsellPrice").value);
  if(!Number.isFinite(fee)||fee<0||!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>360){note("Revisá los valores","La tarifa debe ser positiva y los tiempos deben ser válidos; el máximo no puede ser menor que el mínimo.",true);return}
  if(phone.length<8||phone.length>20||!el("whatsappDisplay").value.trim()||!methods.length){note("Faltan datos","Completá el WhatsApp y al menos un medio de pago.",true);return}
- if(el("upsellEnabled").checked&&(!product||!Number.isFinite(price)||price<0)){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido.",true);return}
+ if(el("upsellEnabled").checked&&(!product||(!quoteProduct&&(!Number.isFinite(price)||price<0)))){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido.",true);return}
  if(!await confirmSave())return;
  busy=true;el("save").disabled=true;el("save").textContent="Guardando…";el("refresh").disabled=true;
  try{
   const productDescription=el("upsellNote").value.trim()||null;
-  if(product&&(Number(product.price)!==price||(product.description||null)!==productDescription)){
-   const updated=await db.from("products").update({price,description:productDescription}).eq("id",product.id).eq("is_available",true).select("id,price,description").maybeSingle();
+  if(product&&((!quoteProduct&&Number(product.price)!==price)||(product.description||null)!==productDescription)){
+   const productUpdate={description:productDescription};if(!quoteProduct)productUpdate.price=price;
+   const updated=await db.from("products").update(productUpdate).eq("id",product.id).eq("is_available",true).select("id,price,description").maybeSingle();
    if(updated.error)throw updated.error;if(!updated.data)throw new Error("No se pudo actualizar el producto sugerido.");
-   product.price=price;product.description=productDescription;
+   if(!quoteProduct)product.price=price;product.description=productDescription;
   }
   const next={...currentSettings,
    delivery_fee_bahia:fee,delivery_area_label:el("deliveryArea").value.trim(),
