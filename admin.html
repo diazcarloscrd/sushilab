@@ -736,6 +736,8 @@
     document.getElementById('cancelCategory').addEventListener('click', () => { document.getElementById('categoryModal').hidden = true; categoryForm.reset(); });
     document.getElementById('newProduct').addEventListener('click', () => {
       productForm.reset();
+      const priceInput = document.getElementById('productPrice');
+      priceInput.disabled = false; priceInput.placeholder = 'Ej. 12500'; priceInput.previousElementSibling.textContent = 'Precio (ARS)';
       document.getElementById('productId').value = '';
       document.getElementById('productFormTitle').textContent = 'Nuevo producto';
       document.getElementById('productOrder').value = '0';
@@ -746,7 +748,7 @@
       document.getElementById('productModal').hidden = false;
       document.getElementById('productName').focus();
     });
-    document.getElementById('cancelProduct').addEventListener('click', () => { document.getElementById('productModal').hidden = true; productForm.reset(); document.getElementById('productImagePreview').innerHTML = ''; });
+    document.getElementById('cancelProduct').addEventListener('click', () => { document.getElementById('productModal').hidden = true; productForm.reset(); const priceInput=document.getElementById('productPrice'); priceInput.disabled=false; priceInput.placeholder='Ej. 12500'; priceInput.previousElementSibling.textContent='Precio (ARS)'; document.getElementById('productImagePreview').innerHTML = ''; });
     document.getElementById('productImageFile').addEventListener('change', (event) => {
       const file = event.target.files?.[0], preview = document.getElementById('productImagePreview');
       if (!file) { preview.innerHTML = ''; return; }
@@ -964,6 +966,8 @@
       if (result.error) { showCatalogMessage('No se pudo guardar el producto: ' + result.error.message); return; }
       document.getElementById('productModal').hidden = true;
       productForm.reset();
+      const priceInput = document.getElementById('productPrice');
+      priceInput.disabled = false; priceInput.placeholder = 'Ej. 12500'; priceInput.previousElementSibling.textContent = 'Precio (ARS)';
       document.getElementById('productImagePreview').innerHTML = '';
       await loadCatalog();
       showCatalogMessage('Producto guardado correctamente.');
