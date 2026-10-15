@@ -4,8 +4,23 @@
   const STORAGE_KEY = 'yankun-admin-last-activity';
 
   window.startYanKunIdleSession = async function (client, freshLogin) {
-    // El dashboard principal controla la sesión compartida; los módulos embebidos no duplican timers ni modales.
-    if (window.self !== window.top) return true;
+    // Los módulos embebidos no deben duplicar el modal ni el temporizador de sesión,
+    // pero sí informar al dashboard cuando hay actividad dentro del iframe.
+    if (window.self !== window.top) {
+      let lastParentNotice = 0;
+      function notifyParentActivity() {
+        const now = Date.now();
+        if (now - lastParentNotice < 1000) return;
+        lastParentNotice = now;
+        try {
+          window.parent.postMessage({ type: 'yankun-admin-activity', at: now }, window.location.origin);
+        } catch (_) {}
+      }
+      ['pointerdown', 'keydown', 'touchstart', 'scroll', 'input', 'change'].forEach(function (eventName) {
+        document.addEventListener(eventName, notifyParentActivity, { passive: true });
+      });
+      return true;
+    }
 
     const previousActivity = Number(localStorage.getItem(STORAGE_KEY) || 0);
     if (!freshLogin && previousActivity && Date.now() - previousActivity >= IDLE_LIMIT) {
@@ -108,6 +123,19 @@
     }
     ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'scroll', 'input', 'change'].forEach(function (eventName) {
       document.addEventListener(eventName, registerActivity, { passive: true });
+    });
+
+    // Solo se acepta actividad del iframe de módulos perteneciente al mismo origen.
+    window.addEventListener('message', function (event) {
+      const frame = document.getElementById('moduleFrame');
+      if (event.origin !== window.location.origin ||
+          !frame ||
+          frame.contentWindow !== event.source ||
+          event.data?.type !== 'yankun-admin-activity') return;
+      const now = Number(event.data.at) || Date.now();
+      localStorage.setItem(STORAGE_KEY, String(now));
+      lastWrite = now;
+      if (warningVisible && now < Date.now() && Date.now() - now < IDLE_LIMIT) closeWarning();
     });
     window.addEventListener('storage', function (event) {
       if (event.key === STORAGE_KEY && event.newValue) {
