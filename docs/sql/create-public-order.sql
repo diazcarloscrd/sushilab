@@ -70,6 +70,14 @@ BEGIN
     RAISE EXCEPTION 'El pedido no contiene productos válidos';
   END IF;
 
+  -- Return an existing order before checking today's schedule, so safe retries stay idempotent.
+  SELECT to_jsonb(o) INTO v_existing
+  FROM public.orders o
+  WHERE o.client_request_id = p_request_id;
+  IF v_existing IS NOT NULL THEN
+    RETURN jsonb_build_object('duplicate', true, 'order', v_existing);
+  END IF;
+
   SELECT sl.id INTO v_store_id
   FROM public.sales_locations sl
   WHERE sl.code = 'bahia-blanca-store' AND sl.location_type = 'store' AND sl.is_active = true
