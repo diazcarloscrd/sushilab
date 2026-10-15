@@ -576,6 +576,8 @@
     renderCartSummary();
   }
 
+  function isQuoteProduct(product) { return /bombas de salm[oó]n/i.test(String(product?.name || '')); }
+
   function updateUpsellVisibility() {
     const container=document.getElementById('upsellContainer');
     const product=window.yankunUpsellProduct;
@@ -1045,7 +1047,7 @@
     container.style.visibility='visible';
     const allAvailable = products.filter(p => categories.some(c => c.id === p.category_id));
     const upsellId = publicSettings?.upsell_enabled ? String(publicSettings.upsell_product_id || '') : '';
-    const available = allAvailable.filter(p => String(p.id) !== upsellId);
+    const available = allAvailable.filter(p => String(p.id) !== upsellId && !isQuoteProduct(p));
     const byCategory = new Map(categories.map(c => [c.id, []]));
     available.forEach(p => byCategory.get(p.category_id)?.push(p));
     const visibleCategories = categories.filter(c => (byCategory.get(c.id) || []).length);
@@ -1226,9 +1228,117 @@
     const set=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value;};
     set('upsellTitle','Sumá '+data.name);
     set('upsellDescription',data.description||'Un complemento para tu pedido');
-    set('upsellPrice','$'+Number(data.price).toLocaleString('es-AR')+' ARS');
+    const requiresQuote=isQuoteProduct(data);
+    set('upsellPrice',requiresQuote?'Precio a consultar':'
+    container.hidden=false;
+    updateUpsellVisibility();
+  }
+
+  async function loadPublicSettings() {
+    const [settingsResult,locationResult]=await Promise.all([
+      db.from('business_settings').select('value').eq('key','public_site').maybeSingle(),
+      db.from('sales_locations').select('id,name,address,locality,is_active').eq('code','bahia-blanca-store').eq('is_active',true).maybeSingle()
+    ]);
+    if(settingsResult.error||locationResult.error||!settingsResult.data||!locationResult.data){
+      publicSettingsKnown=true;publicSettings=null;window.yankunPublicSettings=null;window.yankunPublicSettingsKnown=true;
+      console.warn('No se pudo cargar la configuración pública del comercio.',settingsResult.error,locationResult.error);return;
+    }
+    publicSettings=settingsResult.data.value||{};mainLocation=locationResult.data;publicSettingsKnown=true;window.yankunPublicLocation=mainLocation;
+    window.yankunPublicSettings=publicSettings;window.yankunPublicSettingsKnown=true;
+    const zonesResult=await db.from('delivery_zones').select('name,description,delivery_fee').eq('sales_location_id',mainLocation.id).eq('is_active',true).order('sort_order');
+    const zones=(zonesResult.data||[]).map(zone=>zone.name);
+    const address=[mainLocation.address,mainLocation.locality].filter(Boolean).join(', ');
+    const setText=(id,value)=>{const node=document.getElementById(id);if(node&&value)node.textContent=value;};
+    setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');setText('publicAddressQuick',address);setText('publicAddressFooter',mainLocation.address||'Punto de retiro');setText('publicAddressPhilosophy',mainLocation.address||'el punto de retiro oficial');setText('publicAddressFaq',mainLocation.address||'el local');setText('publicLocalityFooter',mainLocation.locality||'');setText('pickupAddressNotice',address);setText('termsPickupAddress',address+'. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.');
+    setText('pickupOptionLabel','Take Away - Gratis ('+(mainLocation.address||'retiro en local')+')');
+    setText('deliveryAreaDescription',publicSettings.delivery_area_description||publicSettings.delivery_area_label||'Zona de entrega');setText('publicDeliveryTitle','Envíos '+(publicSettings.delivery_area_label||mainLocation.locality||''));setText('otherZonesDescription',zones.length?zones.join(' · '):'Consultá disponibilidad y tarifa por WhatsApp');
+    const deliveryFee=Number(publicSettings.delivery_fee_bahia);
+    const feeLabel=Number.isFinite(deliveryFee)&&deliveryFee>=0?'$'+deliveryFee.toLocaleString('es-AR'):'A consultar';
+    setText('deliveryFeeButton',feeLabel==='A consultar'?feeLabel:'+'+feeLabel);
+    setText('publicDeliveryQuick','Delivery '+feeLabel+' · Retiro sin cargo');
+    const prepMin=Number(publicSettings.preparation_min_minutes),prepMax=Number(publicSettings.preparation_max_minutes);
+    const prepLabel=Number.isFinite(prepMin)&&Number.isFinite(prepMax)&&prepMin>0&&prepMax>=prepMin?prepMin+'–'+prepMax+' min':'A coordinar con cocina';
+    setText('preparationTimeLabel','Tiempo estimado: '+prepLabel);
+    setText('publicPackagingFooter',publicSettings.packaging_note||'');setText('publicPackagingCart',publicSettings.packaging_note||'');setText('publicPackagingQuick',publicSettings.packaging_note||'');setText('termsPackaging',publicSettings.packaging_note||'');
+    setText('termsDeliveryInfo','Cadetería urbana en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana')+' con tarifa de '+feeLabel+'. Zonas especiales o periféricas se cotizan por WhatsApp.');
+    setText('termsPreparation','Elaboración al momento: '+prepLabel+', según demanda de cocina.');
+    setText('deliveryOptionLabel','Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana'));
+    document.querySelectorAll('a[data-business-whatsapp]').forEach(link=>{if(publicSettings.whatsapp_number)link.href='https://wa.me/'+publicSettings.whatsapp_number;if(link.textContent.includes('+54'))link.textContent=publicSettings.whatsapp_display||link.textContent;});
+    const payment=document.getElementById('paymentMethod');
+    if(payment&&Array.isArray(publicSettings.payment_methods)&&publicSettings.payment_methods.length){payment.innerHTML='';publicSettings.payment_methods.forEach(method=>{const option=document.createElement('option');option.value=method;option.textContent=method;payment.appendChild(option);});}
+    await loadUpsellProduct();
+    if(typeof window.renderCartSummary==='function')window.renderCartSummary();
+  }
+
+  async function loadSchedule() {
+    const locationResult = await db.from('sales_locations').select('id').eq('code','bahia-blanca-store').eq('is_active',true).maybeSingle();
+    if (locationResult.error || !locationResult.data) { console.warn('No se encontró el punto de venta principal para sincronizar horarios.'); return; }
+    const locationId = locationResult.data.id;
+    const [hoursResult,specialResult] = await Promise.all([
+      db.from('business_hours').select('sales_location_id,schedule_type,day_of_week,specific_date,is_open,opens_at,closes_at').eq('sales_location_id',locationId),
+      db.from('special_events').select('event_date,event_type,opens_at,closes_at').eq('sales_location_id',locationId).eq('is_active',true)
+    ]);
+    if (hoursResult.error || specialResult.error) {
+      console.warn('No se pudo sincronizar el horario público.',hoursResult.error,specialResult.error);
+      schedule.weekly=[];schedule.special=[];scheduleKnown=true;updateScheduleUI();return;
+    }
+    schedule.weekly=(hoursResult.data||[]).filter(x=>x.schedule_type==='weekly');
+    schedule.special=(specialResult.data||[]);
+    scheduleKnown=true;
+    renderTimeSlots();
+    updateScheduleUI();
+    if (!scheduleTimer) scheduleTimer = window.setInterval(updateScheduleUI,30000);
+  }
+
+  let catalogLoading = false;
+  async function loadCatalog() {
+    if (catalogLoading) return;
+    catalogLoading = true;
+    try {
+    const [categoriesResult,productsResult] = await Promise.all([
+      db.from('categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
+      db.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').eq('is_available',true).order('sort_order')
+    ]);
+    if (categoriesResult.error || productsResult.error) {
+      console.error('No se pudo cargar la carta desde Supabase.',categoriesResult.error,productsResult.error);
+      const container=document.getElementById('productsCatalogContainer');
+      const filters=document.getElementById('categoryFilterGroup');
+      if(container){container.innerHTML='<div class="empty">No pudimos cargar la carta en este momento. Intentá nuevamente más tarde.</div>';container.style.visibility='visible';}
+      if(filters)filters.innerHTML='';
+      renderFeatured(null);
+      return;
+    }
+    buildCatalog(categoriesResult.data||[],productsResult.data||[]);
+    } finally {
+      catalogLoading = false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded',()=> {
+    loadSchedule().catch(error=>{console.error(error);});
+    loadPublicSettings().then(()=>{renderTimeSlots();return loadCatalog();}).catch(error=>{console.error(error);publicSettingsKnown=true;window.yankunPublicSettingsKnown=true;loadCatalog().catch(catalogError=>console.error(catalogError));});
+    db.channel('public-catalog-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>{loadCatalog();loadUpsellProduct();})
+      .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_hours'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings().then(()=>loadCatalog()).catch(error=>console.warn(error)))
+      .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>loadPublicSettings())
+      .on('postgres_changes',{event:'*',schema:'public',table:'delivery_zones'},()=>loadPublicSettings())
+      .subscribe();
+    window.setInterval(()=>{loadPublicSettings().then(()=>loadCatalog()).catch(()=>{});loadSchedule().catch(()=>{});},60000);
+  });
+})();
+</script>
+</body></html>+Number(data.price).toLocaleString('es-AR')+' ARS');
     const button=document.getElementById('upsellAddButton');
-    if(button)button.onclick=()=>{if(window.addToCart(Number(data.id),data.name,Number(data.price),'Entradas')===false)return;};
+    if(button){
+      button.textContent=requiresQuote?'Consultar por WhatsApp':'+ Agregar';
+      button.onclick=()=>{
+        if(requiresQuote){const phone=String(publicSettings?.whatsapp_number||'5492915101491').replace(/\\D/g,'');const message=encodeURIComponent('Hola, quisiera consultar el precio de '+data.name+'.');window.open('https://wa.me/'+phone+'?text='+message,'_blank','noopener');return;}
+        if(window.addToCart(Number(data.id),data.name,Number(data.price),'Entradas')===false)return;
+      };
+    }
     container.hidden=false;
     updateUpsellVisibility();
   }
