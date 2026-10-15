@@ -551,7 +551,7 @@
     btnOtra.className = 'p-space-xs text-left rounded bg-surface-container-high text-on-surface transition-all flex flex-col';
 
     if (mode === 'delivery_bahia') {
-      cartState.shippingCost = Number(publicSettings?.delivery_fee_bahia || 0);
+      cartState.shippingCost = Number(window.yankunPublicSettings?.delivery_fee_bahia || 0);
       btnBahia.className = 'p-space-xs text-left rounded bg-surface-container text-on-surface transition-all flex flex-col ring-1 ring-primary-container';
       addressContainer.classList.remove('hidden');
       pickupNotice.classList.add('hidden');
@@ -634,8 +634,1991 @@
     let shippingText = '$0 ARS';
     if (subtotal > 0) {
       if (cartState.deliveryMode === 'delivery_bahia') {
-        shipping = Number(publicSettings?.delivery_fee_bahia || 0);
-        shippingText = publicSettings ? '+' + money(shipping) : 'No disponible';
+        shipping = Number(window.yankunPublicSettings?.delivery_fee_bahia || 0);
+        shippingText = window.yankunPublicSettings ? '+;
+      } else if (cartState.deliveryMode === 'pickup') {
+        shipping = 0;
+        shippingText = 'GRATIS ($0 ARS)';
+      } else if (cartState.deliveryMode === 'otra_zona') {
+        shipping = 0;
+        shippingText = 'A consultar por WhatsApp';
+      }
+    }
+
+    const finalTotal = Math.max(0, subtotal - discount + shipping);
+
+    document.getElementById('summarySubtotal').textContent = `$${subtotal.toLocaleString('es-AR')} ARS`;
+    document.getElementById('summaryShipping').textContent = shippingText;
+
+    const discountRow = document.getElementById('discountRow');
+    if (discount > 0) {
+      discountRow.classList.remove('hidden');
+      document.getElementById('summaryDiscount').textContent = `-$${discount.toLocaleString('es-AR')} ARS`;
+    } else {
+      discountRow.classList.add('hidden');
+    }
+
+    document.getElementById('summaryTotal').textContent = `$${finalTotal.toLocaleString('es-AR')} ARS`;
+  }
+
+  function getOrderText() {
+    const itemsList = Object.values(cartState.items);
+    const name = document.getElementById('clientName').value.trim() || 'Cliente';
+    const phone = document.getElementById('clientPhone').value.trim() || 'No especificado';
+    const address = document.getElementById('clientAddress').value.trim() || 'No indicada';
+    const timeSlot = document.getElementById('deliveryTimeSlot').value;
+    const payment = document.getElementById('paymentMethod').value;
+    const notes = document.getElementById('generalNotes').value.trim();
+
+    const subtotal = itemsList.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+    const discount = (cartState.hasDiscount && subtotal > 0) ? Math.round(subtotal * cartState.discountPercent) : 0;
+    const shipping = cartState.deliveryMode === 'delivery_bahia' ? Number(publicSettings?.delivery_fee_bahia || 0) : 0;
+    const finalTotal = subtotal - discount + shipping;
+
+    let modalidadTxt = 'Envio en Bahia Blanca';
+    if (cartState.deliveryMode === 'pickup') modalidadTxt = 'Take Away (Retiro en Chile 1137)';
+    if (cartState.deliveryMode === 'otra_zona') modalidadTxt = 'Otra zona (A consultar por WhatsApp)';
+
+    let msg = `NUEVO PEDIDO - YANKUN SUSHILAB\n`;
+    msg += `------------------------------------\n`;
+    msg += `Cliente: ${name}\n`;
+    msg += `Telefono: ${phone}\n`;
+    msg += `Modalidad: ${modalidadTxt}\n`;
+    if (cartState.deliveryMode !== 'pickup') {
+      msg += `Direccion: ${address}\n`;
+    }
+    msg += `Horario estimado: ${timeSlot}\n`;
+    msg += `Medio de pago: ${payment}\n`;
+    if (notes) {
+      msg += `Notas: ${notes}\n`;
+    }
+    msg += `------------------------------------\n`;
+    msg += `DETALLE DEL PEDIDO:\n`;
+    itemsList.forEach(item => {
+      msg += `- (${item.quantity}x) ${escapeCartText(item.name)} - $${(item.price * item.quantity).toLocaleString('es-AR')} ARS\n`;
+    });
+    msg += `------------------------------------\n`;
+    msg += `Subtotal: $${subtotal.toLocaleString('es-AR')} ARS\n`;
+    if (discount > 0) {
+      msg += `Descuento 1er Pedido (10% OFF): -$${discount.toLocaleString('es-AR')} ARS\n`;
+    }
+    msg += `Envio: ${cartState.deliveryMode === 'delivery_bahia' ? '
+    msg += `TOTAL A PAGAR: $${finalTotal.toLocaleString('es-AR')} ARS\n`;
+    msg += `------------------------------------\n`;
+    msg += `Aguardo confirmacion de recepcion. Muchas gracias!`;
+    return msg;
+  }
+
+  async function checkoutViaWhatsApp() {
+    const itemsList = Object.values(cartState.items);
+    if (itemsList.length === 0) {
+      window.showOrderFeedback?.('Carrito vacío', 'Agregá al menos un producto antes de enviar el pedido.');
+      return;
+    }
+    const name = document.getElementById('clientName').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
+    const address = document.getElementById('clientAddress').value.trim();
+    if (!window.yankunPublicSettingsKnown || !window.yankunPublicSettings) {
+      window.showOrderFeedback?.('Configuración no disponible', 'No pudimos consultar los datos actualizados del comercio. Intentá nuevamente en unos minutos.');
+      return;
+    }
+    if (!name || !phone) {
+      window.showOrderFeedback?.('Faltan tus datos', 'Completá tu nombre y teléfono para registrar el pedido.');
+      return;
+    }
+    if (cartState.deliveryMode !== 'pickup' && !address) {
+      window.showOrderFeedback?.('Falta la dirección', 'Completá la dirección para el envío.');
+      document.getElementById('clientAddress').focus();
+      return;
+    }
+    if (window.yankunOrderSubmitting) return;
+    window.yankunOrderSubmitting = true;
+    const submitButton = document.querySelector('[onclick*="checkoutViaWhatsApp"]');
+    if (submitButton) { submitButton.disabled = true; submitButton.dataset.originalText = submitButton.textContent; submitButton.textContent = 'REGISTRANDO...'; }
+    const waTab = window.open('about:blank', '_blank');
+    const requestedTime = document.getElementById('deliveryTimeSlot')?.value || '';
+    const paymentMethod = document.getElementById('paymentMethod')?.value || '';
+    const customerNotes = document.getElementById('generalNotes')?.value.trim() || '';
+    const payload = {
+      customer_name: name,
+      customer_phone: phone,
+      delivery_mode: cartState.deliveryMode,
+      delivery_address: address,
+      requested_time: requestedTime,
+      payment_method: paymentMethod,
+      customer_notes: customerNotes,
+      items: itemsList.map(item => ({ product_id: Number(item.id), quantity: Number(item.quantity) }))
+    };
+    const fingerprint = JSON.stringify(payload);
+    let requestId;
+    try {
+      const previous = JSON.parse(sessionStorage.getItem('yankun_pending_order') || 'null');
+      requestId = previous && previous.fingerprint === fingerprint ? previous.request_id : crypto.randomUUID();
+      sessionStorage.setItem('yankun_pending_order', JSON.stringify({ fingerprint, request_id: requestId }));
+      const response = await fetch('https://cdhnpsowlsesoobrytvh.supabase.co/functions/v1/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': window.yankunPublishableKey,
+          'Authorization': 'Bearer ' + window.yankunPublishableKey
+        },
+        body: JSON.stringify({ ...payload, request_id: requestId, website: '' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.order) throw new Error(result.error || 'No se pudo registrar el pedido.');
+      const order = result.order;
+      try {
+        localStorage.setItem('yankun_last_order', JSON.stringify({ items: cartState.items, deliveryMode: cartState.deliveryMode }));
+      } catch (e) {}
+      const detailLines = itemsList.map(item => '- ' + item.quantity + ' x ' + item.name).join('\n');
+      const message = [
+        'Hola, acabo de registrar un pedido en YanKun SushiLab.',
+        'Pedido: ' + order.order_number,
+        'Cliente: ' + name,
+        'Teléfono: ' + phone,
+        'Modalidad: ' + (cartState.deliveryMode === 'pickup' ? 'Retiro' : cartState.deliveryMode === 'otra_zona' ? 'Envío a coordinar' : 'Delivery Bahía Blanca'),
+        address ? 'Dirección: ' + address : '',
+        'Horario solicitado: ' + (requestedTime || 'A coordinar'),
+        'Medio de pago: ' + (paymentMethod || 'A coordinar'),
+        customerNotes ? 'Observaciones: ' + customerNotes : '',
+        'Detalle:',
+        detailLines,
+        'Total registrado: $' + Number(order.total).toLocaleString('es-AR') + ' ARS',
+        'Estado: Pendiente'
+      ].filter(Boolean).join('\n');
+      if (!window.yankunPublicSettings?.whatsapp_number) throw new Error('El contacto de WhatsApp no está configurado.');
+      const waUrl = 'https://wa.me/' + window.yankunPublicSettings.whatsapp_number + '?text=' + encodeURIComponent(message);
+      sessionStorage.removeItem('yankun_pending_order');
+      cartState.items = {};
+      renderCart();
+      if (waTab) {
+        waTab.location.href = waUrl;
+        window.showOrderFeedback?.('Pedido registrado', 'Tu pedido ' + order.order_number + ' quedó guardado correctamente. Se abrió WhatsApp para completar el envío.');
+      } else {
+        window.showOrderFeedback?.('Pedido registrado', 'Tu pedido ' + order.order_number + ' quedó guardado correctamente. Abrí WhatsApp para enviar el mensaje.', waUrl);
+      }
+    } catch (error) {
+      if (waTab) waTab.close();
+      window.showOrderFeedback?.('No pudimos registrar el pedido', error.message || 'Revisá tu conexión e intentá nuevamente.');
+    } finally {
+      window.yankunOrderSubmitting = false;
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = submitButton.dataset.originalText || 'ENVIAR PEDIDO'; }
+    }
+  }
+
+  function copyOrderToClipboard() {
+    const itemsList = Object.values(cartState.items);
+    if (itemsList.length === 0) {
+      window.showOrderFeedback?.('Carrito vacío', 'Agregá productos antes de copiar el pedido.');
+      return;
+    }
+    const msg = getOrderText();
+    navigator.clipboard.writeText(msg).then(() => {
+      window.showOrderFeedback?.('Pedido copiado', 'El detalle del pedido quedó copiado al portapapeles.');
+    }).catch(() => {
+      window.showOrderFeedback?.('No se pudo copiar', 'El navegador no permitió copiar el pedido.');
+    });
+  }
+
+  function repeatLastOrder() {
+    try {
+      const saved = localStorage.getItem('yankun_last_order');
+      if (!saved) {
+        alert('No hay un pedido previo guardado en este navegador.');
+        return;
+      }
+      const data = JSON.parse(saved);
+      if (data && data.items && Object.keys(data.items).length > 0) {
+        cartState.items = data.items;
+        if (data.deliveryMode) setDeliveryMode(data.deliveryMode);
+        renderCart();
+        alert('Se cargo tu ultimo pedido!');
+      } else {
+        alert('No se encontraron items del pedido anterior.');
+      }
+    } catch (e) {
+      alert('No se pudo cargar el ultimo pedido.');
+    }
+  }
+
+  function toggleTermsModal(show) {
+    const modal = document.getElementById('termsModalOverlay');
+    if (!modal) return;
+    if (show) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    } else {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  function setActiveNav(target) {
+    const navLinks = document.querySelectorAll('#headerNav .nav-header-link');
+    navLinks.forEach(link => {
+      const linkTarget = link.getAttribute('data-nav-target');
+      if (linkTarget === target) {
+        link.className = 'nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface font-semibold py-1 border-b-2 border-primary-container transition-colors leading-none flex items-center justify-center cursor-pointer';
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.className = 'nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center cursor-pointer';
+        link.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  function handleNavClick(e, target) {
+    if (e) e.preventDefault();
+    setActiveNav(target);
+
+    if (target === 'pedidos') {
+      const cartEl = document.getElementById('pedido-seccion');
+      if (cartEl) {
+        cartEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      filterCategory(target, false);
+      const catalogoEl = document.getElementById('catalogo');
+      if (catalogoEl) {
+        catalogoEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  function filterCategory(category, syncHeader = true) {
+    if (syncHeader) {
+      setActiveNav(category);
+    }
+
+    const buttons = document.querySelectorAll('#categoryFilterGroup .category-pill');
+    buttons.forEach(btn => {
+      const btnCat = btn.getAttribute('data-cat');
+      if (btnCat === category) {
+        btn.className = 'category-pill active-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider bg-primary-container text-on-primary-container font-bold shadow-md transition-all duration-200 shrink-0';
+      } else {
+        btn.className = 'category-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider text-tertiary hover:text-on-surface hover:bg-surface-container transition-all duration-200 shrink-0';
+      }
+    });
+
+    const sections = document.querySelectorAll('.catalog-section');
+    sections.forEach(sec => {
+      if (category === 'all' || sec.getAttribute('data-section') === category) {
+        sec.style.display = 'block';
+      } else {
+        sec.style.display = 'none';
+      }
+    });
+
+    const catalogContainer = document.getElementById('productsCatalogContainer');
+    if (catalogContainer) {
+      catalogContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setDeliveryMode('delivery_bahia');
+  });
+</script></main><footer class="w-full bg-surface-container-lowest mt-space-xl"><div class="max-w-[1280px] mx-auto px-gutter lg:px-gutter-desktop py-space-xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg mb-space-xl"><div><div class="flex items-center gap-space-sm mb-space-md"><span class="font-headline-sm text-headline-sm text-on-surface">YanKun <span class="text-primary-container">SushiLab</span></span></div><p class="font-body-sm text-body-sm text-tertiary mb-space-md">Laboratorio gastronomico nikkei y sushi contemporaneo en Bahia Blanca. Precision culinaria, piezas artesanales y despacho selecto.</p><div class="inline-flex items-center gap-space-xs text-primary-container font-label-sm text-label-sm uppercase tracking-widest"><span class="material-symbols-outlined text-[14px]">verified</span>Calidad Nihon Craft</div></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary-container text-[18px]">schedule</span>Horarios Oficiales</h4><ul class="space-y-space-xs font-body-sm text-body-sm"><li class="text-on-surface font-semibold">Horario: <span class="text-tertiary font-normal" id="publicHoursFooter">Consultá el estado actualizado en la carta</span></li><li class="text-error font-medium">Domingos y Lunes: <span class="text-tertiary font-normal">Cerrado</span></li></ul><p class="font-label-sm text-label-sm text-tertiary mt-space-sm">Pedidos programados y retiro en franjas horarias estrictas.</p></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary-container text-[18px]">location_on</span>Take Away &amp; Contacto</h4><p class="font-body-sm text-body-sm text-on-surface font-semibold">Chile 1137</p><p class="font-body-sm text-body-sm text-tertiary mb-space-md">Bahia Blanca, Buenos Aires</p><a class="font-body-sm text-body-sm text-primary-container hover:underline flex items-center gap-space-xs mt-space-xs" href="https://wa.me/5492915101491" rel="noopener noreferrer" target="_blank"><span class="material-symbols-outlined text-[16px]">call</span>+54 9 291 510-1491</a></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-error text-[18px]">info</span>Aviso de Empaque</h4><div class="bg-surface-container-low p-space-md rounded-lg"><p class="font-body-sm text-body-sm text-tertiary leading-relaxed">Disponemos de empaque estandar gastronomico seguro. <strong class="text-on-surface">No contamos con empaque termico.</strong> Recomendamos consumo inmediato tras retiro para conservar la textura y temperatura ideal.</p></div></div></div><div class="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><p class="font-label-sm text-label-sm text-tertiary uppercase tracking-widest">(C) 2026 YanKun SushiLab. Bahia Blanca. Todos los derechos reservados.            <a class="text-primary hover:underline font-semibold tracking-wider" href="https://wa.me/5492915782848" rel="noopener noreferrer" target="_blank">DESIGNED BY CHARLIE</a></p><div class="flex items-center gap-space-lg"><button class="font-label-sm text-label-sm text-tertiary hover:text-on-surface transition-colors uppercase cursor-pointer" onclick="toggleTermsModal(true)" type="button">Terminos &amp; Retiro</button><a class="font-label-sm text-label-sm text-primary-container hover:text-primary transition-colors uppercase" href="https://wa.me/5492915101491" rel="noopener noreferrer" target="_blank">WhatsApp</a></div></div></div></footer>
+<div class="fixed bottom-space-md left-space-md right-space-md z-40 lg:hidden flex items-center justify-between p-space-sm rounded-xl bg-surface-container-low/95 backdrop-blur-xl border border-primary-container/40 shadow-2xl"><a class="flex items-center gap-space-xs text-on-surface hover:text-primary" href="#pedido-seccion"><span class="material-symbols-outlined text-primary-container text-[20px]">shopping_bag</span><div class="flex flex-col"><span class="font-label-sm text-[10px] uppercase text-tertiary tracking-wider">Ver Pedido</span><span class="font-label-md text-label-md font-bold text-on-surface">Carrito</span></div></a><button class="px-space-md py-2 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md uppercase tracking-wider font-semibold shadow-md flex items-center gap-1.5" onclick="document.getElementById('pedido-seccion').scrollIntoView({ behavior: 'smooth', block: 'start' })"><span>Pedir Ahora</span><span class="material-symbols-outlined text-[16px]">arrow_forward</span></button></div>
+<div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4" id="termsModalOverlay" onclick="if(event.target === this) toggleTermsModal(false)"><div class="bg-surface-container-low max-w-lg w-full rounded-xl p-space-lg border border-surface-container-high shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar"><div class="flex items-center justify-between border-b border-surface-container-high pb-2"><h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary-container">verified_user</span> Terminos, Encomiendas &amp; Retiro</h3><button class="text-tertiary hover:text-on-surface text-xl font-bold" onclick="toggleTermsModal(false)">X</button></div><div class="space-y-3 font-body-sm text-body-sm text-tertiary"><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">store</span> Punto Oficial de Retiro (Take Away)</p><p>Chile 1137, Bahia Blanca. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">local_shipping</span> Cadeteria &amp; Despacho</p><p>Cadeteria urbana en Bahia Blanca con tarifa fija de <strong>$6.000</strong>. Zonas especiales o perifericas se cotizan de forma particular via WhatsApp.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-error">warning</span> Aviso Termico y Empaque</p><p>Entregamos en cajas rigidas gastronomicas selladas. <strong>No contamos con empaque termico.</strong> Se recomienda el consumo inmediato para preservar la temperatura y el crocante del arroz y los rolls panko.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary-container">timer</span> Tiempos de Preparacion</p><p>Elaboracion al momento: entre 30 y 45 minutos segun demanda del laboratorio en la franja.</p></div></div><button class="w-full py-2.5 rounded bg-primary-container text-on-primary-container font-label-md uppercase tracking-wider font-bold hover:brightness-110 mt-2" onclick="toggleTermsModal(false)">Entendido y Cerrar</button></div></div><!-- ===== HORARIO DE COCINA: estado abierto/cerrado + bloqueo de pedidos ===== -->
+<style id="horario-estilos">
+  /* Botones de pedido cuando la cocina está cerrada */
+  .pedido-bloqueado { opacity: .4; filter: grayscale(1) !important; cursor: not-allowed !important; }
+
+  /* Estado en la cinta superior */
+  #statusText[data-estado="abierto"] { color: #34d399; }
+  #statusText[data-estado="cerrado"] { color: #ffb4ab; }
+
+  /* Aviso dentro del carrito (solo visible cuando está cerrado) */
+  .aviso-cerrado {
+    display: none; align-items: flex-start; gap: .5rem;
+    padding: .75rem; border-radius: .5rem;
+    background: rgba(147, 0, 10, .28); border: 1px solid rgba(255, 180, 171, .35);
+    color: #ffdad6; font-size: 12px; line-height: 1.4;
+  }
+  .aviso-cerrado p { margin: 0; }
+  html[data-local="cerrado"] .aviso-cerrado { display: flex; }
+
+  /* Aviso flotante al tocar un botón bloqueado */
+  #aviso-cerrado-toast {
+    position: fixed; left: 50%; bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 16px); width: max-content; max-width: min(92vw, 26rem);
+    padding: .85rem 1rem; border-radius: .75rem;
+    background: #31353c; color: #dfe2eb; border: 1px solid rgba(255, 180, 171, .45);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+    font-size: 14px; line-height: 1.4; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 70;
+  }
+  #aviso-cerrado-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+  @media (min-width: 1024px) { #aviso-cerrado-toast { bottom: 2rem; } }
+  @media (prefers-reduced-motion: reduce) { #aviso-cerrado-toast { transition: none; } }
+</style>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="yankun-live-integration">
+(function () {
+  'use strict';
+  const SUPABASE_URL = 'https://cdhnpsowlsesoobrytvh.supabase.co';
+  const PUBLISHABLE_KEY = 'sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP';
+  const db = window.supabase.createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
+  window.yankunPublicDb = db;
+  window.yankunPublishableKey = PUBLISHABLE_KEY;
+  let schedule = { weekly: [], special: [] };
+  let publicSettings = null;
+  let publicSettingsKnown = false;
+  let mainLocation = null;
+  let scheduleKnown = false;
+  let scheduleTimer = null;
+  let submitting = false;
+
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+  function money(value) {
+    return String.fromCharCode(36) + Number(value || 0).toLocaleString('es-AR') + ' ARS';
+  }
+  function safeImageUrl(value) {
+    try {
+      const url = new URL(String(value || ''), window.location.origin);
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+    } catch { return ''; }
+  }
+  function showFeedback(title, message, link) {
+    let overlay = document.getElementById('yk-order-feedback');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'yk-order-feedback';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#05070bd9;backdrop-filter:blur(5px);display:grid;place-items:center;padding:18px';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = '';
+    const card = document.createElement('section');
+    card.setAttribute('role','alertdialog');
+    card.setAttribute('aria-modal','true');
+    card.style.cssText = 'width:min(100%,440px);background:#1b2028;border:1px solid #6b4650;border-radius:16px;padding:24px;color:#e8e8ee;box-shadow:0 24px 80px #000b;font-family:Manrope,Arial,sans-serif';
+    const h = document.createElement('h2'); h.textContent = title; h.style.cssText = 'font:500 22px Georgia,serif;margin:0 0 10px';
+    const p = document.createElement('p'); p.textContent = message; p.style.cssText = 'font-size:13px;line-height:1.7;color:#c5c6ce;margin:0 0 18px';
+    const actions = document.createElement('div'); actions.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap';
+    if (link) {
+      const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = 'Abrir WhatsApp';
+      a.style.cssText = 'padding:11px 15px;border-radius:8px;background:#e11d48;color:white;text-decoration:none;font-size:12px;font-weight:800';
+      actions.appendChild(a);
+    }
+    const close = document.createElement('button'); close.type='button'; close.textContent='Entendido'; close.style.cssText='padding:11px 15px;border-radius:8px;border:1px solid #454954;background:#252a32;color:#e5e7eb;font-size:12px;font-weight:800;cursor:pointer';
+    close.addEventListener('click',()=>overlay.remove()); actions.appendChild(close);
+    card.append(h,p,actions); overlay.appendChild(card);
+  }
+  window.showOrderFeedback = showFeedback;
+
+  function renderFeatured(product) {
+    const root = document.getElementById('featuredProductCard');
+    if (!root) return;
+    const image = root.querySelector('img');
+    const description = root.querySelector('.font-body-sm');
+    const price = root.querySelector('.font-headline-sm');
+    const button = root.querySelector('button');
+    const heading = root.querySelector('h3');
+    if (!product) { root.hidden = true; return; }
+    root.hidden = false;
+    const safeImage = safeImageUrl(product.image_url);
+    if (image) { image.src = safeImage; image.alt = product.name; image.hidden = !safeImage; }
+    if (heading) heading.textContent = product.name;
+    if (description) description.textContent = product.description || 'Elaboración de YanKun SushiLab.';
+    if (price) price.textContent = money(product.price);
+    if (button) {
+      button.removeAttribute('onclick');
+      button.classList.add('yk-add-product');
+      button.onclick = () => { window.addToCart(Number(product.id), product.name, Number(product.price), product.category_name); document.getElementById('pedido-seccion')?.scrollIntoView({behavior:'smooth',block:'start'}); };
+    }
+  }
+
+  function buildCatalog(categories, products) {
+    const filterGroup = document.getElementById('categoryFilterGroup');
+    const container = document.getElementById('productsCatalogContainer');
+    if (!filterGroup || !container) return;
+    const available = products.filter(p => categories.some(c => c.id === p.category_id));
+    const byCategory = new Map(categories.map(c => [c.id, []]));
+    available.forEach(p => byCategory.get(p.category_id)?.push(p));
+    const visibleCategories = categories.filter(c => (byCategory.get(c.id) || []).length);
+    filterGroup.innerHTML = '';
+    const allButton = document.createElement('button');
+    allButton.className = 'category-pill active-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider bg-primary-container text-on-primary-container font-bold shadow-md transition-all duration-200 shrink-0';
+    allButton.dataset.cat = 'all'; allButton.textContent = 'TODO'; allButton.onclick = () => window.filterCategory('all');
+    filterGroup.appendChild(allButton);
+    visibleCategories.forEach(category => {
+      const button = document.createElement('button');
+      button.className = 'category-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider text-tertiary hover:text-on-surface hover:bg-surface-container transition-all duration-200 shrink-0';
+      button.dataset.cat = category.slug; button.textContent = category.name;
+      button.onclick = () => window.filterCategory(category.slug);
+      filterGroup.appendChild(button);
+    });
+    container.innerHTML = '';
+    visibleCategories.forEach(category => {
+      const section = document.createElement('section');
+      section.className = 'catalog-section p-space-md rounded-xl bg-surface-container-low border border-surface-container-high/60 shadow-lg';
+      section.dataset.section = category.slug;
+      section.id = 'seccion-' + category.slug.replace(/[^a-z0-9-]/gi,'-');
+      const heading = document.createElement('div');
+      heading.className = 'flex items-center justify-between mb-space-md';
+      heading.innerHTML = '<h3 class="font-headline-md text-headline-md text-on-surface">' + esc(category.name) + '</h3><span class="text-[10px] text-tertiary">' + (byCategory.get(category.id).length) + ' productos</span>';
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-space-sm';
+      byCategory.get(category.id).forEach(product => {
+        const card = document.createElement('article');
+        card.className = 'p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60 min-w-0';
+        const safeImage = safeImageUrl(product.image_url);
+        const image = safeImage ? '<img src="' + esc(safeImage) + '" alt="' + esc(product.name) + '" loading="lazy" class="w-full h-36 object-cover rounded-md mb-3">' : '';
+        card.innerHTML = image +
+          '<div class="mb-3"><h4 class="font-headline-sm text-[16px] text-on-surface font-semibold">' + esc(product.name) + '</h4>' +
+          '<p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-3">' + esc(product.description || '') + '</p></div>' +
+          '<div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">' + esc(money(product.price)) + '</span></div>';
+        const button = document.createElement('button');
+        button.type='button'; button.className='yk-add-product mt-2 w-full px-2 py-2 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 cursor-pointer';
+        button.textContent='＋ Sumar al pedido';
+        button.addEventListener('click',()=>window.addToCart(Number(product.id),product.name,Number(product.price),category.name));
+        card.lastElementChild.appendChild(button);
+        grid.appendChild(card);
+      });
+      section.append(heading,grid); container.appendChild(section);
+    });
+    window.filterCategory('all', false);
+
+    const headerNav = document.getElementById('headerNav');
+    if (headerNav) {
+      headerNav.innerHTML = '';
+      const addNav = (label,target,href) => {
+        const link = document.createElement('a');
+        link.href=href; link.dataset.navTarget=target;
+        link.className='nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer';
+        link.textContent=label;
+        link.addEventListener('click',event=>window.handleNavClick(event,target));
+        headerNav.appendChild(link);
+      };
+      addNav('Carta completa','all','#catalogo');
+      visibleCategories.forEach(category=>addNav(category.name,category.slug,'#seccion-'+category.slug));
+      addNav('Mi pedido','pedidos','#pedido-seccion');
+    }
+    window.yankunAvailableProductIds = new Set(available.map(product=>String(product.id)));
+    window.yankunProductMap = new Map(available.map(product=>[String(product.id),product]));
+    const featured = available[0] ? {...available[0],category_name:visibleCategories.find(c=>c.id===available[0].category_id)?.name || ''} : null;
+    renderFeatured(featured);
+  }
+
+  function getLocalParts(date) {
+    const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+    const get = type => parts.find(p=>p.type===type)?.value || '';
+    const dayMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+    return {date:get('year')+'-'+get('month')+'-'+get('day'),day:dayMap[get('weekday')],minutes:Number(get('hour'))*60+Number(get('minute'))};
+  }
+  function getScheduleState() {
+    const now=getLocalParts(new Date());
+    const special=schedule.special.find(item=>item.event_date===now.date);
+    if (special?.event_type==='exceptional_closure') return {open:false,text:'Cerrado por excepción'};
+    if (special?.event_type==='special_opening') {
+      const start=special.opens_at?.slice(0,5),end=special.closes_at?.slice(0,5);
+      const a=start?Number(start.slice(0,2))*60+Number(start.slice(3)):0;
+      const b=end?Number(end.slice(0,2))*60+Number(end.slice(3)):0;
+      const open=!!start&&!!end&&now.minutes>=a&&now.minutes<b;
+      return {open,text:open?'Abierto por evento · hasta '+end:'Apertura especial · '+(start||'horario pendiente')+' a '+(end||'')};
+    }
+    const dayRows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day);
+    const rows=dayRows.filter(item=>item.is_open);
+    if (!rows.length) return {open:false,text:dayRows.length?'Cerrado hoy':'Horario no configurado'};
+    const current=rows.find(row=>{
+      const start=row.opens_at?.slice(0,5),end=row.closes_at?.slice(0,5);
+      if(!start||!end)return false;
+      const a=Number(start.slice(0,2))*60+Number(start.slice(3));
+      const b=Number(end.slice(0,2))*60+Number(end.slice(3));
+      return now.minutes>=a&&now.minutes<b;
+    });
+    if(current)return {open:true,text:'Abierto ahora · hasta '+current.closes_at.slice(0,5)};
+    const next=rows.find(row=>row.opens_at&&now.minutes<Number(row.opens_at.slice(0,2))*60+Number(row.opens_at.slice(3)));
+    return {open:false,text:next?'Abre hoy a las '+next.opens_at.slice(0,5):'Cerrado por hoy'};
+  }
+  function weeklySummary() {
+    const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const byDay=days.map((_,index)=>schedule.weekly
+      .filter(item=>Number(item.day_of_week)===index&&item.is_open&&item.opens_at&&item.closes_at)
+      .map(item=>item.opens_at.slice(0,5)+'–'+item.closes_at.slice(0,5))
+      .sort()
+    );
+    const groups=new Map();
+    byDay.forEach((hours,index)=>{
+      if(!hours.length)return;
+      const key=hours.join(', ');
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(index);
+    });
+    const dayRange=indices=>{
+      const parts=[];let start=indices[0],previous=indices[0];
+      for(const day of indices.slice(1)){
+        if(day===previous+1){previous=day;continue;}
+        parts.push(start===previous?days[start]:days[start]+' a '+days[previous]);
+        start=previous=day;
+      }
+      parts.push(start===previous?days[start]:days[start]+' a '+days[previous]);
+      return parts.join(', ');
+    };
+    return [...groups.entries()].map(([hours,indices])=>dayRange(indices)+' · '+hours.replace(/,/g,' / ')).join('  •  ');
+  }
+  function renderTimeSlots() {
+    const select=document.getElementById('deliveryTimeSlot');
+    if(!select)return;
+    const now=getLocalParts(new Date());
+    const rows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day&&item.is_open);
+    const min=Number(publicSettings?.preparation_min_minutes||30),max=Number(publicSettings?.preparation_max_minutes||45);
+    select.innerHTML='<option value="Lo antes posible ('+min+'-'+max+' min)">Lo antes posible ('+min+'-'+max+' min)</option>';
+    rows.forEach(row=>{
+      if(!row.opens_at||!row.closes_at)return;
+      const start=Number(row.opens_at.slice(0,2))*60+Number(row.opens_at.slice(3));
+      const end=Number(row.closes_at.slice(0,2))*60+Number(row.closes_at.slice(3));
+      for(let minute=start;minute+30<=end;minute+=30){
+        const fmt=value=>String(Math.floor(value/60)).padStart(2,'0')+':'+String(value%60).padStart(2,'0');
+        const label=fmt(minute)+' - '+fmt(minute+30)+' hs';
+        const option=document.createElement('option');option.value=label;option.textContent=label;select.appendChild(option);
+      }
+    });
+  }
+  function updateScheduleUI() {
+    if (!scheduleKnown) return;
+    const state=getScheduleState();
+    const text=document.getElementById('statusText');
+    const dot=document.getElementById('statusDot');
+    if(text){text.textContent=state.text;text.dataset.estado=state.open?'abierto':'cerrado';}
+    if(dot){dot.style.backgroundColor=state.open?'#10b981':'#ef4444';dot.classList.toggle('animate-pulse',state.open);}
+    document.documentElement.dataset.local=state.open?'abierto':'cerrado';
+    const aviso=document.getElementById('avisoCerradoTexto');
+    if(aviso&&!state.open)aviso.textContent=state.text+'. Los pedidos se habilitan únicamente dentro de los horarios configurados.';
+    const summary=weeklySummary();
+    ['publicHoursRibbon','publicHoursQuick','publicHoursFooter'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=summary||'Horario en actualización';el.classList.toggle('hidden',!summary&&id==='publicHoursRibbon');el.style.textAlign='center';el.style.lineHeight='1.65';}});
+    document.querySelectorAll('[onclick*="addToCart("], [onclick*="checkoutViaWhatsApp"], .yk-add-product').forEach(button=>{
+      button.classList.toggle('pedido-bloqueado',!state.open);
+      button.setAttribute('aria-disabled',String(!state.open));
+    });
+  }
+  window.repeatLastOrder = function() {
+    try {
+      const saved=localStorage.getItem('yankun_last_order');
+      if(!saved){showFeedback('Sin pedidos anteriores','Todavía no hay un pedido anterior guardado en este navegador.');return;}
+      const data=JSON.parse(saved);
+      const productMap=window.yankunProductMap||new Map();
+      const valid=Object.entries(data.items||{}).filter(([id,item])=>productMap.has(String(id))&&Number.isInteger(Number(item.quantity))&&Number(item.quantity)>0);
+      if(!valid.length){showFeedback('Pedido anterior no disponible','Los productos de ese pedido ya no están en la carta actual.');return;}
+      cartState.items={};
+      valid.forEach(([id,item])=>{
+        const product=productMap.get(String(id));
+        cartState.items[id]={id:Number(id),name:product.name,price:Number(product.price),category:product.category_id,quantity:Number(item.quantity)};
+      });
+      if(data.deliveryMode)window.setDeliveryMode(data.deliveryMode);
+      window.renderCart();
+      showFeedback('Pedido cargado','Se agregaron los productos que siguen disponibles, con sus precios actuales.');
+    }catch(error){showFeedback('No se pudo cargar el pedido','El pedido anterior guardado no se pudo leer.');}
+  };
+
+  const originalAdd=window.addToCart;
+  if (typeof originalAdd==='function') window.addToCart=function(){if(scheduleKnown&&!getScheduleState().open){showFeedback('Estamos cerrados',getScheduleState().text+'. Podés consultar por WhatsApp.');return false;}return originalAdd.apply(this,arguments);};
+  const originalCheckout=window.checkoutViaWhatsApp;
+  if (typeof originalCheckout==='function') window.checkoutViaWhatsApp=function(){if(scheduleKnown&&!getScheduleState().open){showFeedback('Estamos cerrados',getScheduleState().text+'. Los pedidos se habilitan según el horario del local.');return false;}return originalCheckout.apply(this,arguments);};
+
+  async function loadPublicSettings() {
+    const [settingsResult,locationResult]=await Promise.all([
+      db.from('business_settings').select('value').eq('key','public_site').maybeSingle(),
+      db.from('sales_locations').select('id,name,address,locality,is_active').eq('code','bahia-blanca-store').eq('is_active',true).maybeSingle()
+    ]);
+    if(settingsResult.error||locationResult.error||!settingsResult.data||!locationResult.data){
+      publicSettingsKnown=true;publicSettings=null;window.yankunPublicSettings=null;window.yankunPublicSettingsKnown=true;
+      console.warn('No se pudo cargar la configuración pública del comercio.',settingsResult.error,locationResult.error);
+      return;
+    }
+    publicSettings=settingsResult.data.value||{};mainLocation=locationResult.data;publicSettingsKnown=true;
+    window.yankunPublicSettings=publicSettings;window.yankunPublicSettingsKnown=true;
+    const address=[mainLocation.address,mainLocation.locality].filter(Boolean).join(', ');
+    const setText=(id,value)=>{const node=document.getElementById(id);if(node&&value)node.textContent=value;};
+    setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');
+    setText('publicAddressQuick',address);
+    setText('pickupAddressNotice',address);
+    setText('pickupOptionLabel','Take Away - Gratis ('+(mainLocation.address||'retiro en local')+')');
+    setText('deliveryAreaDescription',publicSettings.delivery_area_description||publicSettings.delivery_area_label||'Zona de entrega');
+    setText('deliveryFeeButton','+'+money(publicSettings.delivery_fee_bahia));
+    setText('publicDeliveryQuick','Delivery '+money(publicSettings.delivery_fee_bahia)+' · Retiro sin cargo');
+    setText('preparationTimeLabel','Tiempo estimado: '+(publicSettings.preparation_min_minutes||30)+'–'+(publicSettings.preparation_max_minutes||45)+' min');
+    setText('deliveryOptionLabel','Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana'));
+    document.querySelectorAll('a[href*="wa.me/"]').forEach(link=>{
+      if(publicSettings.whatsapp_number)link.href='https://wa.me/'+publicSettings.whatsapp_number;
+      if(link.textContent.includes('+54'))link.textContent=publicSettings.whatsapp_display||link.textContent;
+    });
+    const payment=document.getElementById('paymentMethod');
+    if(payment&&Array.isArray(publicSettings.payment_methods)&&publicSettings.payment_methods.length){
+      payment.innerHTML='';publicSettings.payment_methods.forEach(method=>{const option=document.createElement('option');option.value=method;option.textContent=method;payment.appendChild(option);});
+    }
+    const upsell=document.getElementById('upsellContainer');if(upsell)upsell.hidden=true;
+    if(typeof window.renderCartSummary==='function')window.renderCartSummary();
+  }
+
+  async function loadSchedule() {
+    const locationResult = await db.from('sales_locations').select('id').eq('code','bahia-blanca-store').eq('is_active',true).maybeSingle();
+    if (locationResult.error || !locationResult.data) { console.warn('No se encontró el punto de venta principal para sincronizar horarios.'); return; }
+    const locationId = locationResult.data.id;
+    const [hoursResult,specialResult] = await Promise.all([
+      db.from('business_hours').select('sales_location_id,schedule_type,day_of_week,specific_date,is_open,opens_at,closes_at').eq('sales_location_id',locationId),
+      db.from('special_events').select('event_date,event_type,opens_at,closes_at').eq('sales_location_id',locationId).eq('is_active',true)
+    ]);
+    if (hoursResult.error || specialResult.error) {
+      console.warn('No se pudo sincronizar el horario público.',hoursResult.error,specialResult.error);
+      schedule.weekly=[];schedule.special=[];scheduleKnown=true;updateScheduleUI();return;
+    }
+    schedule.weekly=(hoursResult.data||[]).filter(x=>x.schedule_type==='weekly');
+    schedule.special=(specialResult.data||[]);
+    scheduleKnown=true;
+    renderTimeSlots();
+    updateScheduleUI();
+    if (!scheduleTimer) scheduleTimer = window.setInterval(updateScheduleUI,30000);
+  }
+
+  let catalogLoading = false;
+  async function loadCatalog() {
+    if (catalogLoading) return;
+    catalogLoading = true;
+    try {
+    const [categoriesResult,productsResult] = await Promise.all([
+      db.from('categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
+      db.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').eq('is_available',true).order('sort_order')
+    ]);
+    if (categoriesResult.error || productsResult.error) {
+      console.error('No se pudo cargar la carta desde Supabase.',categoriesResult.error,productsResult.error);
+      const container=document.getElementById('productsCatalogContainer');
+      const filters=document.getElementById('categoryFilterGroup');
+      if(container)container.innerHTML='<div class="empty">No pudimos cargar la carta en este momento. Intentá nuevamente más tarde.</div>';
+      if(filters)filters.innerHTML='';
+      renderFeatured(null);
+      return;
+    }
+    buildCatalog(categoriesResult.data||[],productsResult.data||[]);
+    } finally {
+      catalogLoading = false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded',()=> {
+    loadCatalog().catch(error=>{console.error(error);});
+    loadSchedule().catch(error=>{console.error(error);});
+    loadPublicSettings().then(()=>renderTimeSlots()).catch(error=>{console.error(error);publicSettingsKnown=true;});
+    db.channel('public-catalog-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_hours'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings())
+      .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>loadPublicSettings())
+      .subscribe();
+    window.setInterval(()=>{loadCatalog().catch(()=>{});loadSchedule().catch(()=>{});},60000);
+  });
+})();
+</script>
+</body></html> + shipping.toLocaleString('es-AR') + ' ARS' : 'No disponible';
+      } else if (cartState.deliveryMode === 'pickup') {
+        shipping = 0;
+        shippingText = 'GRATIS ($0 ARS)';
+      } else if (cartState.deliveryMode === 'otra_zona') {
+        shipping = 0;
+        shippingText = 'A consultar por WhatsApp';
+      }
+    }
+
+    const finalTotal = Math.max(0, subtotal - discount + shipping);
+
+    document.getElementById('summarySubtotal').textContent = `$${subtotal.toLocaleString('es-AR')} ARS`;
+    document.getElementById('summaryShipping').textContent = shippingText;
+
+    const discountRow = document.getElementById('discountRow');
+    if (discount > 0) {
+      discountRow.classList.remove('hidden');
+      document.getElementById('summaryDiscount').textContent = `-$${discount.toLocaleString('es-AR')} ARS`;
+    } else {
+      discountRow.classList.add('hidden');
+    }
+
+    document.getElementById('summaryTotal').textContent = `$${finalTotal.toLocaleString('es-AR')} ARS`;
+  }
+
+  function getOrderText() {
+    const itemsList = Object.values(cartState.items);
+    const name = document.getElementById('clientName').value.trim() || 'Cliente';
+    const phone = document.getElementById('clientPhone').value.trim() || 'No especificado';
+    const address = document.getElementById('clientAddress').value.trim() || 'No indicada';
+    const timeSlot = document.getElementById('deliveryTimeSlot').value;
+    const payment = document.getElementById('paymentMethod').value;
+    const notes = document.getElementById('generalNotes').value.trim();
+
+    const subtotal = itemsList.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+    const discount = (cartState.hasDiscount && subtotal > 0) ? Math.round(subtotal * cartState.discountPercent) : 0;
+    const shipping = cartState.deliveryMode === 'delivery_bahia' ? Number(publicSettings?.delivery_fee_bahia || 0) : 0;
+    const finalTotal = subtotal - discount + shipping;
+
+    let modalidadTxt = 'Envio en Bahia Blanca';
+    if (cartState.deliveryMode === 'pickup') modalidadTxt = 'Take Away (Retiro en Chile 1137)';
+    if (cartState.deliveryMode === 'otra_zona') modalidadTxt = 'Otra zona (A consultar por WhatsApp)';
+
+    let msg = `NUEVO PEDIDO - YANKUN SUSHILAB\n`;
+    msg += `------------------------------------\n`;
+    msg += `Cliente: ${name}\n`;
+    msg += `Telefono: ${phone}\n`;
+    msg += `Modalidad: ${modalidadTxt}\n`;
+    if (cartState.deliveryMode !== 'pickup') {
+      msg += `Direccion: ${address}\n`;
+    }
+    msg += `Horario estimado: ${timeSlot}\n`;
+    msg += `Medio de pago: ${payment}\n`;
+    if (notes) {
+      msg += `Notas: ${notes}\n`;
+    }
+    msg += `------------------------------------\n`;
+    msg += `DETALLE DEL PEDIDO:\n`;
+    itemsList.forEach(item => {
+      msg += `- (${item.quantity}x) ${escapeCartText(item.name)} - $${(item.price * item.quantity).toLocaleString('es-AR')} ARS\n`;
+    });
+    msg += `------------------------------------\n`;
+    msg += `Subtotal: $${subtotal.toLocaleString('es-AR')} ARS\n`;
+    if (discount > 0) {
+      msg += `Descuento 1er Pedido (10% OFF): -$${discount.toLocaleString('es-AR')} ARS\n`;
+    }
+    msg += `Envio: ${cartState.deliveryMode === 'delivery_bahia' ? money(shipping) : (cartState.deliveryMode === 'pickup' ? '$0 ARS' : 'A consultar')}\n`;
+    msg += `TOTAL A PAGAR: $${finalTotal.toLocaleString('es-AR')} ARS\n`;
+    msg += `------------------------------------\n`;
+    msg += `Aguardo confirmacion de recepcion. Muchas gracias!`;
+    return msg;
+  }
+
+  async function checkoutViaWhatsApp() {
+    const itemsList = Object.values(cartState.items);
+    if (itemsList.length === 0) {
+      window.showOrderFeedback?.('Carrito vacío', 'Agregá al menos un producto antes de enviar el pedido.');
+      return;
+    }
+    const name = document.getElementById('clientName').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
+    const address = document.getElementById('clientAddress').value.trim();
+    if (!publicSettingsKnown || !publicSettings) {
+      window.showOrderFeedback?.('Configuración no disponible', 'No pudimos consultar los datos actualizados del comercio. Intentá nuevamente en unos minutos.');
+      return;
+    }
+    if (!name || !phone) {
+      window.showOrderFeedback?.('Faltan tus datos', 'Completá tu nombre y teléfono para registrar el pedido.');
+      return;
+    }
+    if (cartState.deliveryMode !== 'pickup' && !address) {
+      window.showOrderFeedback?.('Falta la dirección', 'Completá la dirección para el envío.');
+      document.getElementById('clientAddress').focus();
+      return;
+    }
+    if (window.yankunOrderSubmitting) return;
+    window.yankunOrderSubmitting = true;
+    const submitButton = document.querySelector('[onclick*="checkoutViaWhatsApp"]');
+    if (submitButton) { submitButton.disabled = true; submitButton.dataset.originalText = submitButton.textContent; submitButton.textContent = 'REGISTRANDO...'; }
+    const waTab = window.open('about:blank', '_blank');
+    const requestedTime = document.getElementById('deliveryTimeSlot')?.value || '';
+    const paymentMethod = document.getElementById('paymentMethod')?.value || '';
+    const customerNotes = document.getElementById('generalNotes')?.value.trim() || '';
+    const payload = {
+      customer_name: name,
+      customer_phone: phone,
+      delivery_mode: cartState.deliveryMode,
+      delivery_address: address,
+      requested_time: requestedTime,
+      payment_method: paymentMethod,
+      customer_notes: customerNotes,
+      items: itemsList.map(item => ({ product_id: Number(item.id), quantity: Number(item.quantity) }))
+    };
+    const fingerprint = JSON.stringify(payload);
+    let requestId;
+    try {
+      const previous = JSON.parse(sessionStorage.getItem('yankun_pending_order') || 'null');
+      requestId = previous && previous.fingerprint === fingerprint ? previous.request_id : crypto.randomUUID();
+      sessionStorage.setItem('yankun_pending_order', JSON.stringify({ fingerprint, request_id: requestId }));
+      const response = await fetch('https://cdhnpsowlsesoobrytvh.supabase.co/functions/v1/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': window.yankunPublishableKey,
+          'Authorization': 'Bearer ' + window.yankunPublishableKey
+        },
+        body: JSON.stringify({ ...payload, request_id: requestId, website: '' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.order) throw new Error(result.error || 'No se pudo registrar el pedido.');
+      const order = result.order;
+      try {
+        localStorage.setItem('yankun_last_order', JSON.stringify({ items: cartState.items, deliveryMode: cartState.deliveryMode }));
+      } catch (e) {}
+      const detailLines = itemsList.map(item => '- ' + item.quantity + ' x ' + item.name).join('\n');
+      const message = [
+        'Hola, acabo de registrar un pedido en YanKun SushiLab.',
+        'Pedido: ' + order.order_number,
+        'Cliente: ' + name,
+        'Teléfono: ' + phone,
+        'Modalidad: ' + (cartState.deliveryMode === 'pickup' ? 'Retiro' : cartState.deliveryMode === 'otra_zona' ? 'Envío a coordinar' : 'Delivery Bahía Blanca'),
+        address ? 'Dirección: ' + address : '',
+        'Horario solicitado: ' + (requestedTime || 'A coordinar'),
+        'Medio de pago: ' + (paymentMethod || 'A coordinar'),
+        customerNotes ? 'Observaciones: ' + customerNotes : '',
+        'Detalle:',
+        detailLines,
+        'Total registrado: $' + Number(order.total).toLocaleString('es-AR') + ' ARS',
+        'Estado: Pendiente'
+      ].filter(Boolean).join('\n');
+      if (!publicSettings?.whatsapp_number) throw new Error('El contacto de WhatsApp no está configurado.');
+      const waUrl = 'https://wa.me/' + publicSettings.whatsapp_number + '?text=' + encodeURIComponent(message);
+      sessionStorage.removeItem('yankun_pending_order');
+      cartState.items = {};
+      renderCart();
+      if (waTab) {
+        waTab.location.href = waUrl;
+        window.showOrderFeedback?.('Pedido registrado', 'Tu pedido ' + order.order_number + ' quedó guardado correctamente. Se abrió WhatsApp para completar el envío.');
+      } else {
+        window.showOrderFeedback?.('Pedido registrado', 'Tu pedido ' + order.order_number + ' quedó guardado correctamente. Abrí WhatsApp para enviar el mensaje.', waUrl);
+      }
+    } catch (error) {
+      if (waTab) waTab.close();
+      window.showOrderFeedback?.('No pudimos registrar el pedido', error.message || 'Revisá tu conexión e intentá nuevamente.');
+    } finally {
+      window.yankunOrderSubmitting = false;
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = submitButton.dataset.originalText || 'ENVIAR PEDIDO'; }
+    }
+  }
+
+  function copyOrderToClipboard() {
+    const itemsList = Object.values(cartState.items);
+    if (itemsList.length === 0) {
+      window.showOrderFeedback?.('Carrito vacío', 'Agregá productos antes de copiar el pedido.');
+      return;
+    }
+    const msg = getOrderText();
+    navigator.clipboard.writeText(msg).then(() => {
+      window.showOrderFeedback?.('Pedido copiado', 'El detalle del pedido quedó copiado al portapapeles.');
+    }).catch(() => {
+      window.showOrderFeedback?.('No se pudo copiar', 'El navegador no permitió copiar el pedido.');
+    });
+  }
+
+  function repeatLastOrder() {
+    try {
+      const saved = localStorage.getItem('yankun_last_order');
+      if (!saved) {
+        alert('No hay un pedido previo guardado en este navegador.');
+        return;
+      }
+      const data = JSON.parse(saved);
+      if (data && data.items && Object.keys(data.items).length > 0) {
+        cartState.items = data.items;
+        if (data.deliveryMode) setDeliveryMode(data.deliveryMode);
+        renderCart();
+        alert('Se cargo tu ultimo pedido!');
+      } else {
+        alert('No se encontraron items del pedido anterior.');
+      }
+    } catch (e) {
+      alert('No se pudo cargar el ultimo pedido.');
+    }
+  }
+
+  function toggleTermsModal(show) {
+    const modal = document.getElementById('termsModalOverlay');
+    if (!modal) return;
+    if (show) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    } else {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  function setActiveNav(target) {
+    const navLinks = document.querySelectorAll('#headerNav .nav-header-link');
+    navLinks.forEach(link => {
+      const linkTarget = link.getAttribute('data-nav-target');
+      if (linkTarget === target) {
+        link.className = 'nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface font-semibold py-1 border-b-2 border-primary-container transition-colors leading-none flex items-center justify-center cursor-pointer';
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.className = 'nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center cursor-pointer';
+        link.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  function handleNavClick(e, target) {
+    if (e) e.preventDefault();
+    setActiveNav(target);
+
+    if (target === 'pedidos') {
+      const cartEl = document.getElementById('pedido-seccion');
+      if (cartEl) {
+        cartEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      filterCategory(target, false);
+      const catalogoEl = document.getElementById('catalogo');
+      if (catalogoEl) {
+        catalogoEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  function filterCategory(category, syncHeader = true) {
+    if (syncHeader) {
+      setActiveNav(category);
+    }
+
+    const buttons = document.querySelectorAll('#categoryFilterGroup .category-pill');
+    buttons.forEach(btn => {
+      const btnCat = btn.getAttribute('data-cat');
+      if (btnCat === category) {
+        btn.className = 'category-pill active-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider bg-primary-container text-on-primary-container font-bold shadow-md transition-all duration-200 shrink-0';
+      } else {
+        btn.className = 'category-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider text-tertiary hover:text-on-surface hover:bg-surface-container transition-all duration-200 shrink-0';
+      }
+    });
+
+    const sections = document.querySelectorAll('.catalog-section');
+    sections.forEach(sec => {
+      if (category === 'all' || sec.getAttribute('data-section') === category) {
+        sec.style.display = 'block';
+      } else {
+        sec.style.display = 'none';
+      }
+    });
+
+    const catalogContainer = document.getElementById('productsCatalogContainer');
+    if (catalogContainer) {
+      catalogContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setDeliveryMode('delivery_bahia');
+  });
+</script></main><footer class="w-full bg-surface-container-lowest mt-space-xl"><div class="max-w-[1280px] mx-auto px-gutter lg:px-gutter-desktop py-space-xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg mb-space-xl"><div><div class="flex items-center gap-space-sm mb-space-md"><span class="font-headline-sm text-headline-sm text-on-surface">YanKun <span class="text-primary-container">SushiLab</span></span></div><p class="font-body-sm text-body-sm text-tertiary mb-space-md">Laboratorio gastronomico nikkei y sushi contemporaneo en Bahia Blanca. Precision culinaria, piezas artesanales y despacho selecto.</p><div class="inline-flex items-center gap-space-xs text-primary-container font-label-sm text-label-sm uppercase tracking-widest"><span class="material-symbols-outlined text-[14px]">verified</span>Calidad Nihon Craft</div></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary-container text-[18px]">schedule</span>Horarios Oficiales</h4><ul class="space-y-space-xs font-body-sm text-body-sm"><li class="text-on-surface font-semibold">Horario: <span class="text-tertiary font-normal" id="publicHoursFooter">Consultá el estado actualizado en la carta</span></li><li class="text-error font-medium">Domingos y Lunes: <span class="text-tertiary font-normal">Cerrado</span></li></ul><p class="font-label-sm text-label-sm text-tertiary mt-space-sm">Pedidos programados y retiro en franjas horarias estrictas.</p></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary-container text-[18px]">location_on</span>Take Away &amp; Contacto</h4><p class="font-body-sm text-body-sm text-on-surface font-semibold">Chile 1137</p><p class="font-body-sm text-body-sm text-tertiary mb-space-md">Bahia Blanca, Buenos Aires</p><a class="font-body-sm text-body-sm text-primary-container hover:underline flex items-center gap-space-xs mt-space-xs" href="https://wa.me/5492915101491" rel="noopener noreferrer" target="_blank"><span class="material-symbols-outlined text-[16px]">call</span>+54 9 291 510-1491</a></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-error text-[18px]">info</span>Aviso de Empaque</h4><div class="bg-surface-container-low p-space-md rounded-lg"><p class="font-body-sm text-body-sm text-tertiary leading-relaxed">Disponemos de empaque estandar gastronomico seguro. <strong class="text-on-surface">No contamos con empaque termico.</strong> Recomendamos consumo inmediato tras retiro para conservar la textura y temperatura ideal.</p></div></div></div><div class="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><p class="font-label-sm text-label-sm text-tertiary uppercase tracking-widest">(C) 2026 YanKun SushiLab. Bahia Blanca. Todos los derechos reservados.            <a class="text-primary hover:underline font-semibold tracking-wider" href="https://wa.me/5492915782848" rel="noopener noreferrer" target="_blank">DESIGNED BY CHARLIE</a></p><div class="flex items-center gap-space-lg"><button class="font-label-sm text-label-sm text-tertiary hover:text-on-surface transition-colors uppercase cursor-pointer" onclick="toggleTermsModal(true)" type="button">Terminos &amp; Retiro</button><a class="font-label-sm text-label-sm text-primary-container hover:text-primary transition-colors uppercase" href="https://wa.me/5492915101491" rel="noopener noreferrer" target="_blank">WhatsApp</a></div></div></div></footer>
+<div class="fixed bottom-space-md left-space-md right-space-md z-40 lg:hidden flex items-center justify-between p-space-sm rounded-xl bg-surface-container-low/95 backdrop-blur-xl border border-primary-container/40 shadow-2xl"><a class="flex items-center gap-space-xs text-on-surface hover:text-primary" href="#pedido-seccion"><span class="material-symbols-outlined text-primary-container text-[20px]">shopping_bag</span><div class="flex flex-col"><span class="font-label-sm text-[10px] uppercase text-tertiary tracking-wider">Ver Pedido</span><span class="font-label-md text-label-md font-bold text-on-surface">Carrito</span></div></a><button class="px-space-md py-2 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md uppercase tracking-wider font-semibold shadow-md flex items-center gap-1.5" onclick="document.getElementById('pedido-seccion').scrollIntoView({ behavior: 'smooth', block: 'start' })"><span>Pedir Ahora</span><span class="material-symbols-outlined text-[16px]">arrow_forward</span></button></div>
+<div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4" id="termsModalOverlay" onclick="if(event.target === this) toggleTermsModal(false)"><div class="bg-surface-container-low max-w-lg w-full rounded-xl p-space-lg border border-surface-container-high shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar"><div class="flex items-center justify-between border-b border-surface-container-high pb-2"><h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary-container">verified_user</span> Terminos, Encomiendas &amp; Retiro</h3><button class="text-tertiary hover:text-on-surface text-xl font-bold" onclick="toggleTermsModal(false)">X</button></div><div class="space-y-3 font-body-sm text-body-sm text-tertiary"><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">store</span> Punto Oficial de Retiro (Take Away)</p><p>Chile 1137, Bahia Blanca. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">local_shipping</span> Cadeteria &amp; Despacho</p><p>Cadeteria urbana en Bahia Blanca con tarifa fija de <strong>$6.000</strong>. Zonas especiales o perifericas se cotizan de forma particular via WhatsApp.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-error">warning</span> Aviso Termico y Empaque</p><p>Entregamos en cajas rigidas gastronomicas selladas. <strong>No contamos con empaque termico.</strong> Se recomienda el consumo inmediato para preservar la temperatura y el crocante del arroz y los rolls panko.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary-container">timer</span> Tiempos de Preparacion</p><p>Elaboracion al momento: entre 30 y 45 minutos segun demanda del laboratorio en la franja.</p></div></div><button class="w-full py-2.5 rounded bg-primary-container text-on-primary-container font-label-md uppercase tracking-wider font-bold hover:brightness-110 mt-2" onclick="toggleTermsModal(false)">Entendido y Cerrar</button></div></div><!-- ===== HORARIO DE COCINA: estado abierto/cerrado + bloqueo de pedidos ===== -->
+<style id="horario-estilos">
+  /* Botones de pedido cuando la cocina está cerrada */
+  .pedido-bloqueado { opacity: .4; filter: grayscale(1) !important; cursor: not-allowed !important; }
+
+  /* Estado en la cinta superior */
+  #statusText[data-estado="abierto"] { color: #34d399; }
+  #statusText[data-estado="cerrado"] { color: #ffb4ab; }
+
+  /* Aviso dentro del carrito (solo visible cuando está cerrado) */
+  .aviso-cerrado {
+    display: none; align-items: flex-start; gap: .5rem;
+    padding: .75rem; border-radius: .5rem;
+    background: rgba(147, 0, 10, .28); border: 1px solid rgba(255, 180, 171, .35);
+    color: #ffdad6; font-size: 12px; line-height: 1.4;
+  }
+  .aviso-cerrado p { margin: 0; }
+  html[data-local="cerrado"] .aviso-cerrado { display: flex; }
+
+  /* Aviso flotante al tocar un botón bloqueado */
+  #aviso-cerrado-toast {
+    position: fixed; left: 50%; bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 16px); width: max-content; max-width: min(92vw, 26rem);
+    padding: .85rem 1rem; border-radius: .75rem;
+    background: #31353c; color: #dfe2eb; border: 1px solid rgba(255, 180, 171, .45);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+    font-size: 14px; line-height: 1.4; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 70;
+  }
+  #aviso-cerrado-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+  @media (min-width: 1024px) { #aviso-cerrado-toast { bottom: 2rem; } }
+  @media (prefers-reduced-motion: reduce) { #aviso-cerrado-toast { transition: none; } }
+</style>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="yankun-live-integration">
+(function () {
+  'use strict';
+  const SUPABASE_URL = 'https://cdhnpsowlsesoobrytvh.supabase.co';
+  const PUBLISHABLE_KEY = 'sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP';
+  const db = window.supabase.createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
+  window.yankunPublicDb = db;
+  window.yankunPublishableKey = PUBLISHABLE_KEY;
+  let schedule = { weekly: [], special: [] };
+  let publicSettings = null;
+  let publicSettingsKnown = false;
+  let mainLocation = null;
+  let scheduleKnown = false;
+  let scheduleTimer = null;
+  let submitting = false;
+
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+  function money(value) {
+    return String.fromCharCode(36) + Number(value || 0).toLocaleString('es-AR') + ' ARS';
+  }
+  function safeImageUrl(value) {
+    try {
+      const url = new URL(String(value || ''), window.location.origin);
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+    } catch { return ''; }
+  }
+  function showFeedback(title, message, link) {
+    let overlay = document.getElementById('yk-order-feedback');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'yk-order-feedback';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#05070bd9;backdrop-filter:blur(5px);display:grid;place-items:center;padding:18px';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = '';
+    const card = document.createElement('section');
+    card.setAttribute('role','alertdialog');
+    card.setAttribute('aria-modal','true');
+    card.style.cssText = 'width:min(100%,440px);background:#1b2028;border:1px solid #6b4650;border-radius:16px;padding:24px;color:#e8e8ee;box-shadow:0 24px 80px #000b;font-family:Manrope,Arial,sans-serif';
+    const h = document.createElement('h2'); h.textContent = title; h.style.cssText = 'font:500 22px Georgia,serif;margin:0 0 10px';
+    const p = document.createElement('p'); p.textContent = message; p.style.cssText = 'font-size:13px;line-height:1.7;color:#c5c6ce;margin:0 0 18px';
+    const actions = document.createElement('div'); actions.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap';
+    if (link) {
+      const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = 'Abrir WhatsApp';
+      a.style.cssText = 'padding:11px 15px;border-radius:8px;background:#e11d48;color:white;text-decoration:none;font-size:12px;font-weight:800';
+      actions.appendChild(a);
+    }
+    const close = document.createElement('button'); close.type='button'; close.textContent='Entendido'; close.style.cssText='padding:11px 15px;border-radius:8px;border:1px solid #454954;background:#252a32;color:#e5e7eb;font-size:12px;font-weight:800;cursor:pointer';
+    close.addEventListener('click',()=>overlay.remove()); actions.appendChild(close);
+    card.append(h,p,actions); overlay.appendChild(card);
+  }
+  window.showOrderFeedback = showFeedback;
+
+  function renderFeatured(product) {
+    const root = document.getElementById('featuredProductCard');
+    if (!root) return;
+    const image = root.querySelector('img');
+    const description = root.querySelector('.font-body-sm');
+    const price = root.querySelector('.font-headline-sm');
+    const button = root.querySelector('button');
+    const heading = root.querySelector('h3');
+    if (!product) { root.hidden = true; return; }
+    root.hidden = false;
+    const safeImage = safeImageUrl(product.image_url);
+    if (image) { image.src = safeImage; image.alt = product.name; image.hidden = !safeImage; }
+    if (heading) heading.textContent = product.name;
+    if (description) description.textContent = product.description || 'Elaboración de YanKun SushiLab.';
+    if (price) price.textContent = money(product.price);
+    if (button) {
+      button.removeAttribute('onclick');
+      button.classList.add('yk-add-product');
+      button.onclick = () => { window.addToCart(Number(product.id), product.name, Number(product.price), product.category_name); document.getElementById('pedido-seccion')?.scrollIntoView({behavior:'smooth',block:'start'}); };
+    }
+  }
+
+  function buildCatalog(categories, products) {
+    const filterGroup = document.getElementById('categoryFilterGroup');
+    const container = document.getElementById('productsCatalogContainer');
+    if (!filterGroup || !container) return;
+    const available = products.filter(p => categories.some(c => c.id === p.category_id));
+    const byCategory = new Map(categories.map(c => [c.id, []]));
+    available.forEach(p => byCategory.get(p.category_id)?.push(p));
+    const visibleCategories = categories.filter(c => (byCategory.get(c.id) || []).length);
+    filterGroup.innerHTML = '';
+    const allButton = document.createElement('button');
+    allButton.className = 'category-pill active-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider bg-primary-container text-on-primary-container font-bold shadow-md transition-all duration-200 shrink-0';
+    allButton.dataset.cat = 'all'; allButton.textContent = 'TODO'; allButton.onclick = () => window.filterCategory('all');
+    filterGroup.appendChild(allButton);
+    visibleCategories.forEach(category => {
+      const button = document.createElement('button');
+      button.className = 'category-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider text-tertiary hover:text-on-surface hover:bg-surface-container transition-all duration-200 shrink-0';
+      button.dataset.cat = category.slug; button.textContent = category.name;
+      button.onclick = () => window.filterCategory(category.slug);
+      filterGroup.appendChild(button);
+    });
+    container.innerHTML = '';
+    visibleCategories.forEach(category => {
+      const section = document.createElement('section');
+      section.className = 'catalog-section p-space-md rounded-xl bg-surface-container-low border border-surface-container-high/60 shadow-lg';
+      section.dataset.section = category.slug;
+      section.id = 'seccion-' + category.slug.replace(/[^a-z0-9-]/gi,'-');
+      const heading = document.createElement('div');
+      heading.className = 'flex items-center justify-between mb-space-md';
+      heading.innerHTML = '<h3 class="font-headline-md text-headline-md text-on-surface">' + esc(category.name) + '</h3><span class="text-[10px] text-tertiary">' + (byCategory.get(category.id).length) + ' productos</span>';
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-space-sm';
+      byCategory.get(category.id).forEach(product => {
+        const card = document.createElement('article');
+        card.className = 'p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60 min-w-0';
+        const safeImage = safeImageUrl(product.image_url);
+        const image = safeImage ? '<img src="' + esc(safeImage) + '" alt="' + esc(product.name) + '" loading="lazy" class="w-full h-36 object-cover rounded-md mb-3">' : '';
+        card.innerHTML = image +
+          '<div class="mb-3"><h4 class="font-headline-sm text-[16px] text-on-surface font-semibold">' + esc(product.name) + '</h4>' +
+          '<p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-3">' + esc(product.description || '') + '</p></div>' +
+          '<div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">' + esc(money(product.price)) + '</span></div>';
+        const button = document.createElement('button');
+        button.type='button'; button.className='yk-add-product mt-2 w-full px-2 py-2 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 cursor-pointer';
+        button.textContent='＋ Sumar al pedido';
+        button.addEventListener('click',()=>window.addToCart(Number(product.id),product.name,Number(product.price),category.name));
+        card.lastElementChild.appendChild(button);
+        grid.appendChild(card);
+      });
+      section.append(heading,grid); container.appendChild(section);
+    });
+    window.filterCategory('all', false);
+
+    const headerNav = document.getElementById('headerNav');
+    if (headerNav) {
+      headerNav.innerHTML = '';
+      const addNav = (label,target,href) => {
+        const link = document.createElement('a');
+        link.href=href; link.dataset.navTarget=target;
+        link.className='nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer';
+        link.textContent=label;
+        link.addEventListener('click',event=>window.handleNavClick(event,target));
+        headerNav.appendChild(link);
+      };
+      addNav('Carta completa','all','#catalogo');
+      visibleCategories.forEach(category=>addNav(category.name,category.slug,'#seccion-'+category.slug));
+      addNav('Mi pedido','pedidos','#pedido-seccion');
+    }
+    window.yankunAvailableProductIds = new Set(available.map(product=>String(product.id)));
+    window.yankunProductMap = new Map(available.map(product=>[String(product.id),product]));
+    const featured = available[0] ? {...available[0],category_name:visibleCategories.find(c=>c.id===available[0].category_id)?.name || ''} : null;
+    renderFeatured(featured);
+  }
+
+  function getLocalParts(date) {
+    const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+    const get = type => parts.find(p=>p.type===type)?.value || '';
+    const dayMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+    return {date:get('year')+'-'+get('month')+'-'+get('day'),day:dayMap[get('weekday')],minutes:Number(get('hour'))*60+Number(get('minute'))};
+  }
+  function getScheduleState() {
+    const now=getLocalParts(new Date());
+    const special=schedule.special.find(item=>item.event_date===now.date);
+    if (special?.event_type==='exceptional_closure') return {open:false,text:'Cerrado por excepción'};
+    if (special?.event_type==='special_opening') {
+      const start=special.opens_at?.slice(0,5),end=special.closes_at?.slice(0,5);
+      const a=start?Number(start.slice(0,2))*60+Number(start.slice(3)):0;
+      const b=end?Number(end.slice(0,2))*60+Number(end.slice(3)):0;
+      const open=!!start&&!!end&&now.minutes>=a&&now.minutes<b;
+      return {open,text:open?'Abierto por evento · hasta '+end:'Apertura especial · '+(start||'horario pendiente')+' a '+(end||'')};
+    }
+    const dayRows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day);
+    const rows=dayRows.filter(item=>item.is_open);
+    if (!rows.length) return {open:false,text:dayRows.length?'Cerrado hoy':'Horario no configurado'};
+    const current=rows.find(row=>{
+      const start=row.opens_at?.slice(0,5),end=row.closes_at?.slice(0,5);
+      if(!start||!end)return false;
+      const a=Number(start.slice(0,2))*60+Number(start.slice(3));
+      const b=Number(end.slice(0,2))*60+Number(end.slice(3));
+      return now.minutes>=a&&now.minutes<b;
+    });
+    if(current)return {open:true,text:'Abierto ahora · hasta '+current.closes_at.slice(0,5)};
+    const next=rows.find(row=>row.opens_at&&now.minutes<Number(row.opens_at.slice(0,2))*60+Number(row.opens_at.slice(3)));
+    return {open:false,text:next?'Abre hoy a las '+next.opens_at.slice(0,5):'Cerrado por hoy'};
+  }
+  function weeklySummary() {
+    const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const byDay=days.map((_,index)=>schedule.weekly
+      .filter(item=>Number(item.day_of_week)===index&&item.is_open&&item.opens_at&&item.closes_at)
+      .map(item=>item.opens_at.slice(0,5)+'–'+item.closes_at.slice(0,5))
+      .sort()
+    );
+    const groups=new Map();
+    byDay.forEach((hours,index)=>{
+      if(!hours.length)return;
+      const key=hours.join(', ');
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(index);
+    });
+    const dayRange=indices=>{
+      const parts=[];let start=indices[0],previous=indices[0];
+      for(const day of indices.slice(1)){
+        if(day===previous+1){previous=day;continue;}
+        parts.push(start===previous?days[start]:days[start]+' a '+days[previous]);
+        start=previous=day;
+      }
+      parts.push(start===previous?days[start]:days[start]+' a '+days[previous]);
+      return parts.join(', ');
+    };
+    return [...groups.entries()].map(([hours,indices])=>dayRange(indices)+' · '+hours.replace(/,/g,' / ')).join('  •  ');
+  }
+  function renderTimeSlots() {
+    const select=document.getElementById('deliveryTimeSlot');
+    if(!select)return;
+    const now=getLocalParts(new Date());
+    const rows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day&&item.is_open);
+    const min=Number(publicSettings?.preparation_min_minutes||30),max=Number(publicSettings?.preparation_max_minutes||45);
+    select.innerHTML='<option value="Lo antes posible ('+min+'-'+max+' min)">Lo antes posible ('+min+'-'+max+' min)</option>';
+    rows.forEach(row=>{
+      if(!row.opens_at||!row.closes_at)return;
+      const start=Number(row.opens_at.slice(0,2))*60+Number(row.opens_at.slice(3));
+      const end=Number(row.closes_at.slice(0,2))*60+Number(row.closes_at.slice(3));
+      for(let minute=start;minute+30<=end;minute+=30){
+        const fmt=value=>String(Math.floor(value/60)).padStart(2,'0')+':'+String(value%60).padStart(2,'0');
+        const label=fmt(minute)+' - '+fmt(minute+30)+' hs';
+        const option=document.createElement('option');option.value=label;option.textContent=label;select.appendChild(option);
+      }
+    });
+  }
+  function updateScheduleUI() {
+    if (!scheduleKnown) return;
+    const state=getScheduleState();
+    const text=document.getElementById('statusText');
+    const dot=document.getElementById('statusDot');
+    if(text){text.textContent=state.text;text.dataset.estado=state.open?'abierto':'cerrado';}
+    if(dot){dot.style.backgroundColor=state.open?'#10b981':'#ef4444';dot.classList.toggle('animate-pulse',state.open);}
+    document.documentElement.dataset.local=state.open?'abierto':'cerrado';
+    const aviso=document.getElementById('avisoCerradoTexto');
+    if(aviso&&!state.open)aviso.textContent=state.text+'. Los pedidos se habilitan únicamente dentro de los horarios configurados.';
+    const summary=weeklySummary();
+    ['publicHoursRibbon','publicHoursQuick','publicHoursFooter'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=summary||'Horario en actualización';el.classList.toggle('hidden',!summary&&id==='publicHoursRibbon');el.style.textAlign='center';el.style.lineHeight='1.65';}});
+    document.querySelectorAll('[onclick*="addToCart("], [onclick*="checkoutViaWhatsApp"], .yk-add-product').forEach(button=>{
+      button.classList.toggle('pedido-bloqueado',!state.open);
+      button.setAttribute('aria-disabled',String(!state.open));
+    });
+  }
+  window.repeatLastOrder = function() {
+    try {
+      const saved=localStorage.getItem('yankun_last_order');
+      if(!saved){showFeedback('Sin pedidos anteriores','Todavía no hay un pedido anterior guardado en este navegador.');return;}
+      const data=JSON.parse(saved);
+      const productMap=window.yankunProductMap||new Map();
+      const valid=Object.entries(data.items||{}).filter(([id,item])=>productMap.has(String(id))&&Number.isInteger(Number(item.quantity))&&Number(item.quantity)>0);
+      if(!valid.length){showFeedback('Pedido anterior no disponible','Los productos de ese pedido ya no están en la carta actual.');return;}
+      cartState.items={};
+      valid.forEach(([id,item])=>{
+        const product=productMap.get(String(id));
+        cartState.items[id]={id:Number(id),name:product.name,price:Number(product.price),category:product.category_id,quantity:Number(item.quantity)};
+      });
+      if(data.deliveryMode)window.setDeliveryMode(data.deliveryMode);
+      window.renderCart();
+      showFeedback('Pedido cargado','Se agregaron los productos que siguen disponibles, con sus precios actuales.');
+    }catch(error){showFeedback('No se pudo cargar el pedido','El pedido anterior guardado no se pudo leer.');}
+  };
+
+  const originalAdd=window.addToCart;
+  if (typeof originalAdd==='function') window.addToCart=function(){if(scheduleKnown&&!getScheduleState().open){showFeedback('Estamos cerrados',getScheduleState().text+'. Podés consultar por WhatsApp.');return false;}return originalAdd.apply(this,arguments);};
+  const originalCheckout=window.checkoutViaWhatsApp;
+  if (typeof originalCheckout==='function') window.checkoutViaWhatsApp=function(){if(scheduleKnown&&!getScheduleState().open){showFeedback('Estamos cerrados',getScheduleState().text+'. Los pedidos se habilitan según el horario del local.');return false;}return originalCheckout.apply(this,arguments);};
+
+  async function loadPublicSettings() {
+    const [settingsResult,locationResult]=await Promise.all([
+      db.from('business_settings').select('value').eq('key','public_site').maybeSingle(),
+      db.from('sales_locations').select('id,name,address,locality,is_active').eq('code','bahia-blanca-store').eq('is_active',true).maybeSingle()
+    ]);
+    if(settingsResult.error||locationResult.error||!settingsResult.data||!locationResult.data){
+      publicSettingsKnown=true;publicSettings=null;
+      console.warn('No se pudo cargar la configuración pública del comercio.',settingsResult.error,locationResult.error);
+      return;
+    }
+    publicSettings=settingsResult.data.value||{};mainLocation=locationResult.data;publicSettingsKnown=true;
+    const address=[mainLocation.address,mainLocation.locality].filter(Boolean).join(', ');
+    const setText=(id,value)=>{const node=document.getElementById(id);if(node&&value)node.textContent=value;};
+    setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');
+    setText('publicAddressQuick',address);
+    setText('pickupAddressNotice',address);
+    setText('pickupOptionLabel','Take Away - Gratis ('+(mainLocation.address||'retiro en local')+')');
+    setText('deliveryAreaDescription',publicSettings.delivery_area_description||publicSettings.delivery_area_label||'Zona de entrega');
+    setText('deliveryFeeButton','+'+money(publicSettings.delivery_fee_bahia));
+    setText('publicDeliveryQuick','Delivery '+money(publicSettings.delivery_fee_bahia)+' · Retiro sin cargo');
+    setText('preparationTimeLabel','Tiempo estimado: '+(publicSettings.preparation_min_minutes||30)+'–'+(publicSettings.preparation_max_minutes||45)+' min');
+    setText('deliveryOptionLabel','Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana'));
+    document.querySelectorAll('a[href*="wa.me/"]').forEach(link=>{
+      if(publicSettings.whatsapp_number)link.href='https://wa.me/'+publicSettings.whatsapp_number;
+      if(link.textContent.includes('+54'))link.textContent=publicSettings.whatsapp_display||link.textContent;
+    });
+    const payment=document.getElementById('paymentMethod');
+    if(payment&&Array.isArray(publicSettings.payment_methods)&&publicSettings.payment_methods.length){
+      payment.innerHTML='';publicSettings.payment_methods.forEach(method=>{const option=document.createElement('option');option.value=method;option.textContent=method;payment.appendChild(option);});
+    }
+    const upsell=document.getElementById('upsellContainer');if(upsell)upsell.hidden=true;
+    if(typeof window.renderCartSummary==='function')window.renderCartSummary();
+  }
+
+  async function loadSchedule() {
+    const locationResult = await db.from('sales_locations').select('id').eq('code','bahia-blanca-store').eq('is_active',true).maybeSingle();
+    if (locationResult.error || !locationResult.data) { console.warn('No se encontró el punto de venta principal para sincronizar horarios.'); return; }
+    const locationId = locationResult.data.id;
+    const [hoursResult,specialResult] = await Promise.all([
+      db.from('business_hours').select('sales_location_id,schedule_type,day_of_week,specific_date,is_open,opens_at,closes_at').eq('sales_location_id',locationId),
+      db.from('special_events').select('event_date,event_type,opens_at,closes_at').eq('sales_location_id',locationId).eq('is_active',true)
+    ]);
+    if (hoursResult.error || specialResult.error) {
+      console.warn('No se pudo sincronizar el horario público.',hoursResult.error,specialResult.error);
+      schedule.weekly=[];schedule.special=[];scheduleKnown=true;updateScheduleUI();return;
+    }
+    schedule.weekly=(hoursResult.data||[]).filter(x=>x.schedule_type==='weekly');
+    schedule.special=(specialResult.data||[]);
+    scheduleKnown=true;
+    renderTimeSlots();
+    updateScheduleUI();
+    if (!scheduleTimer) scheduleTimer = window.setInterval(updateScheduleUI,30000);
+  }
+
+  let catalogLoading = false;
+  async function loadCatalog() {
+    if (catalogLoading) return;
+    catalogLoading = true;
+    try {
+    const [categoriesResult,productsResult] = await Promise.all([
+      db.from('categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
+      db.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').eq('is_available',true).order('sort_order')
+    ]);
+    if (categoriesResult.error || productsResult.error) {
+      console.error('No se pudo cargar la carta desde Supabase.',categoriesResult.error,productsResult.error);
+      const container=document.getElementById('productsCatalogContainer');
+      const filters=document.getElementById('categoryFilterGroup');
+      if(container)container.innerHTML='<div class="empty">No pudimos cargar la carta en este momento. Intentá nuevamente más tarde.</div>';
+      if(filters)filters.innerHTML='';
+      renderFeatured(null);
+      return;
+    }
+    buildCatalog(categoriesResult.data||[],productsResult.data||[]);
+    } finally {
+      catalogLoading = false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded',()=> {
+    loadCatalog().catch(error=>{console.error(error);});
+    loadSchedule().catch(error=>{console.error(error);});
+    loadPublicSettings().then(()=>renderTimeSlots()).catch(error=>{console.error(error);publicSettingsKnown=true;});
+    db.channel('public-catalog-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_hours'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings())
+      .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>loadPublicSettings())
+      .subscribe();
+    window.setInterval(()=>{loadCatalog().catch(()=>{});loadSchedule().catch(()=>{});},60000);
+  });
+})();
+</script>
+</body></html> + shipping.toLocaleString('es-AR') + ' ARS' : (cartState.deliveryMode === 'pickup' ? '$0 ARS' : 'A consultar')}\n`;
+    msg += `TOTAL A PAGAR: $${finalTotal.toLocaleString('es-AR')} ARS\n`;
+    msg += `------------------------------------\n`;
+    msg += `Aguardo confirmacion de recepcion. Muchas gracias!`;
+    return msg;
+  }
+
+  async function checkoutViaWhatsApp() {
+    const itemsList = Object.values(cartState.items);
+    if (itemsList.length === 0) {
+      window.showOrderFeedback?.('Carrito vacío', 'Agregá al menos un producto antes de enviar el pedido.');
+      return;
+    }
+    const name = document.getElementById('clientName').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
+    const address = document.getElementById('clientAddress').value.trim();
+    if (!window.yankunPublicSettingsKnown || !window.yankunPublicSettings) {
+      window.showOrderFeedback?.('Configuración no disponible', 'No pudimos consultar los datos actualizados del comercio. Intentá nuevamente en unos minutos.');
+      return;
+    }
+    if (!name || !phone) {
+      window.showOrderFeedback?.('Faltan tus datos', 'Completá tu nombre y teléfono para registrar el pedido.');
+      return;
+    }
+    if (cartState.deliveryMode !== 'pickup' && !address) {
+      window.showOrderFeedback?.('Falta la dirección', 'Completá la dirección para el envío.');
+      document.getElementById('clientAddress').focus();
+      return;
+    }
+    if (window.yankunOrderSubmitting) return;
+    window.yankunOrderSubmitting = true;
+    const submitButton = document.querySelector('[onclick*="checkoutViaWhatsApp"]');
+    if (submitButton) { submitButton.disabled = true; submitButton.dataset.originalText = submitButton.textContent; submitButton.textContent = 'REGISTRANDO...'; }
+    const waTab = window.open('about:blank', '_blank');
+    const requestedTime = document.getElementById('deliveryTimeSlot')?.value || '';
+    const paymentMethod = document.getElementById('paymentMethod')?.value || '';
+    const customerNotes = document.getElementById('generalNotes')?.value.trim() || '';
+    const payload = {
+      customer_name: name,
+      customer_phone: phone,
+      delivery_mode: cartState.deliveryMode,
+      delivery_address: address,
+      requested_time: requestedTime,
+      payment_method: paymentMethod,
+      customer_notes: customerNotes,
+      items: itemsList.map(item => ({ product_id: Number(item.id), quantity: Number(item.quantity) }))
+    };
+    const fingerprint = JSON.stringify(payload);
+    let requestId;
+    try {
+      const previous = JSON.parse(sessionStorage.getItem('yankun_pending_order') || 'null');
+      requestId = previous && previous.fingerprint === fingerprint ? previous.request_id : crypto.randomUUID();
+      sessionStorage.setItem('yankun_pending_order', JSON.stringify({ fingerprint, request_id: requestId }));
+      const response = await fetch('https://cdhnpsowlsesoobrytvh.supabase.co/functions/v1/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': window.yankunPublishableKey,
+          'Authorization': 'Bearer ' + window.yankunPublishableKey
+        },
+        body: JSON.stringify({ ...payload, request_id: requestId, website: '' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.order) throw new Error(result.error || 'No se pudo registrar el pedido.');
+      const order = result.order;
+      try {
+        localStorage.setItem('yankun_last_order', JSON.stringify({ items: cartState.items, deliveryMode: cartState.deliveryMode }));
+      } catch (e) {}
+      const detailLines = itemsList.map(item => '- ' + item.quantity + ' x ' + item.name).join('\n');
+      const message = [
+        'Hola, acabo de registrar un pedido en YanKun SushiLab.',
+        'Pedido: ' + order.order_number,
+        'Cliente: ' + name,
+        'Teléfono: ' + phone,
+        'Modalidad: ' + (cartState.deliveryMode === 'pickup' ? 'Retiro' : cartState.deliveryMode === 'otra_zona' ? 'Envío a coordinar' : 'Delivery Bahía Blanca'),
+        address ? 'Dirección: ' + address : '',
+        'Horario solicitado: ' + (requestedTime || 'A coordinar'),
+        'Medio de pago: ' + (paymentMethod || 'A coordinar'),
+        customerNotes ? 'Observaciones: ' + customerNotes : '',
+        'Detalle:',
+        detailLines,
+        'Total registrado: $' + Number(order.total).toLocaleString('es-AR') + ' ARS',
+        'Estado: Pendiente'
+      ].filter(Boolean).join('\n');
+      if (!window.yankunPublicSettings?.whatsapp_number) throw new Error('El contacto de WhatsApp no está configurado.');
+      const waUrl = 'https://wa.me/' + window.yankunPublicSettings.whatsapp_number + '?text=' + encodeURIComponent(message);
+      sessionStorage.removeItem('yankun_pending_order');
+      cartState.items = {};
+      renderCart();
+      if (waTab) {
+        waTab.location.href = waUrl;
+        window.showOrderFeedback?.('Pedido registrado', 'Tu pedido ' + order.order_number + ' quedó guardado correctamente. Se abrió WhatsApp para completar el envío.');
+      } else {
+        window.showOrderFeedback?.('Pedido registrado', 'Tu pedido ' + order.order_number + ' quedó guardado correctamente. Abrí WhatsApp para enviar el mensaje.', waUrl);
+      }
+    } catch (error) {
+      if (waTab) waTab.close();
+      window.showOrderFeedback?.('No pudimos registrar el pedido', error.message || 'Revisá tu conexión e intentá nuevamente.');
+    } finally {
+      window.yankunOrderSubmitting = false;
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = submitButton.dataset.originalText || 'ENVIAR PEDIDO'; }
+    }
+  }
+
+  function copyOrderToClipboard() {
+    const itemsList = Object.values(cartState.items);
+    if (itemsList.length === 0) {
+      window.showOrderFeedback?.('Carrito vacío', 'Agregá productos antes de copiar el pedido.');
+      return;
+    }
+    const msg = getOrderText();
+    navigator.clipboard.writeText(msg).then(() => {
+      window.showOrderFeedback?.('Pedido copiado', 'El detalle del pedido quedó copiado al portapapeles.');
+    }).catch(() => {
+      window.showOrderFeedback?.('No se pudo copiar', 'El navegador no permitió copiar el pedido.');
+    });
+  }
+
+  function repeatLastOrder() {
+    try {
+      const saved = localStorage.getItem('yankun_last_order');
+      if (!saved) {
+        alert('No hay un pedido previo guardado en este navegador.');
+        return;
+      }
+      const data = JSON.parse(saved);
+      if (data && data.items && Object.keys(data.items).length > 0) {
+        cartState.items = data.items;
+        if (data.deliveryMode) setDeliveryMode(data.deliveryMode);
+        renderCart();
+        alert('Se cargo tu ultimo pedido!');
+      } else {
+        alert('No se encontraron items del pedido anterior.');
+      }
+    } catch (e) {
+      alert('No se pudo cargar el ultimo pedido.');
+    }
+  }
+
+  function toggleTermsModal(show) {
+    const modal = document.getElementById('termsModalOverlay');
+    if (!modal) return;
+    if (show) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    } else {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  function setActiveNav(target) {
+    const navLinks = document.querySelectorAll('#headerNav .nav-header-link');
+    navLinks.forEach(link => {
+      const linkTarget = link.getAttribute('data-nav-target');
+      if (linkTarget === target) {
+        link.className = 'nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface font-semibold py-1 border-b-2 border-primary-container transition-colors leading-none flex items-center justify-center cursor-pointer';
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.className = 'nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center cursor-pointer';
+        link.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  function handleNavClick(e, target) {
+    if (e) e.preventDefault();
+    setActiveNav(target);
+
+    if (target === 'pedidos') {
+      const cartEl = document.getElementById('pedido-seccion');
+      if (cartEl) {
+        cartEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      filterCategory(target, false);
+      const catalogoEl = document.getElementById('catalogo');
+      if (catalogoEl) {
+        catalogoEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  function filterCategory(category, syncHeader = true) {
+    if (syncHeader) {
+      setActiveNav(category);
+    }
+
+    const buttons = document.querySelectorAll('#categoryFilterGroup .category-pill');
+    buttons.forEach(btn => {
+      const btnCat = btn.getAttribute('data-cat');
+      if (btnCat === category) {
+        btn.className = 'category-pill active-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider bg-primary-container text-on-primary-container font-bold shadow-md transition-all duration-200 shrink-0';
+      } else {
+        btn.className = 'category-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider text-tertiary hover:text-on-surface hover:bg-surface-container transition-all duration-200 shrink-0';
+      }
+    });
+
+    const sections = document.querySelectorAll('.catalog-section');
+    sections.forEach(sec => {
+      if (category === 'all' || sec.getAttribute('data-section') === category) {
+        sec.style.display = 'block';
+      } else {
+        sec.style.display = 'none';
+      }
+    });
+
+    const catalogContainer = document.getElementById('productsCatalogContainer');
+    if (catalogContainer) {
+      catalogContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setDeliveryMode('delivery_bahia');
+  });
+</script></main><footer class="w-full bg-surface-container-lowest mt-space-xl"><div class="max-w-[1280px] mx-auto px-gutter lg:px-gutter-desktop py-space-xl"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg mb-space-xl"><div><div class="flex items-center gap-space-sm mb-space-md"><span class="font-headline-sm text-headline-sm text-on-surface">YanKun <span class="text-primary-container">SushiLab</span></span></div><p class="font-body-sm text-body-sm text-tertiary mb-space-md">Laboratorio gastronomico nikkei y sushi contemporaneo en Bahia Blanca. Precision culinaria, piezas artesanales y despacho selecto.</p><div class="inline-flex items-center gap-space-xs text-primary-container font-label-sm text-label-sm uppercase tracking-widest"><span class="material-symbols-outlined text-[14px]">verified</span>Calidad Nihon Craft</div></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary-container text-[18px]">schedule</span>Horarios Oficiales</h4><ul class="space-y-space-xs font-body-sm text-body-sm"><li class="text-on-surface font-semibold">Horario: <span class="text-tertiary font-normal" id="publicHoursFooter">Consultá el estado actualizado en la carta</span></li><li class="text-error font-medium">Domingos y Lunes: <span class="text-tertiary font-normal">Cerrado</span></li></ul><p class="font-label-sm text-label-sm text-tertiary mt-space-sm">Pedidos programados y retiro en franjas horarias estrictas.</p></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary-container text-[18px]">location_on</span>Take Away &amp; Contacto</h4><p class="font-body-sm text-body-sm text-on-surface font-semibold">Chile 1137</p><p class="font-body-sm text-body-sm text-tertiary mb-space-md">Bahia Blanca, Buenos Aires</p><a class="font-body-sm text-body-sm text-primary-container hover:underline flex items-center gap-space-xs mt-space-xs" href="https://wa.me/5492915101491" rel="noopener noreferrer" target="_blank"><span class="material-symbols-outlined text-[16px]">call</span>+54 9 291 510-1491</a></div><div><h4 class="font-label-lg text-label-lg uppercase tracking-wider text-on-surface mb-space-md flex items-center gap-space-xs"><span class="material-symbols-outlined text-error text-[18px]">info</span>Aviso de Empaque</h4><div class="bg-surface-container-low p-space-md rounded-lg"><p class="font-body-sm text-body-sm text-tertiary leading-relaxed">Disponemos de empaque estandar gastronomico seguro. <strong class="text-on-surface">No contamos con empaque termico.</strong> Recomendamos consumo inmediato tras retiro para conservar la textura y temperatura ideal.</p></div></div></div><div class="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><p class="font-label-sm text-label-sm text-tertiary uppercase tracking-widest">(C) 2026 YanKun SushiLab. Bahia Blanca. Todos los derechos reservados.            <a class="text-primary hover:underline font-semibold tracking-wider" href="https://wa.me/5492915782848" rel="noopener noreferrer" target="_blank">DESIGNED BY CHARLIE</a></p><div class="flex items-center gap-space-lg"><button class="font-label-sm text-label-sm text-tertiary hover:text-on-surface transition-colors uppercase cursor-pointer" onclick="toggleTermsModal(true)" type="button">Terminos &amp; Retiro</button><a class="font-label-sm text-label-sm text-primary-container hover:text-primary transition-colors uppercase" href="https://wa.me/5492915101491" rel="noopener noreferrer" target="_blank">WhatsApp</a></div></div></div></footer>
+<div class="fixed bottom-space-md left-space-md right-space-md z-40 lg:hidden flex items-center justify-between p-space-sm rounded-xl bg-surface-container-low/95 backdrop-blur-xl border border-primary-container/40 shadow-2xl"><a class="flex items-center gap-space-xs text-on-surface hover:text-primary" href="#pedido-seccion"><span class="material-symbols-outlined text-primary-container text-[20px]">shopping_bag</span><div class="flex flex-col"><span class="font-label-sm text-[10px] uppercase text-tertiary tracking-wider">Ver Pedido</span><span class="font-label-md text-label-md font-bold text-on-surface">Carrito</span></div></a><button class="px-space-md py-2 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md uppercase tracking-wider font-semibold shadow-md flex items-center gap-1.5" onclick="document.getElementById('pedido-seccion').scrollIntoView({ behavior: 'smooth', block: 'start' })"><span>Pedir Ahora</span><span class="material-symbols-outlined text-[16px]">arrow_forward</span></button></div>
+<div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4" id="termsModalOverlay" onclick="if(event.target === this) toggleTermsModal(false)"><div class="bg-surface-container-low max-w-lg w-full rounded-xl p-space-lg border border-surface-container-high shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar"><div class="flex items-center justify-between border-b border-surface-container-high pb-2"><h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary-container">verified_user</span> Terminos, Encomiendas &amp; Retiro</h3><button class="text-tertiary hover:text-on-surface text-xl font-bold" onclick="toggleTermsModal(false)">X</button></div><div class="space-y-3 font-body-sm text-body-sm text-tertiary"><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">store</span> Punto Oficial de Retiro (Take Away)</p><p>Chile 1137, Bahia Blanca. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">local_shipping</span> Cadeteria &amp; Despacho</p><p>Cadeteria urbana en Bahia Blanca con tarifa fija de <strong>$6.000</strong>. Zonas especiales o perifericas se cotizan de forma particular via WhatsApp.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-error">warning</span> Aviso Termico y Empaque</p><p>Entregamos en cajas rigidas gastronomicas selladas. <strong>No contamos con empaque termico.</strong> Se recomienda el consumo inmediato para preservar la temperatura y el crocante del arroz y los rolls panko.</p></div><div class="p-space-sm rounded bg-surface-container-lowest"><p class="text-on-surface font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary-container">timer</span> Tiempos de Preparacion</p><p>Elaboracion al momento: entre 30 y 45 minutos segun demanda del laboratorio en la franja.</p></div></div><button class="w-full py-2.5 rounded bg-primary-container text-on-primary-container font-label-md uppercase tracking-wider font-bold hover:brightness-110 mt-2" onclick="toggleTermsModal(false)">Entendido y Cerrar</button></div></div><!-- ===== HORARIO DE COCINA: estado abierto/cerrado + bloqueo de pedidos ===== -->
+<style id="horario-estilos">
+  /* Botones de pedido cuando la cocina está cerrada */
+  .pedido-bloqueado { opacity: .4; filter: grayscale(1) !important; cursor: not-allowed !important; }
+
+  /* Estado en la cinta superior */
+  #statusText[data-estado="abierto"] { color: #34d399; }
+  #statusText[data-estado="cerrado"] { color: #ffb4ab; }
+
+  /* Aviso dentro del carrito (solo visible cuando está cerrado) */
+  .aviso-cerrado {
+    display: none; align-items: flex-start; gap: .5rem;
+    padding: .75rem; border-radius: .5rem;
+    background: rgba(147, 0, 10, .28); border: 1px solid rgba(255, 180, 171, .35);
+    color: #ffdad6; font-size: 12px; line-height: 1.4;
+  }
+  .aviso-cerrado p { margin: 0; }
+  html[data-local="cerrado"] .aviso-cerrado { display: flex; }
+
+  /* Aviso flotante al tocar un botón bloqueado */
+  #aviso-cerrado-toast {
+    position: fixed; left: 50%; bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 16px); width: max-content; max-width: min(92vw, 26rem);
+    padding: .85rem 1rem; border-radius: .75rem;
+    background: #31353c; color: #dfe2eb; border: 1px solid rgba(255, 180, 171, .45);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+    font-size: 14px; line-height: 1.4; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 70;
+  }
+  #aviso-cerrado-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+  @media (min-width: 1024px) { #aviso-cerrado-toast { bottom: 2rem; } }
+  @media (prefers-reduced-motion: reduce) { #aviso-cerrado-toast { transition: none; } }
+</style>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="yankun-live-integration">
+(function () {
+  'use strict';
+  const SUPABASE_URL = 'https://cdhnpsowlsesoobrytvh.supabase.co';
+  const PUBLISHABLE_KEY = 'sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP';
+  const db = window.supabase.createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
+  window.yankunPublicDb = db;
+  window.yankunPublishableKey = PUBLISHABLE_KEY;
+  let schedule = { weekly: [], special: [] };
+  let publicSettings = null;
+  let publicSettingsKnown = false;
+  let mainLocation = null;
+  let scheduleKnown = false;
+  let scheduleTimer = null;
+  let submitting = false;
+
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+  function money(value) {
+    return String.fromCharCode(36) + Number(value || 0).toLocaleString('es-AR') + ' ARS';
+  }
+  function safeImageUrl(value) {
+    try {
+      const url = new URL(String(value || ''), window.location.origin);
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+    } catch { return ''; }
+  }
+  function showFeedback(title, message, link) {
+    let overlay = document.getElementById('yk-order-feedback');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'yk-order-feedback';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#05070bd9;backdrop-filter:blur(5px);display:grid;place-items:center;padding:18px';
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = '';
+    const card = document.createElement('section');
+    card.setAttribute('role','alertdialog');
+    card.setAttribute('aria-modal','true');
+    card.style.cssText = 'width:min(100%,440px);background:#1b2028;border:1px solid #6b4650;border-radius:16px;padding:24px;color:#e8e8ee;box-shadow:0 24px 80px #000b;font-family:Manrope,Arial,sans-serif';
+    const h = document.createElement('h2'); h.textContent = title; h.style.cssText = 'font:500 22px Georgia,serif;margin:0 0 10px';
+    const p = document.createElement('p'); p.textContent = message; p.style.cssText = 'font-size:13px;line-height:1.7;color:#c5c6ce;margin:0 0 18px';
+    const actions = document.createElement('div'); actions.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap';
+    if (link) {
+      const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = 'Abrir WhatsApp';
+      a.style.cssText = 'padding:11px 15px;border-radius:8px;background:#e11d48;color:white;text-decoration:none;font-size:12px;font-weight:800';
+      actions.appendChild(a);
+    }
+    const close = document.createElement('button'); close.type='button'; close.textContent='Entendido'; close.style.cssText='padding:11px 15px;border-radius:8px;border:1px solid #454954;background:#252a32;color:#e5e7eb;font-size:12px;font-weight:800;cursor:pointer';
+    close.addEventListener('click',()=>overlay.remove()); actions.appendChild(close);
+    card.append(h,p,actions); overlay.appendChild(card);
+  }
+  window.showOrderFeedback = showFeedback;
+
+  function renderFeatured(product) {
+    const root = document.getElementById('featuredProductCard');
+    if (!root) return;
+    const image = root.querySelector('img');
+    const description = root.querySelector('.font-body-sm');
+    const price = root.querySelector('.font-headline-sm');
+    const button = root.querySelector('button');
+    const heading = root.querySelector('h3');
+    if (!product) { root.hidden = true; return; }
+    root.hidden = false;
+    const safeImage = safeImageUrl(product.image_url);
+    if (image) { image.src = safeImage; image.alt = product.name; image.hidden = !safeImage; }
+    if (heading) heading.textContent = product.name;
+    if (description) description.textContent = product.description || 'Elaboración de YanKun SushiLab.';
+    if (price) price.textContent = money(product.price);
+    if (button) {
+      button.removeAttribute('onclick');
+      button.classList.add('yk-add-product');
+      button.onclick = () => { window.addToCart(Number(product.id), product.name, Number(product.price), product.category_name); document.getElementById('pedido-seccion')?.scrollIntoView({behavior:'smooth',block:'start'}); };
+    }
+  }
+
+  function buildCatalog(categories, products) {
+    const filterGroup = document.getElementById('categoryFilterGroup');
+    const container = document.getElementById('productsCatalogContainer');
+    if (!filterGroup || !container) return;
+    const available = products.filter(p => categories.some(c => c.id === p.category_id));
+    const byCategory = new Map(categories.map(c => [c.id, []]));
+    available.forEach(p => byCategory.get(p.category_id)?.push(p));
+    const visibleCategories = categories.filter(c => (byCategory.get(c.id) || []).length);
+    filterGroup.innerHTML = '';
+    const allButton = document.createElement('button');
+    allButton.className = 'category-pill active-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider bg-primary-container text-on-primary-container font-bold shadow-md transition-all duration-200 shrink-0';
+    allButton.dataset.cat = 'all'; allButton.textContent = 'TODO'; allButton.onclick = () => window.filterCategory('all');
+    filterGroup.appendChild(allButton);
+    visibleCategories.forEach(category => {
+      const button = document.createElement('button');
+      button.className = 'category-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider text-tertiary hover:text-on-surface hover:bg-surface-container transition-all duration-200 shrink-0';
+      button.dataset.cat = category.slug; button.textContent = category.name;
+      button.onclick = () => window.filterCategory(category.slug);
+      filterGroup.appendChild(button);
+    });
+    container.innerHTML = '';
+    visibleCategories.forEach(category => {
+      const section = document.createElement('section');
+      section.className = 'catalog-section p-space-md rounded-xl bg-surface-container-low border border-surface-container-high/60 shadow-lg';
+      section.dataset.section = category.slug;
+      section.id = 'seccion-' + category.slug.replace(/[^a-z0-9-]/gi,'-');
+      const heading = document.createElement('div');
+      heading.className = 'flex items-center justify-between mb-space-md';
+      heading.innerHTML = '<h3 class="font-headline-md text-headline-md text-on-surface">' + esc(category.name) + '</h3><span class="text-[10px] text-tertiary">' + (byCategory.get(category.id).length) + ' productos</span>';
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-space-sm';
+      byCategory.get(category.id).forEach(product => {
+        const card = document.createElement('article');
+        card.className = 'p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60 min-w-0';
+        const safeImage = safeImageUrl(product.image_url);
+        const image = safeImage ? '<img src="' + esc(safeImage) + '" alt="' + esc(product.name) + '" loading="lazy" class="w-full h-36 object-cover rounded-md mb-3">' : '';
+        card.innerHTML = image +
+          '<div class="mb-3"><h4 class="font-headline-sm text-[16px] text-on-surface font-semibold">' + esc(product.name) + '</h4>' +
+          '<p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-3">' + esc(product.description || '') + '</p></div>' +
+          '<div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">' + esc(money(product.price)) + '</span></div>';
+        const button = document.createElement('button');
+        button.type='button'; button.className='yk-add-product mt-2 w-full px-2 py-2 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 cursor-pointer';
+        button.textContent='＋ Sumar al pedido';
+        button.addEventListener('click',()=>window.addToCart(Number(product.id),product.name,Number(product.price),category.name));
+        card.lastElementChild.appendChild(button);
+        grid.appendChild(card);
+      });
+      section.append(heading,grid); container.appendChild(section);
+    });
+    window.filterCategory('all', false);
+
+    const headerNav = document.getElementById('headerNav');
+    if (headerNav) {
+      headerNav.innerHTML = '';
+      const addNav = (label,target,href) => {
+        const link = document.createElement('a');
+        link.href=href; link.dataset.navTarget=target;
+        link.className='nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer';
+        link.textContent=label;
+        link.addEventListener('click',event=>window.handleNavClick(event,target));
+        headerNav.appendChild(link);
+      };
+      addNav('Carta completa','all','#catalogo');
+      visibleCategories.forEach(category=>addNav(category.name,category.slug,'#seccion-'+category.slug));
+      addNav('Mi pedido','pedidos','#pedido-seccion');
+    }
+    window.yankunAvailableProductIds = new Set(available.map(product=>String(product.id)));
+    window.yankunProductMap = new Map(available.map(product=>[String(product.id),product]));
+    const featured = available[0] ? {...available[0],category_name:visibleCategories.find(c=>c.id===available[0].category_id)?.name || ''} : null;
+    renderFeatured(featured);
+  }
+
+  function getLocalParts(date) {
+    const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+    const get = type => parts.find(p=>p.type===type)?.value || '';
+    const dayMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+    return {date:get('year')+'-'+get('month')+'-'+get('day'),day:dayMap[get('weekday')],minutes:Number(get('hour'))*60+Number(get('minute'))};
+  }
+  function getScheduleState() {
+    const now=getLocalParts(new Date());
+    const special=schedule.special.find(item=>item.event_date===now.date);
+    if (special?.event_type==='exceptional_closure') return {open:false,text:'Cerrado por excepción'};
+    if (special?.event_type==='special_opening') {
+      const start=special.opens_at?.slice(0,5),end=special.closes_at?.slice(0,5);
+      const a=start?Number(start.slice(0,2))*60+Number(start.slice(3)):0;
+      const b=end?Number(end.slice(0,2))*60+Number(end.slice(3)):0;
+      const open=!!start&&!!end&&now.minutes>=a&&now.minutes<b;
+      return {open,text:open?'Abierto por evento · hasta '+end:'Apertura especial · '+(start||'horario pendiente')+' a '+(end||'')};
+    }
+    const dayRows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day);
+    const rows=dayRows.filter(item=>item.is_open);
+    if (!rows.length) return {open:false,text:dayRows.length?'Cerrado hoy':'Horario no configurado'};
+    const current=rows.find(row=>{
+      const start=row.opens_at?.slice(0,5),end=row.closes_at?.slice(0,5);
+      if(!start||!end)return false;
+      const a=Number(start.slice(0,2))*60+Number(start.slice(3));
+      const b=Number(end.slice(0,2))*60+Number(end.slice(3));
+      return now.minutes>=a&&now.minutes<b;
+    });
+    if(current)return {open:true,text:'Abierto ahora · hasta '+current.closes_at.slice(0,5)};
+    const next=rows.find(row=>row.opens_at&&now.minutes<Number(row.opens_at.slice(0,2))*60+Number(row.opens_at.slice(3)));
+    return {open:false,text:next?'Abre hoy a las '+next.opens_at.slice(0,5):'Cerrado por hoy'};
+  }
+  function weeklySummary() {
+    const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const byDay=days.map((_,index)=>schedule.weekly
+      .filter(item=>Number(item.day_of_week)===index&&item.is_open&&item.opens_at&&item.closes_at)
+      .map(item=>item.opens_at.slice(0,5)+'–'+item.closes_at.slice(0,5))
+      .sort()
+    );
+    const groups=new Map();
+    byDay.forEach((hours,index)=>{
+      if(!hours.length)return;
+      const key=hours.join(', ');
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(index);
+    });
+    const dayRange=indices=>{
+      const parts=[];let start=indices[0],previous=indices[0];
+      for(const day of indices.slice(1)){
+        if(day===previous+1){previous=day;continue;}
+        parts.push(start===previous?days[start]:days[start]+' a '+days[previous]);
+        start=previous=day;
+      }
+      parts.push(start===previous?days[start]:days[start]+' a '+days[previous]);
+      return parts.join(', ');
+    };
+    return [...groups.entries()].map(([hours,indices])=>dayRange(indices)+' · '+hours.replace(/,/g,' / ')).join('  •  ');
+  }
+  function renderTimeSlots() {
+    const select=document.getElementById('deliveryTimeSlot');
+    if(!select)return;
+    const now=getLocalParts(new Date());
+    const rows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day&&item.is_open);
+    const min=Number(publicSettings?.preparation_min_minutes||30),max=Number(publicSettings?.preparation_max_minutes||45);
+    select.innerHTML='<option value="Lo antes posible ('+min+'-'+max+' min)">Lo antes posible ('+min+'-'+max+' min)</option>';
+    rows.forEach(row=>{
+      if(!row.opens_at||!row.closes_at)return;
+      const start=Number(row.opens_at.slice(0,2))*60+Number(row.opens_at.slice(3));
+      const end=Number(row.closes_at.slice(0,2))*60+Number(row.closes_at.slice(3));
+      for(let minute=start;minute+30<=end;minute+=30){
+        const fmt=value=>String(Math.floor(value/60)).padStart(2,'0')+':'+String(value%60).padStart(2,'0');
+        const label=fmt(minute)+' - '+fmt(minute+30)+' hs';
+        const option=document.createElement('option');option.value=label;option.textContent=label;select.appendChild(option);
+      }
+    });
+  }
+  function updateScheduleUI() {
+    if (!scheduleKnown) return;
+    const state=getScheduleState();
+    const text=document.getElementById('statusText');
+    const dot=document.getElementById('statusDot');
+    if(text){text.textContent=state.text;text.dataset.estado=state.open?'abierto':'cerrado';}
+    if(dot){dot.style.backgroundColor=state.open?'#10b981':'#ef4444';dot.classList.toggle('animate-pulse',state.open);}
+    document.documentElement.dataset.local=state.open?'abierto':'cerrado';
+    const aviso=document.getElementById('avisoCerradoTexto');
+    if(aviso&&!state.open)aviso.textContent=state.text+'. Los pedidos se habilitan únicamente dentro de los horarios configurados.';
+    const summary=weeklySummary();
+    ['publicHoursRibbon','publicHoursQuick','publicHoursFooter'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=summary||'Horario en actualización';el.classList.toggle('hidden',!summary&&id==='publicHoursRibbon');el.style.textAlign='center';el.style.lineHeight='1.65';}});
+    document.querySelectorAll('[onclick*="addToCart("], [onclick*="checkoutViaWhatsApp"], .yk-add-product').forEach(button=>{
+      button.classList.toggle('pedido-bloqueado',!state.open);
+      button.setAttribute('aria-disabled',String(!state.open));
+    });
+  }
+  window.repeatLastOrder = function() {
+    try {
+      const saved=localStorage.getItem('yankun_last_order');
+      if(!saved){showFeedback('Sin pedidos anteriores','Todavía no hay un pedido anterior guardado en este navegador.');return;}
+      const data=JSON.parse(saved);
+      const productMap=window.yankunProductMap||new Map();
+      const valid=Object.entries(data.items||{}).filter(([id,item])=>productMap.has(String(id))&&Number.isInteger(Number(item.quantity))&&Number(item.quantity)>0);
+      if(!valid.length){showFeedback('Pedido anterior no disponible','Los productos de ese pedido ya no están en la carta actual.');return;}
+      cartState.items={};
+      valid.forEach(([id,item])=>{
+        const product=productMap.get(String(id));
+        cartState.items[id]={id:Number(id),name:product.name,price:Number(product.price),category:product.category_id,quantity:Number(item.quantity)};
+      });
+      if(data.deliveryMode)window.setDeliveryMode(data.deliveryMode);
+      window.renderCart();
+      showFeedback('Pedido cargado','Se agregaron los productos que siguen disponibles, con sus precios actuales.');
+    }catch(error){showFeedback('No se pudo cargar el pedido','El pedido anterior guardado no se pudo leer.');}
+  };
+
+  const originalAdd=window.addToCart;
+  if (typeof originalAdd==='function') window.addToCart=function(){if(scheduleKnown&&!getScheduleState().open){showFeedback('Estamos cerrados',getScheduleState().text+'. Podés consultar por WhatsApp.');return false;}return originalAdd.apply(this,arguments);};
+  const originalCheckout=window.checkoutViaWhatsApp;
+  if (typeof originalCheckout==='function') window.checkoutViaWhatsApp=function(){if(scheduleKnown&&!getScheduleState().open){showFeedback('Estamos cerrados',getScheduleState().text+'. Los pedidos se habilitan según el horario del local.');return false;}return originalCheckout.apply(this,arguments);};
+
+  async function loadPublicSettings() {
+    const [settingsResult,locationResult]=await Promise.all([
+      db.from('business_settings').select('value').eq('key','public_site').maybeSingle(),
+      db.from('sales_locations').select('id,name,address,locality,is_active').eq('code','bahia-blanca-store').eq('is_active',true).maybeSingle()
+    ]);
+    if(settingsResult.error||locationResult.error||!settingsResult.data||!locationResult.data){
+      publicSettingsKnown=true;publicSettings=null;
+      console.warn('No se pudo cargar la configuración pública del comercio.',settingsResult.error,locationResult.error);
+      return;
+    }
+    publicSettings=settingsResult.data.value||{};mainLocation=locationResult.data;publicSettingsKnown=true;
+    const address=[mainLocation.address,mainLocation.locality].filter(Boolean).join(', ');
+    const setText=(id,value)=>{const node=document.getElementById(id);if(node&&value)node.textContent=value;};
+    setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');
+    setText('publicAddressQuick',address);
+    setText('pickupAddressNotice',address);
+    setText('pickupOptionLabel','Take Away - Gratis ('+(mainLocation.address||'retiro en local')+')');
+    setText('deliveryAreaDescription',publicSettings.delivery_area_description||publicSettings.delivery_area_label||'Zona de entrega');
+    setText('deliveryFeeButton','+'+money(publicSettings.delivery_fee_bahia));
+    setText('publicDeliveryQuick','Delivery '+money(publicSettings.delivery_fee_bahia)+' · Retiro sin cargo');
+    setText('preparationTimeLabel','Tiempo estimado: '+(publicSettings.preparation_min_minutes||30)+'–'+(publicSettings.preparation_max_minutes||45)+' min');
+    setText('deliveryOptionLabel','Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana'));
+    document.querySelectorAll('a[href*="wa.me/"]').forEach(link=>{
+      if(publicSettings.whatsapp_number)link.href='https://wa.me/'+publicSettings.whatsapp_number;
+      if(link.textContent.includes('+54'))link.textContent=publicSettings.whatsapp_display||link.textContent;
+    });
+    const payment=document.getElementById('paymentMethod');
+    if(payment&&Array.isArray(publicSettings.payment_methods)&&publicSettings.payment_methods.length){
+      payment.innerHTML='';publicSettings.payment_methods.forEach(method=>{const option=document.createElement('option');option.value=method;option.textContent=method;payment.appendChild(option);});
+    }
+    const upsell=document.getElementById('upsellContainer');if(upsell)upsell.hidden=true;
+    if(typeof window.renderCartSummary==='function')window.renderCartSummary();
+  }
+
+  async function loadSchedule() {
+    const locationResult = await db.from('sales_locations').select('id').eq('code','bahia-blanca-store').eq('is_active',true).maybeSingle();
+    if (locationResult.error || !locationResult.data) { console.warn('No se encontró el punto de venta principal para sincronizar horarios.'); return; }
+    const locationId = locationResult.data.id;
+    const [hoursResult,specialResult] = await Promise.all([
+      db.from('business_hours').select('sales_location_id,schedule_type,day_of_week,specific_date,is_open,opens_at,closes_at').eq('sales_location_id',locationId),
+      db.from('special_events').select('event_date,event_type,opens_at,closes_at').eq('sales_location_id',locationId).eq('is_active',true)
+    ]);
+    if (hoursResult.error || specialResult.error) {
+      console.warn('No se pudo sincronizar el horario público.',hoursResult.error,specialResult.error);
+      schedule.weekly=[];schedule.special=[];scheduleKnown=true;updateScheduleUI();return;
+    }
+    schedule.weekly=(hoursResult.data||[]).filter(x=>x.schedule_type==='weekly');
+    schedule.special=(specialResult.data||[]);
+    scheduleKnown=true;
+    renderTimeSlots();
+    updateScheduleUI();
+    if (!scheduleTimer) scheduleTimer = window.setInterval(updateScheduleUI,30000);
+  }
+
+  let catalogLoading = false;
+  async function loadCatalog() {
+    if (catalogLoading) return;
+    catalogLoading = true;
+    try {
+    const [categoriesResult,productsResult] = await Promise.all([
+      db.from('categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
+      db.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').eq('is_available',true).order('sort_order')
+    ]);
+    if (categoriesResult.error || productsResult.error) {
+      console.error('No se pudo cargar la carta desde Supabase.',categoriesResult.error,productsResult.error);
+      const container=document.getElementById('productsCatalogContainer');
+      const filters=document.getElementById('categoryFilterGroup');
+      if(container)container.innerHTML='<div class="empty">No pudimos cargar la carta en este momento. Intentá nuevamente más tarde.</div>';
+      if(filters)filters.innerHTML='';
+      renderFeatured(null);
+      return;
+    }
+    buildCatalog(categoriesResult.data||[],productsResult.data||[]);
+    } finally {
+      catalogLoading = false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded',()=> {
+    loadCatalog().catch(error=>{console.error(error);});
+    loadSchedule().catch(error=>{console.error(error);});
+    loadPublicSettings().then(()=>renderTimeSlots()).catch(error=>{console.error(error);publicSettingsKnown=true;});
+    db.channel('public-catalog-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_hours'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings())
+      .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>loadPublicSettings())
+      .subscribe();
+    window.setInterval(()=>{loadCatalog().catch(()=>{});loadSchedule().catch(()=>{});},60000);
+  });
+})();
+</script>
+</body></html> + shipping.toLocaleString('es-AR') + ' ARS' : 'No disponible';
       } else if (cartState.deliveryMode === 'pickup') {
         shipping = 0;
         shippingText = 'GRATIS ($0 ARS)';
