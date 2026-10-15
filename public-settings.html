@@ -121,10 +121,11 @@ el("settingsForm").addEventListener("submit",async event=>{
  if(!await confirmSave())return;
  busy=true;el("save").disabled=true;el("save").textContent="Guardando…";el("refresh").disabled=true;
  try{
-  if(product&&Number(product.price)!==price){
-   const updated=await db.from("products").update({price}).eq("id",product.id).eq("is_available",true).select("id,price").maybeSingle();
-   if(updated.error)throw updated.error;if(!updated.data)throw new Error("No se pudo actualizar el precio del producto sugerido.");
-   product.price=price;
+  const productDescription=el("upsellNote").value.trim()||null;
+  if(product&&(Number(product.price)!==price||(product.description||null)!==productDescription)){
+   const updated=await db.from("products").update({price,description:productDescription}).eq("id",product.id).eq("is_available",true).select("id,price,description").maybeSingle();
+   if(updated.error)throw updated.error;if(!updated.data)throw new Error("No se pudo actualizar el producto sugerido.");
+   product.price=price;product.description=productDescription;
   }
   const next={...currentSettings,
    delivery_fee_bahia:fee,delivery_area_label:el("deliveryArea").value.trim(),
