@@ -1015,6 +1015,7 @@
     const button = root.querySelector('button');
     const heading = root.querySelector('h3');
     if (!product) { root.hidden = true; return; }
+    root.hidden = false;
     const safeImage = safeImageUrl(product.image_url);
     if (image) { image.src = safeImage; image.alt = product.name; image.hidden = !safeImage; }
     if (heading) heading.textContent = product.name;
