@@ -169,7 +169,7 @@
           <a href="business-hours.html" data-module="business-hours"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horarios y eventos</a>
           <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-8-8 18-2-8-8-2Z"/></svg>Marketing<small>Próximo</small></span>
           <div class="app-nav-label">Sistema</div>
-          <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19 15 1.5 1-1.5 2.5-1.8-.6-1.4.8-.3 1.8h-3l-.3-1.8-1.4-.8-1.8.6L7.5 16l1.5-1a7 7 0 0 1 0-2l-1.5-1L9 9.5l1.8.6 1.4-.8.3-1.8h3l.3 1.8 1.4.8 1.8-.6 1.5 2.5-1.5 1a7 7 0 0 1 0 2Z"/></svg>Configuración<small>Próximo</small></span>
+          <a href="public-settings.html" data-module="public-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19 15 1.5 1-1.5 2.5-1.8-.6-1.4.8-.3 1.8h-3l-.3-1.8-1.4-.8-1.8.6L7.5 16l1.5-1a7 7 0 0 0 0-2l-1.5-1L9 9.5l1.8.6 1.4-.8.3-1.8h3l.3 1.8 1.4.8 1.8-.6 1.5 2.5-1.5 1a7 7 0 0 0 0 2Z"/></svg>Configuración</a>
         </nav>
         <div class="app-sidebar-foot"><div class="app-session"><span class="app-session-dot"></span>Sesión administrativa activa</div></div>
       </aside>
@@ -189,6 +189,7 @@
             <article class="module" data-open-orders role="button" tabindex="0"><h3>Pedidos</h3><p>Consultá pedidos, revisá sus detalles y actualizá sus estados.</p><span class="module-tag">Abrir pedidos</span></article>
             <article class="module" data-open-sales-locations role="button" tabindex="0" aria-label="Abrir puntos de venta"><h3>Puntos de venta</h3><p>Gestioná el local principal y el punto de venta móvil.</p><span class="module-tag">Abrir puntos de venta</span></article>
             <article class="module" data-open-hours role="button" tabindex="0" aria-label="Abrir horarios y fechas especiales"><h3>Horarios y eventos</h3><p>Configurá horarios habituales, aperturas especiales y eventos.</p><span class="module-tag">Abrir horarios</span></article>
+            <article class="module" data-open-public-settings role="button" tabindex="0" aria-label="Abrir configuración pública"><h3>Configuración pública</h3><p>Administrá delivery, tiempos de preparación, sugerencias del carrito, WhatsApp y empaque.</p><span class="module-tag">Abrir configuración</span></article>
           </div>
           <div class="app-section-head" style="margin-top:30px"><h2 class="dash-section-title">Próximas herramientas</h2><span class="app-section-caption">Se incorporarán por etapas</span></div>
           <div class="module-grid">
@@ -541,7 +542,8 @@
     const moduleTitles = {
       orders: "Pedidos",
       "sales-locations": "Puntos de venta",
-      "business-hours": "Horarios y eventos"
+      "business-hours": "Horarios y eventos",
+      "public-settings": "Configuración pública"
     };
     function setBreadcrumb(label) {
       const strong = document.querySelector(".app-breadcrumb strong");
@@ -580,10 +582,11 @@
         openModule(link.dataset.module);
       });
     });
-    document.querySelectorAll("[data-open-orders], [data-open-sales-locations], [data-open-hours]").forEach((card) => {
+    document.querySelectorAll("[data-open-orders], [data-open-sales-locations], [data-open-hours], [data-open-public-settings]").forEach((card) => {
       card.addEventListener("click", () => {
         const key = card.hasAttribute("data-open-orders") ? "orders" :
-          card.hasAttribute("data-open-sales-locations") ? "sales-locations" : "business-hours";
+          card.hasAttribute("data-open-sales-locations") ? "sales-locations" :
+          card.hasAttribute("data-open-public-settings") ? "public-settings" : "business-hours";
         openModule(key);
       });
       card.addEventListener("keydown", (event) => {
