@@ -606,6 +606,19 @@
         openModule(link.dataset.module);
       });
     });
+    document.querySelectorAll("[data-open-orders], [data-open-sales-locations], [data-open-hours]").forEach((card) => {
+      card.addEventListener("click", () => {
+        const key = card.hasAttribute("data-open-orders") ? "orders" :
+          card.hasAttribute("data-open-sales-locations") ? "sales-locations" : "business-hours";
+        openModule(key);
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          card.click();
+        }
+      });
+    });
     document.querySelector("[data-dashboard-home]").addEventListener("click", (event) => {
       event.preventDefault();
       catalogView.hidden = true;
