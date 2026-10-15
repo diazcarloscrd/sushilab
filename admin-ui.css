@@ -60,3 +60,21 @@ body.dashboard-mode:before,body.dashboard-mode:after{display:none}
 @media(max-width:900px){.app-shell{grid-template-columns:220px minmax(0,1fr)}.app-sidebar{padding-inline:12px}.app-content{padding:28px 24px}}
 @media(max-width:680px){.app-shell{display:block}.app-sidebar{position:relative;width:100%;height:auto;padding:13px 14px 10px;border-right:0;border-bottom:1px solid var(--yk-line)}.app-brand{padding:0 3px 12px;border-bottom:0}.app-brand .mark{width:35px;height:35px;flex-basis:35px;font-size:19px}.app-brand-name{font-size:16px}.app-brand-caption{font-size:8px}.app-nav{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:thin}.app-nav-label,.app-nav .is-disabled,.app-sidebar-foot{display:none}.app-nav a,.app-nav button{width:auto;min-height:36px;flex:0 0 auto;padding:0 10px;font-size:10px;white-space:nowrap}.app-nav svg{width:14px;height:14px;flex-basis:14px}.app-topbar{height:59px;padding:0 16px}.app-top-user{display:none}.app-topbar .dash-btn{min-height:34px;padding:0 10px;font-size:9px}.app-content{padding:25px 16px 38px}.app-page-heading{align-items:flex-start;flex-direction:column;margin-bottom:22px}.stats{grid-template-columns:1fr 1fr;gap:9px}.stat{min-height:120px;padding:16px}.stat-value{font-size:29px}.module-grid{grid-template-columns:1fr}.module{min-height:unset;padding:16px}.app-live-chip{font-size:8px}}
 @media(max-width:390px){.stats{grid-template-columns:1fr}.app-top-actions{gap:5px}.app-topbar .dash-btn{padding:0 8px}}
+
+
+/* Persistent app shell: module content swaps inside the main workspace. */
+.app-nav a,.app-nav button{cursor:pointer}
+.app-nav a.active,.app-nav button.active{background:linear-gradient(100deg,#38232b,#252027);border-color:#66404a;color:#ffd9dc}
+.app-nav a:focus-visible,.app-nav button:focus-visible{outline:2px solid var(--yk-rose);outline-offset:2px}
+.app-content{min-height:calc(100vh - 76px)}
+#dashboardHome[hidden],#moduleFrameWrap[hidden]{display:none!important}
+.module-frame-wrap{width:100%;min-width:0}
+.module-frame-wrap iframe{display:block;width:100%;min-height:900px;border:0;background:transparent;overflow:hidden}
+#catalogView{position:relative!important;z-index:auto!important;min-height:0!important;width:100%;padding:0 0 36px!important;background:transparent!important}
+#catalogView>.dash-top{display:none!important}
+#catalogView .catalog-wrap{width:100%!important;max-width:none!important;margin:0!important}
+#catalogView .catalog-head{margin-bottom:22px}
+#catalogView .catalog-title{color:#f5f0eb}
+#catalogView .catalog-panel{background:linear-gradient(145deg,#1a2029,#141920);border-color:var(--yk-line)}
+#catalogView .catalog-row{background:#151a21}
+@media(max-width:680px){.module-frame-wrap iframe{min-height:1100px}.app-content{min-height:calc(100vh - 59px)}}
