@@ -444,7 +444,7 @@
 <span class="material-symbols-outlined text-3xl text-primary mb-space-sm">local_shipping</span>
 <h3 class="font-headline-md text-headline-md text-on-surface mb-space-xs">Packaging &amp; Despacho Rapido</h3>
 <p class="font-body-sm text-body-sm text-tertiary leading-relaxed">
-              Utilizamos packaging gastronomico estandar de alta rigidez para conservar la presentacion del plato hasta su entrega en tu domicilio o al retirarlo en Chile 1137.
+              Utilizamos packaging gastronomico estandar de alta rigidez para conservar la presentacion del plato hasta su entrega en tu domicilio o al retirarlo en <span id="publicAddressPhilosophy">el punto de retiro oficial</span>.
             </p>
 </div>
 <span class="font-label-sm text-label-sm text-tertiary uppercase tracking-widest mt-space-md">Despacho Agil</span>
@@ -483,7 +483,7 @@
 <span class="material-symbols-outlined text-primary-container text-[18px]">location_on</span> Donde retiro mi pedido?
           </h4>
 <p class="font-body-sm text-body-sm text-tertiary">
-            En nuestro punto de retiro oficial en <strong>Chile 1137</strong>, Bahia Blanca. Podes seleccionar "Take Away" en el carrito para costo de envio $0.
+            En nuestro punto de retiro oficial en <strong id="publicAddressFaq">el local</strong>, Bahía Blanca. Podés seleccionar "Take Away" en el carrito para retirar sin cargo.
           </p>
 </div>
 <div class="p-space-md rounded-lg bg-surface-container-low">
@@ -1212,7 +1212,7 @@
     window.yankunPublicSettings=publicSettings;window.yankunPublicSettingsKnown=true;
     const address=[mainLocation.address,mainLocation.locality].filter(Boolean).join(', ');
     const setText=(id,value)=>{const node=document.getElementById(id);if(node&&value)node.textContent=value;};
-    setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');setText('publicAddressQuick',address);setText('publicAddressFooter',mainLocation.address||'Punto de retiro');setText('publicLocalityFooter',mainLocation.locality||'');setText('pickupAddressNotice',address);setText('termsPickupAddress',address+'. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.');
+    setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');setText('publicAddressQuick',address);setText('publicAddressFooter',mainLocation.address||'Punto de retiro');setText('publicAddressPhilosophy',mainLocation.address||'el punto de retiro oficial');setText('publicAddressFaq',mainLocation.address||'el local');setText('publicLocalityFooter',mainLocation.locality||'');setText('pickupAddressNotice',address);setText('termsPickupAddress',address+'. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.');
     setText('pickupOptionLabel','Take Away - Gratis ('+(mainLocation.address||'retiro en local')+')');
     setText('deliveryAreaDescription',publicSettings.delivery_area_description||publicSettings.delivery_area_label||'Zona de entrega');
     setText('deliveryFeeButton','+$'+Number(publicSettings.delivery_fee_bahia||0).toLocaleString('es-AR'));
