@@ -13,6 +13,7 @@ CREATE OR REPLACE FUNCTION public.create_public_order(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
+SECURITY INVOKER
 SET search_path = ''
 AS $function$
 DECLARE
@@ -26,6 +27,7 @@ DECLARE
   v_address text;
   v_notes text;
   v_fee numeric(12,2);
+  v_site_settings jsonb;
   v_local_now timestamp without time zone;
   v_local_date date;
   v_local_day smallint;
@@ -83,6 +85,14 @@ BEGIN
   WHERE sl.code = 'bahia-blanca-store' AND sl.location_type = 'store' AND sl.is_active = true
   LIMIT 1;
   IF v_store_id IS NULL THEN RAISE EXCEPTION 'El punto de venta no está disponible'; END IF;
+  SELECT bs.value INTO v_site_settings
+  FROM public.business_settings bs
+  WHERE bs.key = 'public_site'
+  LIMIT 1;
+  IF v_site_settings IS NULL THEN
+    RAISE EXCEPTION 'La configuración pública del comercio no está disponible';
+  END IF;
+
   -- Recheck opening hours on the server so a browser cannot bypass the public schedule.
   v_local_now := now() AT TIME ZONE 'America/Argentina/Buenos_Aires';
   v_local_date := v_local_now::date;
@@ -129,7 +139,7 @@ BEGIN
 
 
   v_method := CASE WHEN v_mode = 'pickup' THEN 'takeaway' ELSE 'delivery' END;
-  v_fee := CASE WHEN v_mode = 'delivery_bahia' THEN 6000 ELSE 0 END;
+  v_fee := CASE WHEN v_mode = 'delivery_bahia' THEN COALESCE((v_site_settings->>'delivery_fee_bahia')::numeric, 0) ELSE 0 END;
 
   INSERT INTO public.orders (
     client_request_id, customer_name, customer_phone, delivery_method,
@@ -203,6 +213,47 @@ BEGIN
   );
 END;
 $function$;
+
+
+-- Public, non-sensitive information consumed by the customer-facing catalogue.
+INSERT INTO public.business_settings (key, value)
+VALUES (
+  'public_site',
+  '{
+    "whatsapp_number": "5492915101491",
+    "whatsapp_display": "+54 9 291 510-1491",
+    "delivery_fee_bahia": 6000,
+    "delivery_area_label": "Bahía Blanca",
+    "delivery_area_description": "Radio urbano de Bahía Blanca",
+    "preparation_min_minutes": 30,
+    "preparation_max_minutes": 45,
+    "payment_methods": ["Transferencia bancaria", "Efectivo al recibir/retirar"],
+    "packaging_note": "No contamos con empaque térmico. Recomendamos consumir de inmediato para preservar la calidad del producto."
+  }'::jsonb
+)
+ON CONFLICT (key) DO NOTHING;
+
+UPDATE public.sales_locations
+SET address = COALESCE(NULLIF(address, ''), 'Chile 1137'),
+    locality = COALESCE(NULLIF(locality, ''), 'Bahía Blanca')
+WHERE code = 'bahia-blanca-store';
+
+DO $policy$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'business_settings'
+      AND policyname = 'Public read site settings'
+  ) THEN
+    CREATE POLICY "Public read site settings"
+      ON public.business_settings
+      FOR SELECT
+      TO anon, authenticated
+      USING (key = 'public_site');
+  END IF;
+END;
+$policy$;
 
 -- Only the server-side Edge Function, authenticated with the secret key, may call this RPC.
 REVOKE ALL ON FUNCTION public.create_public_order(uuid, jsonb) FROM PUBLIC, anon, authenticated;
