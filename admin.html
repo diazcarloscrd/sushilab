@@ -56,7 +56,7 @@
 
 
     .module[data-open-catalog]{cursor:pointer;transition:border-color .2s,transform .2s}
-    .module[data-open-catalog]:hover,.module[data-open-catalog]:focus{border-color:var(--rose);transform:translateY(-2px);outline:none}
+    .module[data-open-catalog]:hover,.module[data-open-catalog]:focus,.module[data-open-orders]:hover,.module[data-open-orders]:focus{border-color:var(--rose);transform:translateY(-2px);outline:none}
     .catalog-view{position:relative;z-index:1;min-height:100vh;background:var(--bg);color:var(--text);padding-bottom:50px}
     .catalog-wrap{width:min(1120px,90%);margin:38px auto}
     .catalog-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:26px}
@@ -236,6 +236,7 @@
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="session-timeout.js"></script>
   <script>
     const SUPABASE_URL = "https://cdhnpsowlsesoobrytvh.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP";
@@ -283,6 +284,7 @@
     });
 
     document.getElementById('logoutButton').addEventListener('click', async () => {
+      localStorage.removeItem('yankun-admin-last-activity');
       await client.auth.signOut();
       dashboard.hidden = true;
       loginShell.hidden = false;
@@ -294,6 +296,9 @@
     });
     const submitButton = form.querySelector('button[type="submit"]');
     const message = document.getElementById('loginMessage');
+    if (new URLSearchParams(window.location.search).get('session-expired') === '1') {
+      message.textContent = 'La sesión se cerró automáticamente por inactividad. Ingresá nuevamente para continuar.';
+    }
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -335,6 +340,7 @@
 
         if (sessionError) throw sessionError;
 
+        await window.startYanKunIdleSession(client, true);
         showDashboard();
       } catch (error) {
         console.error('Error de inicio de sesión:', error);
@@ -516,6 +522,7 @@
       }
     });
     document.getElementById('catalogLogout').addEventListener('click', async () => {
+      localStorage.removeItem('yankun-admin-last-activity');
       await client.auth.signOut();
       catalogView.hidden = true;
       dashboard.hidden = true;
@@ -747,6 +754,24 @@
       await loadCatalog();
       showCatalogMessage('Producto guardado correctamente.');
     });
+    // Recuperar la sesión vigente al volver desde otro módulo.
+    (async function restoreAdminSession() {
+      try {
+        const { data, error } = await client.auth.getSession();
+        if (error || !data.session) return;
+        const { data: adminUser, error: adminError } = await client
+          .from('admin_users').select('user_id')
+          .eq('user_id', data.session.user.id).maybeSingle();
+        if (adminError || !adminUser) {
+          await client.auth.signOut();
+          return;
+        }
+        const sessionActive = await window.startYanKunIdleSession(client, false);
+        if (sessionActive) showDashboard();
+      } catch (error) {
+        console.error('No se pudo restaurar la sesión administrativa:', error);
+      }
+    })();
   </script>
 </body>
 </html>
