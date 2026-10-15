@@ -106,7 +106,7 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="session-timeout.js"></script>
 <script>
-const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
+const db=window.supabase.createClient("https://hafcadevjgcvcbkyqgae.supabase.co","sb_publishable_YlTMpPXItwM5RFyG2SCNsw_2HuuvlF_");
 const el=id=>document.getElementById(id);let locations=[];let currentTab="store";let currentLocationId=null;let weeklyRecords=[];let events=[];let schedulesReady=false;let busy=false;let noticeResolver=null;
 const days=[{value:1,label:"Lunes"},{value:2,label:"Martes"},{value:3,label:"Miércoles"},{value:4,label:"Jueves"},{value:5,label:"Viernes"},{value:6,label:"Sábado"},{value:0,label:"Domingo"}];
 const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
