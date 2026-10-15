@@ -34,7 +34,9 @@ Deno.serve(async (req: Request) => {
   if (length > 16000) return json({ error: "El pedido es demasiado grande" }, 413, origin);
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+    if (new TextEncoder().encode(rawBody).length > 16000) return json({ error: "El pedido es demasiado grande" }, 413, origin);
+    const payload = JSON.parse(rawBody);
     if (payload?.website) return json({ error: "Solicitud inválida" }, 400, origin); // honeypot
     const requestId = String(payload?.request_id || "");
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) {
@@ -75,6 +77,16 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(url, secret, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
+
+    const { data: existingOrder, error: existingError } = await admin.from("orders")
+      .select("id,order_number,customer_name,customer_phone,status,subtotal,delivery_fee,discount,total,created_at")
+      .eq("client_request_id", requestId)
+      .maybeSingle();
+    if (existingError) {
+      console.error("No se pudo comprobar la idempotencia del pedido:", existingError.message);
+      return json({ error: "No se pudo validar el pedido. Intentá nuevamente." }, 503, origin);
+    }
+    if (existingOrder) return json({ duplicate: true, order: existingOrder }, 200, origin);
 
     // Basic abuse guard: cap repeated requests from the same phone in a short window.
     const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
