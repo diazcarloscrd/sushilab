@@ -14,6 +14,73 @@ p{color:#a7aab4}
 </head>
 <body>
 <header><strong>YanKun SushiLab</strong><a href="admin.html">Volver al panel</a></header>
-<main><h1>Pedidos</h1><p>Gestión administrativa de pedidos.</p><p id="status">Preparando conexión segura...</p></main>
+<main><h1>Pedidos</h1><p>Gestión administrativa de pedidos.</p><p id="status">Preparando conexión segura...</p>
+<style>
+.wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:16px;margin-top:22px}
+.toolbar{display:grid;grid-template-columns:1fr 210px auto;gap:9px;margin-top:22px}
+input,select{height:40px;border:1px solid #41434b;border-radius:8px;background:#15191f;color:#dfe2eb;padding:0 11px}
+button{cursor:pointer}.btn{border:1px solid #454954;background:#252a32;color:#e5e7eb;border-radius:8px;padding:10px 13px;font-weight:700}
+.panel{background:#181c22;border:1px solid #393d45;border-radius:12px;padding:15px;min-width:0}
+.panel h2{font:20px Georgia,serif;margin:0 0 13px}
+.list{display:grid;gap:9px}.order{width:100%;display:flex;justify-content:space-between;gap:12px;text-align:left;padding:13px;background:#15191f;border:1px solid #343943;border-radius:9px;color:#dfe2eb}
+.order.selected,.order:hover{border-color:#ffb3b6;background:#292127}.order small{display:block;color:#a7aab4;line-height:1.7;margin-top:4px}.price{color:#ffb3b6;font:700 16px Georgia,serif;text-align:right;margin-bottom:7px}
+.tag{font-size:10px;border-radius:20px;padding:5px 8px;background:#343039}.pending{color:#f1cf8a;background:#3b3020}.confirmed{color:#9ed4f2;background:#1e3444}.preparing{color:#d5b5f2;background:#392d48}.delivered{color:#9be0bd;background:#183329}.cancelled{color:#ffb3b6;background:#42252b}
+.empty{padding:28px 15px;text-align:center;color:#a7aab4;border:1px dashed #454954;border-radius:9px;line-height:1.7}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:9px}.cell{background:#15191f;border:1px solid #343943;border-radius:8px;padding:10px;overflow-wrap:anywhere}.cell small{display:block;color:#a7aab4;text-transform:uppercase;font-size:9px;margin-bottom:5px}.cell span{font-size:11px}
+.section{border-top:1px solid #393d45;margin-top:14px;padding-top:13px}.section h3{font-size:11px;margin:0 0 9px}.item,.history-row,.total-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #30353e;font-size:11px}.total-row{color:#a7aab4}.total-row.final{color:#ffb3b6;font-size:14px;font-weight:800;border:0}
+.statusbar{display:flex;gap:8px}.statusbar select{flex:1;min-width:0}.primary{background:#e11d48;color:white;border:0;border-radius:8px;padding:10px 13px;font-weight:800}
+#status{margin:15px 0;color:#ffb3b6;font-size:11px;min-height:16px}
+@media(max-width:800px){.wrap{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}}
+@media(max-width:480px){.toolbar{grid-template-columns:1fr}.toolbar input{grid-column:auto}.info{grid-template-columns:1fr}header{align-items:center;gap:10px}}
+</style>
+<div class="toolbar">
+<input id="search" type="search" placeholder="Buscar número, cliente o teléfono">
+<select id="filter"><option value="">Todos los estados</option><option value="pending">Pendientes</option><option value="confirmed">Confirmados</option><option value="preparing">En preparación</option><option value="delivered">Entregados</option><option value="cancelled">Cancelados</option></select>
+<button class="btn" id="refresh">Actualizar</button>
+</div>
+<div id="status" role="status">Conectando...</div>
+<div class="wrap">
+<section class="panel"><h2>Pedidos registrados <small id="count" style="font:11px Arial;color:#a7aab4"></small></h2><div class="list" id="list"><div class="empty">Cargando pedidos...</div></div></section>
+<section class="panel"><div id="detail"><div class="empty">Elegí un pedido para ver sus datos, productos e historial.</div></div></section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
+const el=id=>document.getElementById(id);
+const states={pending:"Pendiente",confirmed:"Confirmado",preparing:"En preparación",delivered:"Entregado",cancelled:"Cancelado"};
+let records=[],chosen=null,term="",filter="";
+const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cash=v=>"$ "+Number(v||0).toLocaleString("es-AR",{maximumFractionDigits:2});
+const when=v=>new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short"}).format(new Date(v));
+const orderNo=o=>o.order_number||("Pedido #"+o.id);
+function note(v){el("status").textContent=v||""}
+function paint(){
+ const found=records.filter(o=>[o.order_number,o.customer_name,o.customer_phone,o.id].join(" ").toLowerCase().includes(term)&&(!filter||o.status===filter));
+ el("count").textContent="· "+found.length;
+ el("list").innerHTML=found.length?found.map(o=>'<button class="order '+(String(o.id)===String(chosen)?"selected":"")+'" data-order="'+safe(o.id)+'"><span><b>'+safe(orderNo(o))+'</b><small>'+safe(o.customer_name)+'<br>'+safe(o.customer_phone)+'<br>'+safe(when(o.created_at))+'</small></span><span><div class="price">'+safe(cash(o.total))+'</div><span class="tag '+safe(o.status)+'">'+safe(states[o.status]||o.status)+'</span></span></button>').join(""):'<div class="empty">'+(records.length?"No hay resultados para esos filtros.":"Todavía no hay pedidos registrados.")+'</div>';
+}
+async function detail(id){
+ const o=records.find(x=>String(x.id)===String(id));if(!o)return;chosen=String(id);paint();el("detail").innerHTML='<div class="empty">Cargando detalle...</div>';
+ const [a,b]=await Promise.all([db.from("order_items").select("product_name,quantity,unit_price,line_total").eq("order_id",o.id).order("id"),db.from("order_status_history").select("old_status,new_status,changed_at").eq("order_id",o.id).order("changed_at")]);
+ if(a.error||b.error){console.error(a.error,b.error);el("detail").innerHTML='<div class="empty">No se pudo consultar el detalle. Probá actualizar.</div>';return}
+ const products=(a.data||[]).map(x=>'<div class="item"><span>'+safe(x.quantity+" × "+x.product_name)+'</span><b>'+safe(cash(x.line_total))+'</b></div>').join("")||'<p style="color:#a7aab4">Sin productos asociados.</p>';
+ const history=(b.data||[]).map(x=>'<div class="history-row"><b>'+safe((x.old_status?(states[x.old_status]||x.old_status)+" → ":"")+(states[x.new_status]||x.new_status))+'</b><span>'+safe(when(x.changed_at))+'</span></div>').join("")||'<p style="color:#a7aab4">Sin movimientos todavía.</p>';
+ const options=Object.entries(states).map(([k,v])=>'<option value="'+k+'" '+(o.status===k?"selected":"")+'>'+v+'</option>').join("");
+ el("detail").innerHTML='<h2>'+safe(orderNo(o))+'</h2><p style="color:#a7aab4;font-size:11px">Registrado '+safe(when(o.created_at))+'</p><div class="info"><div class="cell"><small>Cliente</small><span>'+safe(o.customer_name)+'</span></div><div class="cell"><small>Teléfono</small><span>'+safe(o.customer_phone)+'</span></div><div class="cell"><small>Modalidad</small><span>'+(o.delivery_method==="delivery"?"Envío a domicilio":"Retiro")+'</span></div><div class="cell"><small>Dirección / retiro</small><span>'+safe(o.delivery_method==="delivery"?(o.delivery_address||"No especificada"):"Retiro en punto de venta")+'</span></div></div>'+(o.customer_notes?'<div class="cell" style="margin-top:9px"><small>Observaciones</small><span>'+safe(o.customer_notes)+'</span></div>':"")+'<div class="section"><h3>Productos</h3>'+products+'<div class="total-row"><span>Subtotal</span><b>'+safe(cash(o.subtotal))+'</b></div><div class="total-row"><span>Envío</span><b>'+safe(cash(o.delivery_fee))+'</b></div><div class="total-row"><span>Descuento</span><b>− '+safe(cash(o.discount))+'</b></div><div class="total-row final"><span>Total</span><b>'+safe(cash(o.total))+'</b></div></div><div class="section"><h3>Actualizar estado</h3><div class="statusbar"><select id="next">'+options+'</select><button class="primary" id="save">Guardar</button></div></div><div class="section"><h3>Historial</h3>'+history+'</div>';
+ el("save").addEventListener("click",async()=>{const next=el("next").value;if(next===o.status){note("El pedido ya tiene ese estado.");return}const btn=el("save");btn.disabled=true;btn.textContent="Guardando";const {data,error}=await db.from("orders").update({status:next}).eq("id",o.id).select("status").single();if(error){console.error(error);btn.disabled=false;btn.textContent="Guardar";note("No se pudo actualizar: "+error.message);return}o.status=data.status;note("Estado actualizado: "+states[data.status]);await load();await detail(o.id)});
+}
+async function load(){
+ note("Sincronizando con Supabase...");
+ const {data,error}=await db.from("orders").select("id,order_number,customer_name,customer_phone,delivery_method,delivery_address,customer_notes,status,subtotal,delivery_fee,discount,total,created_at").order("created_at",{ascending:false});
+ if(error){console.error(error);note("No se pudieron cargar los pedidos. Revisá la sesión.");return}
+ records=data||[];paint();if(chosen&&records.some(o=>String(o.id)===chosen))await detail(chosen);else{chosen=null;el("detail").innerHTML='<div class="empty">Elegí un pedido para ver sus datos, productos e historial.</div>'}note("Pedidos actualizados correctamente.");
+}
+el("list").addEventListener("click",e=>{const b=e.target.closest("[data-order]");if(b)detail(b.dataset.order)});
+el("search").addEventListener("input",e=>{term=e.target.value.trim().toLowerCase();paint()});
+el("filter").addEventListener("change",e=>{filter=e.target.value;paint()});
+el("refresh").addEventListener("click",load);
+(async()=>{const {data,error}=await db.auth.getSession();if(error||!data.session){note("Sesión no activa. Iniciá sesión desde el panel administrador.");el("list").innerHTML='<div class="empty">No hay sesión activa.</div>';return}const admin=await db.from("admin_users").select("user_id").eq("user_id",data.session.user.id).maybeSingle();if(admin.error||!admin.data){note("Esta cuenta no tiene permisos de administrador.");return}await load()})().catch(e=>{console.error(e);note("Error al iniciar el módulo de pedidos.")});
+</script>
+</main>
 </body>
 </html>
