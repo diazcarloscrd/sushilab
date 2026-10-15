@@ -121,6 +121,7 @@
     @media(max-width:650px){.catalog-head{align-items:flex-start;flex-direction:column}.catalog-form{grid-template-columns:1fr}.catalog-field.full,.catalog-form-actions{grid-column:1}.catalog-row{align-items:flex-start;flex-direction:column}.catalog-row-actions{width:100%;justify-content:flex-start}}
 
   </style>
+  <link rel="stylesheet" href="admin-ui.css">
 </head>
 <body>
   <main class="shell">
@@ -152,30 +153,53 @@
   </main>
 
   <section id="dashboard" hidden>
-    <header class="dash-top">
-      <div class="dash-brand"><div class="mark">Y</div><div class="brand-name">YanKun <span>SushiLab</span></div></div>
-      <div class="dash-actions"><span class="dash-user">Sesión de administrador</span><button class="dash-btn" id="refreshDashboard" type="button">Actualizar datos</button><button class="dash-btn" id="logoutButton" type="button">Cerrar sesión</button></div>
-    </header>
-    <main class="dash-wrap">
-      <p class="dash-eyebrow">Centro de operaciones</p>
-      <h1 class="dash-heading">Panel de administración</h1>
-      <p class="dash-sub">Bienvenido. Desde acá vas a gestionar el catálogo, los pedidos y los puntos de venta de YanKun SushiLab.</p>
-      <div class="stats">
-        <article class="stat"><div class="stat-label">Productos</div><div class="stat-value" id="productCount">—</div><div class="stat-note">Registrados en el catálogo</div></article>
-        <article class="stat"><div class="stat-label">Categorías</div><div class="stat-value" id="categoryCount">—</div><div class="stat-note">Organización del catálogo</div></article>
-        <article class="stat"><div class="stat-label">Pedidos</div><div class="stat-value" id="orderCount">—</div><div class="stat-note">Pedidos registrados</div></article>
+    <div class="app-shell">
+      <aside class="app-sidebar" aria-label="Navegación principal">
+        <div class="app-brand"><div class="mark">Y</div><div><div class="app-brand-name">YanKun <span>SushiLab</span></div><div class="app-brand-caption">PANEL DE OPERACIONES</div></div></div>
+        <nav class="app-nav">
+          <div class="app-nav-label">General</div>
+          <a class="active" href="admin.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>Dashboard</a>
+          <button type="button" data-open-catalog><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-1.5 15h-13L4 5Z"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/></svg>Catálogo y productos</button>
+          <a href="orders.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l1 13H4L5 7Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>Pedidos</a>
+          <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v1"/></svg>Clientes<small>Próximo</small></span>
+          <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Ventas y estadísticas<small>Próximo</small></span>
+          <div class="app-nav-label">Operaciones</div>
+          <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v13H3zM7 7V4h10v3M3 12h18M9 12v3h6v-3"/></svg>Inventario<small>Próximo</small></span>
+          <a href="sales-locations.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10 5 4h14l2 6M4 10v10h16V10M3 10h18M9 20v-6h6v6"/></svg>Puntos de venta</a>
+          <a href="business-hours.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horarios y eventos</a>
+          <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-8-8 18-2-8-8-2Z"/></svg>Marketing<small>Próximo</small></span>
+          <div class="app-nav-label">Sistema</div>
+          <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19 15 1.5 1-1.5 2.5-1.8-.6-1.4.8-.3 1.8h-3l-.3-1.8-1.4-.8-1.8.6L7.5 16l1.5-1a7 7 0 0 1 0-2l-1.5-1L9 9.5l1.8.6 1.4-.8.3-1.8h3l.3 1.8 1.4.8 1.8-.6 1.5 2.5-1.5 1a7 7 0 0 1 0 2Z"/></svg>Configuración<small>Próximo</small></span>
+        </nav>
+        <div class="app-sidebar-foot"><div class="app-session"><span class="app-session-dot"></span>Sesión administrativa activa</div></div>
+      </aside>
+      <div class="app-main">
+        <header class="app-topbar"><div class="app-breadcrumb">YanKun SushiLab <span aria-hidden="true">/</span> <strong>Dashboard</strong></div><div class="app-top-actions"><span class="app-top-user">Sesión de administrador</span><button class="dash-btn" id="refreshDashboard" type="button">Actualizar datos</button><button class="dash-btn" id="logoutButton" type="button">Cerrar sesión</button></div></header>
+        <main class="app-content">
+          <div class="app-page-heading"><div><p class="app-eyebrow">Centro de operaciones</p><h1 class="app-page-title">Resumen general</h1><p class="app-page-subtitle">Una vista rápida de la actividad y las herramientas de gestión de YanKun SushiLab.</p></div><span class="app-live-chip">Panel conectado</span></div>
+          <div class="stats">
+            <article class="stat"><div class="stat-label">Productos registrados</div><div class="stat-value" id="productCount">—</div><div class="stat-note">En el catálogo del negocio</div></article>
+            <article class="stat"><div class="stat-label">Categorías activas</div><div class="stat-value" id="categoryCount">—</div><div class="stat-note">Organización del catálogo</div></article>
+            <article class="stat"><div class="stat-label">Pedidos registrados</div><div class="stat-value" id="orderCount">—</div><div class="stat-note">Operaciones registradas</div></article>
+          </div>
+          <div class="app-section-head"><h2 class="dash-section-title">Accesos rápidos</h2><span class="app-section-caption">Módulos actualmente disponibles</span></div>
+          <div class="module-grid">
+            <article class="module" data-open-catalog role="button" tabindex="0" aria-label="Abrir catálogo y productos"><h3>Catálogo y productos</h3><p>Administrá categorías, productos, precios, imágenes y disponibilidad.</p><span class="module-tag">Abrir catálogo</span></article>
+            <article class="module" data-open-orders role="button" tabindex="0"><h3>Pedidos</h3><p>Consultá pedidos, revisá sus detalles y actualizá sus estados.</p><span class="module-tag">Abrir pedidos</span></article>
+            <article class="module" data-open-sales-locations role="button" tabindex="0" aria-label="Abrir puntos de venta"><h3>Puntos de venta</h3><p>Gestioná el local principal y el punto de venta móvil.</p><span class="module-tag">Abrir puntos de venta</span></article>
+            <article class="module" data-open-hours role="button" tabindex="0" aria-label="Abrir horarios y fechas especiales"><h3>Horarios y eventos</h3><p>Configurá horarios habituales, aperturas especiales y eventos.</p><span class="module-tag">Abrir horarios</span></article>
+          </div>
+          <div class="app-section-head" style="margin-top:30px"><h2 class="dash-section-title">Próximas herramientas</h2><span class="app-section-caption">Se incorporarán por etapas</span></div>
+          <div class="module-grid">
+            <article class="module is-coming-soon"><h3>Clientes</h3><p>Fichas de clientes e historial de compras.</p><span class="module-tag">Próxima etapa</span></article>
+            <article class="module is-coming-soon"><h3>Ventas y estadísticas</h3><p>Registro de ventas, indicadores y reportes.</p><span class="module-tag">Próxima etapa</span></article>
+            <article class="module is-coming-soon"><h3>Inventario</h3><p>Control de insumos, existencias y movimientos.</p><span class="module-tag">Próxima etapa</span></article>
+            <article class="module is-coming-soon"><h3>Marketing</h3><p>Promociones y campañas comerciales.</p><span class="module-tag">Próxima etapa</span></article>
+          </div>
+          <div class="dash-status" id="dashboardMessage" role="status">Consultando los datos de Supabase...</div>
+        </main>
       </div>
-      <h2 class="dash-section-title">Módulos de gestión</h2>
-      <div class="module-grid">
-        <article class="module" data-open-catalog role="button" tabindex="0" aria-label="Abrir catálogo y productos"><h3>Catálogo y productos</h3><p>Administración de productos, precios, disponibilidad, imágenes y categorías.</p><span class="module-tag">Gestión disponible</span></article>
-        <article class="module" data-open-orders role="button" tabindex="0"><h3>Pedidos</h3><p>Seguimiento de pedidos, estados, datos del cliente y detalle de cada compra.</p><span class="module-tag">Gestión disponible</span></article>
-        <article class="module" data-open-sales-locations role="button" tabindex="0" aria-label="Abrir puntos de venta"><h3>Puntos de venta</h3><p>Administración del local principal y el food truck.</p><span class="module-tag">Gestión disponible</span></article>
-        <article class="module" data-open-hours role="button" tabindex="0" aria-label="Abrir horarios y fechas especiales"><h3>Horarios y eventos</h3><p>Horarios habituales, aperturas especiales y cierres excepcionales.</p><span class="module-tag">Gestión disponible</span></article>
-        <article class="module"><h3>Zonas de envío</h3><p>Configuración de zonas de reparto y sus costos de envío.</p><span class="module-tag">Próxima etapa</span></article>
-        <article class="module"><h3>Configuración</h3><p>Datos del negocio y reglas generales de funcionamiento.</p><span class="module-tag">Próxima etapa</span></article>
-      </div>
-      <div class="dash-status" id="dashboardMessage" role="status">Consultando los datos de Supabase...</div>
-    </main>
+    </div>
   </section>
 
   <section id="catalogView" class="catalog-view" hidden>
@@ -528,9 +552,11 @@
       });
     }
 
-    document.querySelector('[data-open-catalog]').addEventListener('click', openCatalog);
-    document.querySelector('[data-open-catalog]').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openCatalog(); }
+    document.querySelectorAll('[data-open-catalog]').forEach((catalogTrigger) => {
+      catalogTrigger.addEventListener('click', openCatalog);
+      catalogTrigger.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openCatalog(); }
+      });
     });
     document.getElementById('backToDashboard').addEventListener('click', async () => {
       catalogView.hidden = true;
