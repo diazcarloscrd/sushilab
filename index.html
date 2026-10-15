@@ -27,7 +27,7 @@
 <div class="flex items-center gap-space-xs text-on-surface"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="statusDot"></span><span class="font-label-md text-label-md uppercase tracking-wider text-primary font-bold" id="statusText">Bahia Blanca</span><span class="hidden md:inline font-body-sm text-body-sm text-tertiary">| Martes a Sabado 18:30 a 21:00 hs</span></div>
 <div class="flex items-center gap-space-sm">
 <span class="font-label-sm text-label-sm text-tertiary uppercase tracking-widest">Retiro: Chile 1137</span>
-<span class="px-space-xs py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase">10% OFF 1er Pedido</span>
+<span class="px-space-xs py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase">Carta conectada al catálogo</span>
 </div>
 </div>
 <!-- Hero Grid Content -->
@@ -515,8 +515,6 @@
     hasDiscount: false,
     discountPercent: 0.10
   };
-
-  const previousCustomers = ['2914000000', '2914111111', '2915222222'];
 
   function addToCart(id, name, price, category) {
     if (cartState.items[id]) {
@@ -1058,7 +1056,7 @@
           '<p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-3">' + esc(product.description || '') + '</p></div>' +
           '<div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">' + esc(money(product.price)) + '</span></div>';
         const button = document.createElement('button');
-        button.type='button'; button.className='mt-2 w-full px-2 py-2 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 cursor-pointer';
+        button.type='button'; button.className='yk-add-product mt-2 w-full px-2 py-2 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 cursor-pointer';
         button.textContent='＋ Sumar al pedido';
         button.addEventListener('click',()=>window.addToCart(Number(product.id),product.name,Number(product.price),category.name));
         card.lastElementChild.appendChild(button);
@@ -1143,7 +1141,11 @@
     window.setInterval(updateScheduleUI,30000);
   }
 
+  let catalogLoading = false;
   async function loadCatalog() {
+    if (catalogLoading) return;
+    catalogLoading = true;
+    try {
     const [categoriesResult,productsResult] = await Promise.all([
       db.from('categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
       db.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').eq('is_available',true).order('sort_order')
@@ -1155,11 +1157,21 @@
       return;
     }
     buildCatalog(categoriesResult.data||[],productsResult.data||[]);
+    } finally {
+      catalogLoading = false;
+    }
   }
 
   document.addEventListener('DOMContentLoaded',()=> {
     loadCatalog().catch(error=>{console.error(error);});
     loadSchedule().catch(error=>{console.error(error);});
+    db.channel('public-catalog-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadCatalog())
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_hours'},()=>loadSchedule())
+      .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>loadSchedule())
+      .subscribe();
+    window.setInterval(()=>{loadCatalog().catch(()=>{});loadSchedule().catch(()=>{});},60000);
   });
 })();
 </script>
