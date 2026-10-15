@@ -1,4 +1,4 @@
--- Draft for review: secure public order creation (do not apply until approved).
+-- Applied migration source: secure public order creation and public site settings.
 -- Adds idempotency and a single transaction for the order header + item rows.
 
 ALTER TABLE public.orders
