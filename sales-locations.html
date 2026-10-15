@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Puntos de venta | YanKun SushiLab</title>
+<style>
+:root{color-scheme:dark;--bg:#10141a;--panel:#181c22;--line:#393d45;--text:#dfe2eb;--muted:#a7aab4;--rose:#ffb3b6;--red:#e11d48}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Arial,sans-serif}
+header{padding:20px 5%;background:#181c22;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+header a{display:inline-flex;align-items:center;gap:8px;padding:10px 13px;border:1px solid #454954;border-radius:8px;background:#252a32;color:#e5e7eb;text-decoration:none;font-size:12px;font-weight:700;transition:border-color .2s,background .2s}
+header a:hover{border-color:var(--rose);background:#30242b}header a svg{width:16px;height:16px}
+main{width:min(1050px,90%);margin:38px auto}h1{font:500 30px Georgia,serif;margin:0 0 8px}p{color:var(--muted);line-height:1.6}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.btn{border:1px solid #454954;background:#252a32;color:#e5e7eb;border-radius:8px;padding:10px 13px;font-weight:700;cursor:pointer}
+.primary{background:var(--red);border:0;color:white;border-radius:8px;padding:11px 15px;font-weight:800;cursor:pointer}
+.btn:disabled,.primary:disabled{opacity:.55;cursor:wait}
+#status{min-height:18px;margin:0 0 14px;color:var(--rose);font-size:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+.panel h2{font:20px Georgia,serif;margin:0 0 14px}
+.list{display:grid;gap:10px}
+.location{display:flex;justify-content:space-between;align-items:center;gap:16px;background:#15191f;border:1px solid #343943;border-radius:10px;padding:15px}
+.location h3{font-size:14px;margin:0 0 6px}.meta{font-size:11px;color:var(--muted);line-height:1.7}
+.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;border-radius:20px;padding:5px 8px;background:#183329;color:#9be0bd}
+.tag.off{background:#343039;color:#b8b2bd}.tag.type{background:#292b3b;color:#c8c2f2}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}
+label{font-size:10px;color:#c9c3c8;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
+input,select{width:100%;height:42px;border:1px solid #41434b;border-radius:8px;background:#10141a;color:var(--text);padding:0 12px;font:12px Arial,sans-serif}
+input:focus,select:focus{outline:2px solid #ffb3b640;border-color:var(--rose)}
+.check{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:12px}.check input{width:16px;height:16px}
+.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;margin-top:4px}
+.hint{font-size:11px;color:var(--muted);margin:0}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed #454954;border-radius:9px}
+@media(max-width:620px){main{margin:28px auto}.location{align-items:flex-start;flex-direction:column}.actions{width:100%}.form-grid{grid-template-columns:1fr}.field.full,.form-actions{grid-column:1}}
+</style>
+</head>
+<body>
+<header><strong>YanKun SushiLab</strong><a href="admin.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/><path d="M9 12h12"/></svg>Volver al panel</a></header>
+<main>
+<div class="head"><div><p style="color:#ffb3b6;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Administración comercial</p><h1>Puntos de venta</h1><p style="margin:0">Administrá el local principal y el punto de venta móvil de YanKun SushiLab.</p></div><button class="btn" id="refresh" type="button">Actualizar</button></div>
+<div id="status" role="status">Conectando con Supabase...</div>
+<section class="panel" id="editor" hidden>
+<h2 id="editorTitle">Nuevo punto de venta</h2>
+<form id="locationForm" class="form-grid">
+<input type="hidden" id="locationId">
+<div class="field"><label for="locationName">Nombre</label><input id="locationName" maxlength="100" required placeholder="Ej. Local principal"></div>
+<div class="field"><label for="locationType">Tipo de punto de venta</label><select id="locationType" required><option value="store">Local</option><option value="food_truck">Food truck</option></select></div>
+<div class="field"><label for="locality">Localidad</label><input id="locality" maxlength="100" placeholder="Ej. Bahía Blanca"></div>
+<div class="field"><label for="address">Dirección</label><input id="address" maxlength="220" placeholder="Calle y altura (opcional)"></div>
+<div class="field full"><p class="hint" id="typeHint">Para el food truck, las localidades y direcciones concretas se cargarán en el módulo de eventos.</p></div>
+<div class="field full"><label class="check"><input id="isActive" type="checkbox" checked> Punto de venta activo</label></div>
+<div class="form-actions"><button class="btn" type="button" id="cancel">Cancelar</button><button class="primary" id="save" type="submit">Guardar punto de venta</button></div>
+</form>
+</section>
+<section class="panel"><div class="head" style="margin-bottom:14px"><h2 style="margin:0">Puntos registrados</h2><button class="primary" id="new" type="button">+ Nuevo punto de venta</button></div><div class="list" id="list"><div class="empty">Cargando puntos de venta...</div></div></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="session-timeout.js"></script>
+<script>
+const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
+const el=id=>document.getElementById(id);let records=[];
+const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function note(v){el("status").textContent=v||""}
+function resetForm(){el("locationForm").reset();el("locationId").value="";el("locationType").value="store";el("isActive").checked=true;el("editorTitle").textContent="Nuevo punto de venta";el("save").textContent="Guardar punto de venta"}
+function openForm(item){resetForm();if(item){el("locationId").value=item.id;el("locationName").value=item.name;el("locationType").value=item.location_type;el("locality").value=item.locality||"";el("address").value=item.address||"";el("isActive").checked=item.is_active;el("editorTitle").textContent="Editar punto de venta";el("save").textContent="Guardar cambios"}el("editor").hidden=false;el("editor").scrollIntoView({behavior:"smooth",block:"start"});updateHint()}
+function updateHint(){const truck=el("locationType").value==="food_truck";el("locality").placeholder=truck?"Se define en cada evento":"Ej. Bahía Blanca";el("address").placeholder=truck?"Se define en cada evento":"Calle y altura (opcional)";el("typeHint").textContent=truck?"Las ubicaciones y direcciones de cada salida del food truck se administrarán desde el módulo de eventos.":"Ingresá la localidad del local. La dirección es opcional y puede completarse más adelante."}
+function paint(){const sorted=[...records].sort((a,b)=>Number(b.is_active)-Number(a.is_active)||(a.location_type==="store"?-1:1));el("list").innerHTML=sorted.length?sorted.map(x=>'<article class="location"><div><h3>'+safe(x.name)+'</h3><div class="meta"><span class="tag type">'+(x.location_type==="store"?"Local":"Food truck")+'</span> <span class="tag '+(x.is_active?"":"off")+'">'+(x.is_active?"Activo":"Inactivo")+'</span><br>Localidad: '+safe(x.locality|| (x.location_type==="food_truck"?"Se define por evento":"Sin especificar"))+'<br>Dirección: '+safe(x.address||"Sin especificar")+'</div></div><div class="actions"><button class="btn" type="button" data-edit="'+safe(x.id)+'">Editar</button><button class="btn" type="button" data-toggle="'+safe(x.id)+'">'+(x.is_active?"Desactivar":"Activar")+'</button></div></article>').join(""):'<div class="empty">Todavía no hay puntos de venta registrados.</div>'}
+async function load(){note("Actualizando puntos de venta...");const {data,error}=await db.from("sales_locations").select("id,code,name,location_type,locality,address,timezone,is_active,created_at,updated_at").order("id");if(error){console.error(error);note("No se pudieron cargar los puntos de venta. Revisá la sesión y los permisos.");return}records=data||[];paint();note("Puntos de venta actualizados correctamente.")}
+el("new").addEventListener("click",()=>openForm(null));el("cancel").addEventListener("click",()=>{el("editor").hidden=true;resetForm()});el("refresh").addEventListener("click",load);el("locationType").addEventListener("change",updateHint);
+el("list").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit]");if(edit){const item=records.find(x=>String(x.id)===edit.dataset.edit);if(item)openForm(item);return}const toggle=e.target.closest("[data-toggle]");if(toggle){const item=records.find(x=>String(x.id)===toggle.dataset.toggle);if(!item)return;toggle.disabled=true;const {error}=await db.from("sales_locations").update({is_active:!item.is_active}).eq("id",item.id);if(error){console.error(error);note("No se pudo cambiar el estado: "+error.message);toggle.disabled=false;return}note(item.name+" ahora está "+(!item.is_active?"activo":"inactivo")+".");await load()}});
+el("locationForm").addEventListener("submit",async e=>{e.preventDefault();const id=el("locationId").value;const name=el("locationName").value.trim();const type=el("locationType").value;const locality=el("locality").value.trim()||null;const address=el("address").value.trim()||null;const active=el("isActive").checked;if(!name){note("Ingresá un nombre para el punto de venta.");return}if(type==="store"&&!locality){note("Para un local, indicá la localidad.");el("locality").focus();return}const payload={name,location_type:type,locality:type==="food_truck"?null:locality,address:type==="food_truck"?null:address,is_active:active};const btn=el("save");btn.disabled=true;btn.textContent="Guardando...";let result;if(id){result=await db.from("sales_locations").update(payload).eq("id",id).select("id").single()}else{const base=(type==="store"?"store-":"food-truck-")+name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");payload.code=base+"-"+Date.now().toString(36);result=await db.from("sales_locations").insert(payload).select("id").single()}btn.disabled=false;btn.textContent=id?"Guardar cambios":"Guardar punto de venta";if(result.error){console.error(result.error);note("No se pudo guardar: "+result.error.message);return}el("editor").hidden=true;resetForm();note(id?"Punto de venta actualizado correctamente.":"Punto de venta creado correctamente.");await load()});
+(async()=>{const {data,error}=await db.auth.getSession();if(error||!data.session){note("Sesión no activa. Iniciá sesión desde el panel administrador.");el("list").innerHTML='<div class="empty">No hay sesión activa.</div>';return}const admin=await db.from("admin_users").select("user_id").eq("user_id",data.session.user.id).maybeSingle();if(admin.error||!admin.data){note("Esta cuenta no tiene permisos de administrador.");return}const active=await window.startYanKunIdleSession(db,false);if(!active){note("La sesión se cerró por inactividad. Iniciá sesión nuevamente.");window.location.href="admin.html?session-expired=1";return}await load()})().catch(e=>{console.error(e);note("Error al iniciar el módulo de puntos de venta.")});
+</script>
+</body></html>
