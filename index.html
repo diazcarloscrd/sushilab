@@ -117,7 +117,7 @@
 <!-- MAIN SPLIT WORKBENCH: PRODUCTS SCROLLABLE FEED (LEFT 8 COLS) + LIVE CART (RIGHT 4 COLS) -->
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
 <!-- PRODUCTS FEED WITH INDEPENDENT SCROLLBAR TO PREVENT EMPTY VERTICAL VOID -->
-<div class="lg:col-span-8 max-h-[780px] lg:max-h-[820px] overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-space-xl" id="productsCatalogContainer">
+<div class="lg:col-span-8 max-h-[780px] lg:max-h-[820px] overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-space-xl" id="productsCatalogContainer" style="visibility:hidden">
 <!-- 1. CATEGORY: BURGERS DE SUSHI -->
 <div class="catalog-section p-space-md rounded-xl bg-surface-container-low border border-primary-container/30 shadow-lg mb-space-md" data-section="mas-pedidos" id="seccion-mas-pedidos"><div class="flex items-center justify-between mb-space-md"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-primary-container text-[22px]">local_fire_department</span><h3 class="font-headline-md text-headline-md text-on-surface">Mas Pedidos</h3></div><span class="px-space-sm py-0.5 rounded text-[11px] font-bold bg-primary-container text-on-primary-container uppercase tracking-wider">Favoritos Bahia</span></div><p class="font-body-sm text-body-sm text-tertiary mb-space-md">Las especialidades que mas eligen nuestros clientes semana a semana en el laboratorio.</p><div class="grid grid-cols-1 sm:grid-cols-3 gap-space-sm"><div class="p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60"><div class="mb-2"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm text-primary uppercase font-bold">Combos</span><span class="text-[10px] text-tertiary">20 pzas</span></div><h5 class="font-headline-sm text-[16px] text-on-surface font-semibold">La Scaloneta x20</h5><p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-2">8 Sake Roll + 8 Philadelphia Roll + 4 Super Salmon con volcan tartare.</p></div><div class="flex items-center justify-between pt-1 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">$19.500</span><button class="px-2 py-1 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 flex items-center gap-1" onclick="addToCart('combo-scaloneta', 'La Scaloneta x20', 19500, 'Combos')"><span class="material-symbols-outlined text-[14px]">add</span> Sumar</button></div></div><div class="p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60"><div class="mb-2"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm text-primary uppercase font-bold">Burgers</span><span class="text-[10px] text-tertiary">Top Seller</span></div><h5 class="font-headline-sm text-[16px] text-on-surface font-semibold">La Burger de Salmon</h5><p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-2">Salmon fresco, palta hass y queso crema sobre arroz crocante sellado.</p></div><div class="flex items-center justify-between pt-1 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">$22.000</span><button class="px-2 py-1 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 flex items-center gap-1" onclick="addToCart('burger-salmon', 'La Burger de Salmon', 22000, 'Burgers')"><span class="material-symbols-outlined text-[14px]">add</span> Sumar</button></div></div><div class="p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60"><div class="mb-2"><div class="flex items-center justify-between mb-1"><span class="font-label-sm text-label-sm text-primary uppercase font-bold">Panchos</span><span class="text-[10px] text-tertiary">Panko Clasico</span></div><h5 class="font-headline-sm text-[16px] text-on-surface font-semibold">Pancho Salmon</h5><p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-2">Salmon fresco, palta cremosa, queso fundente y lluvia nori sobre canoa panko.</p></div><div class="flex items-center justify-between pt-1 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">$17.000</span><button class="px-2 py-1 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 flex items-center gap-1" onclick="addToCart('pancho-salmon', 'Pancho de Salmon', 17000, 'Panchos')"><span class="material-symbols-outlined text-[14px]">add</span> Sumar</button></div></div></div></div><div class="catalog-section" data-section="burgers" id="seccion-burgers" style="display: block;">
 <div class="flex items-center justify-between mb-space-md">
@@ -576,6 +576,13 @@
     renderCartSummary();
   }
 
+  function updateUpsellVisibility() {
+    const container=document.getElementById('upsellContainer');
+    const product=window.yankunUpsellProduct;
+    if(!container)return;
+    container.hidden=!product||Object.keys(cartState.items).length===0||!!cartState.items[String(product.id)]||!!cartState.items[Number(product.id)];
+  }
+
   function renderCart() {
     const container = document.getElementById('cartItemsContainer');
     const countBadge = document.getElementById('cartCountBadge');
@@ -595,6 +602,7 @@
         </div>
       `;
       renderCartSummary();
+      updateUpsellVisibility();
       return;
     }
 
@@ -619,6 +627,7 @@
 
     container.innerHTML = html;
     renderCartSummary();
+    updateUpsellVisibility();
   }
 
   function renderCartSummary() {
@@ -1033,6 +1042,7 @@
     const filterGroup = document.getElementById('categoryFilterGroup');
     const container = document.getElementById('productsCatalogContainer');
     if (!filterGroup || !container) return;
+    container.style.visibility='visible';
     const allAvailable = products.filter(p => categories.some(c => c.id === p.category_id));
     const upsellId = publicSettings?.upsell_enabled ? String(publicSettings.upsell_product_id || '') : '';
     const available = allAvailable.filter(p => String(p.id) !== upsellId);
@@ -1147,8 +1157,10 @@
     if(!select)return;
     const now=getLocalParts(new Date());
     const rows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day&&item.is_open);
-    const min=Number(publicSettings?.preparation_min_minutes||30),max=Number(publicSettings?.preparation_max_minutes||45);
-    select.innerHTML='<option value="Lo antes posible ('+min+'-'+max+' min)">Lo antes posible ('+min+'-'+max+' min)</option>';
+    const min=Number(publicSettings?.preparation_min_minutes),max=Number(publicSettings?.preparation_max_minutes);
+    const hasRange=Number.isFinite(min)&&Number.isFinite(max)&&min>0&&max>=min;
+    const firstLabel=hasRange?'Lo antes posible ('+min+'-'+max+' min)':'A coordinar con cocina';
+    select.innerHTML='<option value="'+firstLabel+'">'+firstLabel+'</option>';
     rows.forEach(row=>{
       if(!row.opens_at||!row.closes_at)return;
       const start=Number(row.opens_at.slice(0,2))*60+Number(row.opens_at.slice(3));
@@ -1216,6 +1228,7 @@
     const button=document.getElementById('upsellAddButton');
     if(button)button.onclick=()=>{if(window.addToCart(Number(data.id),data.name,Number(data.price),'Entradas')===false)return;};
     container.hidden=false;
+    updateUpsellVisibility();
   }
 
   async function loadPublicSettings() {
@@ -1236,12 +1249,16 @@
     setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');setText('publicAddressQuick',address);setText('publicAddressFooter',mainLocation.address||'Punto de retiro');setText('publicAddressPhilosophy',mainLocation.address||'el punto de retiro oficial');setText('publicAddressFaq',mainLocation.address||'el local');setText('publicLocalityFooter',mainLocation.locality||'');setText('pickupAddressNotice',address);setText('termsPickupAddress',address+'. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.');
     setText('pickupOptionLabel','Take Away - Gratis ('+(mainLocation.address||'retiro en local')+')');
     setText('deliveryAreaDescription',publicSettings.delivery_area_description||publicSettings.delivery_area_label||'Zona de entrega');setText('publicDeliveryTitle','Envíos '+(publicSettings.delivery_area_label||mainLocation.locality||''));setText('otherZonesDescription',zones.length?zones.join(' · '):'Consultá disponibilidad y tarifa por WhatsApp');
-    setText('deliveryFeeButton','+$'+Number(publicSettings.delivery_fee_bahia||0).toLocaleString('es-AR'));
-    setText('publicDeliveryQuick','Delivery $'+Number(publicSettings.delivery_fee_bahia||0).toLocaleString('es-AR')+' · Retiro sin cargo');
-    setText('preparationTimeLabel','Tiempo estimado: '+(publicSettings.preparation_min_minutes||30)+'–'+(publicSettings.preparation_max_minutes||45)+' min');
+    const deliveryFee=Number(publicSettings.delivery_fee_bahia);
+    const feeLabel=Number.isFinite(deliveryFee)&&deliveryFee>=0?'$'+deliveryFee.toLocaleString('es-AR'):'A consultar';
+    setText('deliveryFeeButton',feeLabel==='A consultar'?feeLabel:'+'+feeLabel);
+    setText('publicDeliveryQuick','Delivery '+feeLabel+' · Retiro sin cargo');
+    const prepMin=Number(publicSettings.preparation_min_minutes),prepMax=Number(publicSettings.preparation_max_minutes);
+    const prepLabel=Number.isFinite(prepMin)&&Number.isFinite(prepMax)&&prepMin>0&&prepMax>=prepMin?prepMin+'–'+prepMax+' min':'A coordinar con cocina';
+    setText('preparationTimeLabel','Tiempo estimado: '+prepLabel);
     setText('publicPackagingFooter',publicSettings.packaging_note||'');setText('publicPackagingCart',publicSettings.packaging_note||'');setText('publicPackagingQuick',publicSettings.packaging_note||'');setText('termsPackaging',publicSettings.packaging_note||'');
-    setText('termsDeliveryInfo','Cadetería urbana en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana')+' con tarifa fija de $'+Number(publicSettings.delivery_fee_bahia||0).toLocaleString('es-AR')+'. Zonas especiales o periféricas se cotizan por WhatsApp.');
-    setText('termsPreparation','Elaboración al momento: entre '+(publicSettings.preparation_min_minutes||30)+' y '+(publicSettings.preparation_max_minutes||45)+' minutos, según demanda de cocina.');
+    setText('termsDeliveryInfo','Cadetería urbana en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana')+' con tarifa de '+feeLabel+'. Zonas especiales o periféricas se cotizan por WhatsApp.');
+    setText('termsPreparation','Elaboración al momento: '+prepLabel+', según demanda de cocina.');
     setText('deliveryOptionLabel','Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana'));
     document.querySelectorAll('a[data-business-whatsapp]').forEach(link=>{if(publicSettings.whatsapp_number)link.href='https://wa.me/'+publicSettings.whatsapp_number;if(link.textContent.includes('+54'))link.textContent=publicSettings.whatsapp_display||link.textContent;});
     const payment=document.getElementById('paymentMethod');
@@ -1284,7 +1301,7 @@
       console.error('No se pudo cargar la carta desde Supabase.',categoriesResult.error,productsResult.error);
       const container=document.getElementById('productsCatalogContainer');
       const filters=document.getElementById('categoryFilterGroup');
-      if(container)container.innerHTML='<div class="empty">No pudimos cargar la carta en este momento. Intentá nuevamente más tarde.</div>';
+      if(container){container.innerHTML='<div class="empty">No pudimos cargar la carta en este momento. Intentá nuevamente más tarde.</div>';container.style.visibility='visible';}
       if(filters)filters.innerHTML='';
       renderFeatured(null);
       return;
