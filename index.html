@@ -16,30 +16,58 @@
   background: rgba(225, 29, 72, 0.7);
 }
 </style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"tertiary":"#c8c6c3","inverse-primary":"#be0037","surface-container-high":"#262a31","inverse-on-surface":"#2d3137","on-primary":"#68001a","surface-dim":"#10141a","primary":"#ffb3b6","surface-variant":"#31353c","on-error":"#690005","primary-fixed-dim":"#ffb3b6","inverse-surface":"#dfe2eb","on-error-container":"#ffdad6","on-surface-variant":"#e5bdbe","surface-container-lowest":"#0a0e14","primary-fixed":"#ffdada","outline":"#ac8889","surface-bright":"#353940","secondary-fixed-dim":"#ffb2b7","on-secondary-container":"#ffc2c4","error":"#ffb4ab","on-primary-container":"#fffaf9","on-tertiary-fixed":"#1b1c1a","surface-container":"#1c2026","on-tertiary":"#30312e","on-background":"#dfe2eb","background":"#10141a","secondary":"#ffb2b7","error-container":"#93000a","secondary-container":"#b50036","on-tertiary-container":"#fdfbf7","secondary-fixed":"#ffdadb","on-surface":"#dfe2eb","primary-container":"#e11d48","surface":"#10141a","tertiary-container":"#747471","tertiary-fixed":"#e4e2de","tertiary-fixed-dim":"#c8c6c3","on-secondary-fixed":"#40000d","surface-container-highest":"#31353c","on-secondary":"#67001b","on-primary-fixed-variant":"#920028","on-secondary-fixed-variant":"#92002a","surface-container-low":"#181c22","on-primary-fixed":"#40000c","on-tertiary-fixed-variant":"#474744","surface-tint":"#ffb3b6","outline-variant":"#5c3f40"},borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},spacing:{"space-sm":"0.5rem","gutter":"1.25rem","margin":"1rem","margin-desktop":"3rem","space-md":"1rem","space-lg":"1.5rem","space-xs":"0.25rem","gutter-desktop":"2rem","space-xl":"2.5rem"},fontFamily:{"label-md":["Manrope"],"headline-lg":["Noto Serif"],"headline-sm":["Noto Serif"],"display-lg-mobile":["Noto Serif"],"label-sm":["Manrope"],"label-lg":["Manrope"],"display-lg":["Noto Serif"],"body-md":["Manrope"],"headline-md":["Noto Serif"],"body-sm":["Manrope"],"body-lg":["Manrope"]},fontSize:{"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.08em","fontWeight":"600"}],"headline-lg":["32px",{"lineHeight":"40px","letterSpacing":"-0.01em","fontWeight":"500"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"500"}],"display-lg-mobile":["36px",{"lineHeight":"44px","letterSpacing":"-0.01em","fontWeight":"400"}],"label-sm":["10px",{"lineHeight":"14px","letterSpacing":"0.1em","fontWeight":"700"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.06em","fontWeight":"600"}],"display-lg":["56px",{"lineHeight":"64px","letterSpacing":"-0.02em","fontWeight":"400"}],"body-md":["15px",{"lineHeight":"24px","fontWeight":"400"}],"headline-md":["24px",{"lineHeight":"32px","fontWeight":"500"}],"body-sm":["13px",{"lineHeight":"20px","fontWeight":"400"}],"body-lg":["18px",{"lineHeight":"28px","fontWeight":"400"}]}}}};</script><style id="yk-visual-polish">
-/* Header: navegación espaciada, sin botones comprimidos ni scroll horizontal */
-.yk-header-inner{min-height:80px;gap:clamp(10px,1.4vw,20px)}
-#headerNav{gap:clamp(8px,1vw,14px);overflow:visible;white-space:normal}
-#headerNav .nav-header-link{font-size:10px;letter-spacing:.075em;padding:8px 2px;white-space:nowrap}
-#headerNav .nav-header-link:hover{color:#fff}
-.yk-header-inner>div:last-child{gap:10px}
-.yk-header-inner>div:last-child>a:first-child{padding:9px 11px;font-size:10px;white-space:nowrap}
-@media (min-width:1024px) and (max-width:1199px){
-  #headerNav{display:none!important}
-  .yk-header-inner>div:last-child>a:first-child{display:none!important}
+/* Header simple: marca despejada y solo tres accesos principales */
+.yk-header-inner{min-height:80px;gap:16px}
+.yk-header-actions{gap:10px}
+.yk-header-action{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;border:1px solid rgba(225,29,72,.25);border-radius:8px;color:#dfe2eb;font:700 10px/1.2 Manrope,sans-serif;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;transition:background .2s,border-color .2s}
+.yk-header-action:hover{background:#262a31;border-color:rgba(255,179,182,.55)}
+.yk-header-primary{background:#e11d48;color:#fff;border-color:#e11d48}
+.yk-header-primary:hover{background:#be123c;border-color:#be123c}
+.yk-header-cart{position:relative;padding-right:17px}
+.yk-header-count{min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#e11d48;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}
+.yk-header-admin{border-color:rgba(255,179,182,.35);color:#ffb3b6}
+@media(max-width:640px){
+  .yk-header-inner{min-height:72px;gap:8px;padding-left:12px;padding-right:12px}
+  .yk-header-inner>a{gap:6px}
+  .yk-header-inner>a img{height:30px}
+  .yk-header-inner>a span{font-size:14px}
+  .yk-header-actions{gap:5px}
+  .yk-header-action{min-height:36px;padding:0 8px;font-size:9px;letter-spacing:.025em;gap:4px}
+  .yk-header-cart{padding-right:8px}
+  .yk-header-cart .material-symbols-outlined{font-size:16px}
+  .yk-header-count{min-width:16px;height:16px;font-size:9px}
 }
-@media (max-width:1023px){.yk-header-inner{min-height:68px}}
-@media (min-width:1200px){.yk-header-inner{gap:14px}}
-/* Scrollbars discretas, conservando el desplazamiento */
+@media(max-width:390px){
+  .yk-header-inner>a span{font-size:12px}
+  .yk-header-inner>a img{height:27px}
+  .yk-header-actions{gap:4px}
+  .yk-header-action{padding:0 6px;font-size:8px}
+}
 .custom-scrollbar{scrollbar-width:thin;scrollbar-color:rgba(225,29,72,.38) transparent}
 .custom-scrollbar::-webkit-scrollbar{width:3px;height:3px}
 .custom-scrollbar::-webkit-scrollbar-track{background:transparent;border-radius:999px}
 .custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(225,29,72,.38);border-radius:999px}
 .custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(225,29,72,.65)}
 #productsCatalogContainer{scrollbar-gutter:stable}
-#categoryFilterGroup::-webkit-scrollbar,#headerNav::-webkit-scrollbar{height:0;width:0}
+#categoryFilterGroup::-webkit-scrollbar{height:0;width:0}
 #upsellContainer #upsellTitle{overflow-wrap:normal!important;white-space:normal}
 #upsellContainer #upsellPrice{white-space:nowrap}
-</style></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col justify-between"><header class="fixed top-0 left-0 w-full z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.5)]"><div class="yk-header-inner min-h-20 max-w-[1280px] mx-auto px-gutter lg:px-gutter-desktop flex items-center justify-between gap-space-md"><a class="flex items-center gap-space-sm shrink-0 transition-opacity hover:opacity-90" href="#"><img alt="YanKun Sushi Lab" class="h-9 w-auto object-contain rounded" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3eEheitfjHm7yPIEg5MgMufjYUGNdbzDcI6rDh4LJhtJMuLeMUTd00DXPIEDqDyyx7mvLJln_YXGhDSS3qHWvnM7qlxfbA2oRUDPWWqm7gVsRNwsEVk1FLB7BQhuBELtXGEcNaaduLZO0CIr87DukAYz8V3FtAW8AaBqp43k9SReNumOHzx0KTcEPbxyqz38rtMZY-0GxqSagGqq80lM4xgNcXmSSn2vOrgG5o5hqI-2uYpsPS3fwHdW6FvgJ7ra5Axc"/><span class="font-headline-sm text-headline-sm tracking-tight text-on-surface leading-none">YanKun <span class="text-primary-container font-semibold">SushiLab</span></span></a><nav class="hidden lg:flex items-center justify-center flex-1 min-w-0 px-2" id="headerNav"><a aria-current="page" class="nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface font-semibold py-1 border-b-2 border-primary-container transition-colors leading-none flex items-center justify-center shrink-0 cursor-pointer" data-nav-target="all" href="#catalogo" onclick="handleNavClick(event, 'all')">Carta Completa</a><a class="nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer" data-nav-target="combos" href="#seccion-combos" onclick="handleNavClick(event, 'combos')">Combos</a><a class="nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer" data-nav-target="burgers" href="#seccion-burgers" onclick="handleNavClick(event, 'burgers')">Burgers de Sushi</a><a class="nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer" data-nav-target="panchos" href="#seccion-panchos" onclick="handleNavClick(event, 'panchos')">Panchos de Sushi</a><a class="nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer" data-nav-target="entradas" href="#seccion-entradas" onclick="handleNavClick(event, 'entradas')">Entradas</a><a class="nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer" data-nav-target="pedidos" href="#pedido-seccion" onclick="handleNavClick(event, 'pedidos')">Mis Pedidos</a></nav><div class="flex items-center gap-space-md shrink-0"><a class="hidden lg:inline-flex items-center justify-center gap-space-xs px-space-md py-2.5 rounded-lg bg-[#0F291E] text-[#10B981] font-label-md text-label-md tracking-wider uppercase transition-all duration-300 hover:bg-[#133829] shadow-[0_4px_16px_rgba(16,185,129,0.2)]" href="https://wa.me/5492915101491" data-business-whatsapp rel="noopener noreferrer" target="_blank"><span class="material-symbols-outlined text-[16px]">chat</span><span class="inline">WhatsApp Directo</span></a><a class="relative w-10 h-10 rounded-full bg-surface-container-high hover:bg-surface-variant border border-outline-variant/40 flex items-center justify-center shrink-0 transition-colors text-primary" href="#pedido-seccion" title="Ver Carrito"><span class="material-symbols-outlined text-[20px]">shopping_bag</span><span class="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center shadow" id="headerCartCountBadge">0</span></a></div></div></header><main class="w-full pt-20 bg-surface flex-1"><div class="flex flex-col w-full">
+</style></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col justify-between"><header class="fixed top-0 left-0 w-full z-50 bg-surface/95 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.5)]">
+  <div class="yk-header-inner max-w-[1280px] mx-auto px-gutter lg:px-gutter-desktop flex items-center justify-between">
+    <a class="flex items-center gap-space-sm min-w-0 transition-opacity hover:opacity-90" href="#" aria-label="YanKun Sushi Lab, inicio">
+      <img alt="YanKun Sushi Lab" class="h-9 w-auto object-contain rounded shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3eEheitfjHm7yPIEg5MgMufjYUGNdbzDcI6rDh4LJhtJMuLeMUTd00DXPIEDqDyyx7mvLJln_YXGhDSS3qHWvnM7qlxfbA2oRUDPWWqm7gVsRNwsEVk1FLB7BQhuBELtXGEcNaaduLZO0CIr87DukAYz8V3FtAW8AaBqp43k9SReNumOHzx0KTcEPbxyqz38rtMZY-0GxqSagGqq80lM4xgNcXmSSn2vOrgG5o5hqI-2uYpsPS3fwHdW6FvgJ7ra5Axc"/>
+      <span class="font-headline-sm text-headline-sm tracking-tight text-on-surface leading-none whitespace-nowrap">YanKun <span class="text-primary-container font-semibold">SushiLab</span></span>
+    </a>
+    <div class="yk-header-actions flex items-center justify-end shrink-0">
+      <a class="yk-header-action yk-header-primary" href="#catalogo">Carta Completa</a>
+      <a class="yk-header-action yk-header-cart relative" href="#pedido-seccion" title="Ver carrito" aria-label="Ver carrito">
+        <span class="material-symbols-outlined text-[19px]">shopping_bag</span><span>Carrito</span>
+        <span class="yk-header-count" id="headerCartCountBadge">0</span>
+      </a>
+      <a class="yk-header-action yk-header-admin" href="admin.html">Administración</a>
+    </div>
+  </div>
+</header><main class="w-full pt-20 bg-surface flex-1"><div class="flex flex-col w-full">
 <!-- HERO MASTER SECTION -->
 <section class="relative w-full bg-surface-container-lowest overflow-hidden pb-space-xl">
 <!-- Ambient Red & Charcoal Glow -->
@@ -1128,21 +1156,7 @@
     });
     window.filterCategory('all', false);
 
-    const headerNav = document.getElementById('headerNav');
-    if (headerNav) {
-      headerNav.innerHTML = '';
-      const addNav = (label,target,href) => {
-        const link = document.createElement('a');
-        link.href=href; link.dataset.navTarget=target;
-        link.className='nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer';
-        link.textContent=label;
-        link.addEventListener('click',event=>window.handleNavClick(event,target));
-        headerNav.appendChild(link);
-      };
-      addNav('Carta completa','all','#catalogo');
-      visibleCategories.forEach(category=>addNav(category.name,category.slug,'#seccion-'+category.slug));
-      addNav('Mi pedido','pedidos','#pedido-seccion');
-    }
+    // La navegación superior es fija y mínima; las categorías se filtran únicamente en la sección de la carta.
     window.yankunAvailableProductIds = new Set(allAvailable.map(product=>String(product.id)));
     window.yankunProductMap = new Map(allAvailable.map(product=>[String(product.id),product]));
     Object.entries(cartState.items).forEach(([id,item])=>{const latest=window.yankunProductMap.get(String(id));if(latest){item.name=latest.name;item.price=Number(latest.price);item.category=latest.category_id;}});
