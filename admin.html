@@ -201,17 +201,12 @@
           <div class="dash-status" id="dashboardMessage" role="status">Consultando los datos de Supabase...</div>
           </div>
           <section id="moduleFrameWrap" class="module-frame-wrap" hidden><iframe id="moduleFrame" title="Módulo de gestión" loading="lazy"></iframe></section>
-        </main>
-      </div>
-    </div>
-  </section>
-
   <section id="catalogView" class="catalog-view" hidden>
     <header class="dash-top">
       <div class="dash-brand"><div class="mark">Y</div><div class="brand-name">YanKun <span>SushiLab</span></div></div>
       <div class="dash-actions"><span class="dash-user">Gestión del catálogo</span><button class="dash-btn" id="backToDashboard" type="button">Volver al panel</button><button class="dash-btn" id="catalogLogout" type="button">Cerrar sesión</button></div>
     </header>
-    <main class="catalog-wrap">
+    <div class="catalog-wrap">
       <div class="catalog-head">
         <div><p class="dash-eyebrow">Administración comercial</p><h1 class="catalog-title">Catálogo y productos</h1><p class="catalog-muted">Administrá las categorías, los productos, sus precios y su disponibilidad.</p></div>
         <button class="catalog-secondary" id="reloadCatalog" type="button">Actualizar catálogo</button>
@@ -250,8 +245,14 @@
         </form></section></div>
         <div class="product-list cards" id="productList"><div class="catalog-empty">Cargando productos...</div></div>
       </section>
-    </main>
+    </div>
   </section>
+        </main>
+      </div>
+    </div>
+  </section>
+
+
 
   <script>
     // El control de mostrar/ocultar contraseña funciona independientemente de Supabase.
@@ -543,8 +544,6 @@
       });
     }
 
-    const appContent = document.querySelector(".app-content");
-    appContent.appendChild(catalogView);
     const moduleFrame = document.getElementById("moduleFrame");
     const moduleFrameWrap = document.getElementById("moduleFrameWrap");
     const dashboardHome = document.getElementById("dashboardHome");
