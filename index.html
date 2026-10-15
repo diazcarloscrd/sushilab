@@ -880,7 +880,7 @@
     try {
       const saved = localStorage.getItem('yankun_last_order');
       if (!saved) {
-        window.showOrderFeedback?.('Todavía no hay pedidos guardados', 'Cuando completes un pedido desde este navegador, vas a poder recuperar sus productos desde acá.');
+        alert('No hay un pedido previo guardado en este navegador.');
         return;
       }
       const data = JSON.parse(saved);
@@ -888,12 +888,12 @@
         cartState.items = data.items;
         if (data.deliveryMode) setDeliveryMode(data.deliveryMode);
         renderCart();
-        window.showOrderFeedback?.('Pedido recuperado', 'Los productos de tu último pedido ya están nuevamente en el carrito.');
+        alert('Se cargo tu ultimo pedido!');
       } else {
-        window.showOrderFeedback?.('No hay productos para recuperar', 'El último pedido guardado no contiene productos disponibles.');
+        alert('No se encontraron items del pedido anterior.');
       }
     } catch (e) {
-      window.showOrderFeedback?.('No se pudo recuperar el pedido', 'Los datos guardados no se pudieron leer. Podés armar un nuevo carrito desde la carta.');
+      alert('No se pudo cargar el ultimo pedido.');
     }
   }
 
