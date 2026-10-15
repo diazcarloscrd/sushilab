@@ -344,6 +344,16 @@
       }
     });
 
+    // Acceso al módulo de pedidos.
+    const ordersCard = document.querySelector('[data-open-orders]');
+    ordersCard.addEventListener('click', () => { window.location.href = 'orders.html'; });
+    ordersCard.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        window.location.href = 'orders.html';
+      }
+    });
+
     // Gestión del catálogo: operaciones administrativas protegidas por RLS.
     const catalogView = document.getElementById('catalogView');
     const catalogMessage = document.getElementById('catalogMessage');
