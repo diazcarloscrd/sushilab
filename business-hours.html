@@ -64,6 +64,10 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
 </section>
 <section id="eventsPanel" class="hidden" role="tabpanel">
 <section class="panel">
+<div class="panel-head"><div><h2>Eventos registrados</h2><p class="hint">Aperturas especiales y cierres excepcionales de cada punto de venta.</p></div><button class="primary" id="eventAdd" type="button">+ Agregar evento</button></div>
+<div id="eventList" class="event-list"><div class="empty">Cargando eventos...</div></div>
+</section>
+<section id="eventFormPanel" class="panel hidden">
 <div class="panel-head"><div><h2 id="eventFormTitle">Crear evento</h2><p class="hint">Indicá a qué punto de venta corresponde y si se trata de una apertura o un cierre excepcional.</p></div></div>
 <form id="eventForm" class="event-form">
 <input type="hidden" id="eventId">
@@ -78,7 +82,7 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
 <div class="event-actions wide"><button class="primary" id="eventSave" type="submit">Guardar evento</button><button class="btn hidden" id="eventCancel" type="button">Cancelar edición</button></div>
 </form>
 </section>
-<section class="panel"><div class="panel-head"><h2>Eventos registrados</h2><span class="hint">Ordenados por fecha</span></div><div id="eventList" class="event-list"><div class="empty">Cargando eventos...</div></div></section>
+
 </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="session-timeout.js"></script>
@@ -106,10 +110,29 @@ async function loadWeekly(){
  weeklyRecords=data||[];schedulesReady=true;renderWeekly();
 }
 function validateTimeRange(open,close){if(!open||!close)throw new Error("Completá la hora de apertura y de cierre.");if(open===close)throw new Error("La hora de apertura y cierre no pueden ser iguales.");}
+function timeToMinutes(value){const parts=value.split(":").map(Number);return parts[0]*60+parts[1]}
+function assertNoScheduleOverlap(day,open,close,excludeId=null){
+ const start=Number(day)*1440+timeToMinutes(open);
+ const duration=(timeToMinutes(close)-timeToMinutes(open)+1440)%1440;
+ const end=start+duration;
+ const week=7*1440;
+ for(const item of weeklyRecords){
+  if(!item.is_open||String(item.id)===String(excludeId))continue;
+  const otherStart=Number(item.day_of_week)*1440+timeToMinutes((item.opens_at||"").slice(0,5));
+  const otherDuration=(timeToMinutes((item.closes_at||"").slice(0,5))-timeToMinutes((item.opens_at||"").slice(0,5))+1440)%1440;
+  const otherEnd=otherStart+otherDuration;
+  for(const shift of [-week,0,week]){
+   if(start<otherEnd+shift&&end>otherStart+shift){
+    const otherDay=days.find(x=>x.value===item.day_of_week)?.label||"otro día";
+    throw new Error("Ese horario se superpone con un turno ya registrado ("+otherDay+" de "+(item.opens_at||"").slice(0,5)+" a "+(item.closes_at||"").slice(0,5)+"). Los horarios pueden tocarse, pero no superponerse.");
+   }
+  }
+ }
+}
 async function addSchedule(e){
  e.preventDefault();if(!schedulesReady||busy){note("Esperá a que los horarios terminen de cargar.");return}
  const day=el("scheduleDay").value,open=el("scheduleOpen").value,close=el("scheduleClose").value;
- try{if(day==="")throw new Error("Elegí el día de la semana.");validateTimeRange(open,close)}catch(err){note(err.message);return}
+ try{if(day==="")throw new Error("Elegí el día de la semana.");validateTimeRange(open,close);assertNoScheduleOverlap(Number(day),open,close)}catch(err){note(err.message);return}
  busy=true;const button=el("scheduleAdd");button.disabled=true;button.textContent="Guardando...";el("refresh").disabled=true;
  try{
   const payload={sales_location_id:currentLocationId,schedule_type:"weekly",day_of_week:Number(day),specific_date:null,is_open:true,opens_at:open,closes_at:close};
@@ -121,7 +144,7 @@ async function addSchedule(e){
 }
 async function saveScheduleEntry(row){
  if(busy)return;const id=row.dataset.id,open=row.querySelector("[data-open]").value,close=row.querySelector("[data-close]").value;
- try{validateTimeRange(open,close)}catch(err){note(err.message);return}
+ try{validateTimeRange(open,close);const existing=weeklyRecords.find(x=>String(x.id)===String(id));if(!existing)throw new Error("No se encontró este horario. Actualizá la lista.");assertNoScheduleOverlap(existing.day_of_week,open,close,id)}catch(err){note(err.message);return}
  if(!weeklyRecords.some(x=>String(x.id)===String(id))){note("No se encontró este horario. Actualizá la lista.");return}
  busy=true;const button=row.querySelector("[data-save-entry]");button.disabled=true;button.textContent="Guardando...";el("refresh").disabled=true;
  try{
@@ -143,7 +166,8 @@ async function deleteScheduleEntry(row){
  finally{busy=false;el("refresh").disabled=false}
 }
 function updateEventType(){const opening=el("eventType").value==="special_opening";el("eventOpenField").classList.toggle("hidden",!opening);el("eventCloseField").classList.toggle("hidden",!opening);el("eventOpen").required=opening;el("eventClose").required=opening}
-function resetEventForm(){el("eventForm").reset();el("eventId").value="";el("eventActive").checked=true;el("eventFormTitle").textContent="Crear evento";el("eventSave").textContent="Guardar evento";el("eventCancel").classList.add("hidden");updateEventType()}
+function resetEventForm(){el("eventForm").reset();el("eventId").value="";el("eventActive").checked=true;el("eventFormTitle").textContent="Crear evento";el("eventSave").textContent="Guardar evento";el("eventCancel").classList.add("hidden");el("eventFormPanel").classList.add("hidden");updateEventType()}
+function showEventForm(){el("eventFormPanel").classList.remove("hidden");el("eventFormTitle").textContent="Crear evento";el("eventSave").textContent="Guardar evento";el("eventCancel").classList.remove("hidden");el("eventName").focus()}
 function renderEvents(){if(!events.length){el("eventList").innerHTML='<div class="empty">Todavía no hay eventos registrados. Podés crear el primero desde el formulario.</div>';return}el("eventList").innerHTML=events.map(ev=>{const loc=locations.find(x=>String(x.id)===String(ev.sales_location_id));const opening=ev.event_type==="special_opening";return '<article class="event-card" data-event-id="'+ev.id+'"><div class="event-card-head"><div><div class="event-title">'+safe(ev.event_name)+'</div><div class="event-meta">'+safe(loc?.name||"Punto de venta")+' · '+safe(formatDate(ev.event_date))+'</div><div class="event-meta">'+(opening?"Apertura especial · "+safe((ev.opens_at||"").slice(0,5))+" a "+safe((ev.closes_at||"").slice(0,5)):"Cierre excepcional")+'</div>'+(ev.description?'<div class="event-meta">'+safe(ev.description)+'</div>':"")+'</div><span class="badge '+(!ev.is_active?"off":opening?"":"closed")+'">'+(!ev.is_active?"Inactivo":opening?"Apertura especial":"Cierre excepcional")+'</span></div><div class="event-actions"><button class="btn" type="button" data-edit-event>Editar</button><button class="btn" type="button" data-toggle-event>'+(ev.is_active?"Desactivar":"Activar")+'</button><button class="danger" type="button" data-delete-event>Eliminar</button></div></article>'}).join("")}
 async function loadEvents(){el("eventList").innerHTML='<div class="empty">Cargando eventos...</div>';const {data,error}=await db.from("special_events").select("id,sales_location_id,event_name,event_date,event_type,opens_at,closes_at,description,is_active,created_at").order("event_date").order("id");if(error){console.error(error);events=[];el("eventList").innerHTML='<div class="empty">No se pudieron cargar los eventos: '+safe(error.message)+'</div>';return}events=data||[];renderEvents()}
 function fillLocationOptions(){const options=locations.map(x=>'<option value="'+x.id+'">'+safe(x.name)+(x.is_active?"":" · Inactivo")+'</option>').join("");el("eventLocation").innerHTML=options||'<option value="">No hay puntos de venta registrados</option>';el("eventLocation").disabled=!locations.length}
@@ -153,7 +177,8 @@ el("weeklyGrid").addEventListener("click",async e=>{const row=e.target.closest("
 el("eventType").addEventListener("change",updateEventType);
 el("eventForm").addEventListener("submit",async e=>{e.preventDefault();if(busy)return;const id=el("eventId").value;const eventType=el("eventType").value;const payload={event_name:el("eventName").value.trim(),sales_location_id:Number(el("eventLocation").value),event_date:el("eventDate").value,event_type:eventType,opens_at:eventType==="special_opening"?el("eventOpen").value:null,closes_at:eventType==="special_opening"?el("eventClose").value:null,description:el("eventDescription").value.trim()||null,is_active:el("eventActive").checked};if(!payload.event_name||!payload.event_date||!payload.sales_location_id){note("Completá el nombre, el punto de venta y la fecha del evento.");return}if(eventType==="special_opening"&&(!payload.opens_at||!payload.closes_at||payload.opens_at===payload.closes_at)){note("Para una apertura especial, ingresá horas válidas de apertura y cierre.");return}if(!window.confirm(id?"¿Querés guardar los cambios de este evento?":"¿Querés crear este evento?"))return;busy=true;const button=el("eventSave");button.disabled=true;button.textContent="Guardando...";el("refresh").disabled=true;try{const result=id?await db.from("special_events").update(payload).eq("id",id).select("id").maybeSingle():await db.from("special_events").insert(payload).select("id").single();if(result.error)throw result.error;if(id&&!result.data)throw new Error("No se encontró el evento que querías actualizar.");note(id?"Evento actualizado correctamente.":"Evento creado correctamente.");resetEventForm();await loadEvents()}catch(err){console.error(err);note("No se pudo guardar el evento: "+err.message)}finally{busy=false;button.disabled=false;button.textContent=el("eventId").value?"Guardar cambios":"Guardar evento";el("refresh").disabled=false}});
 el("eventCancel").addEventListener("click",resetEventForm);
-el("eventList").addEventListener("click",async e=>{const card=e.target.closest("[data-event-id]");if(!card||busy)return;const ev=events.find(x=>String(x.id)===card.dataset.eventId);if(!ev)return;if(e.target.closest("[data-edit-event]")){el("eventId").value=ev.id;el("eventName").value=ev.event_name;el("eventLocation").value=ev.sales_location_id;el("eventDate").value=ev.event_date;el("eventType").value=ev.event_type;el("eventOpen").value=(ev.opens_at||"").slice(0,5);el("eventClose").value=(ev.closes_at||"").slice(0,5);el("eventDescription").value=ev.description||"";el("eventActive").checked=ev.is_active;el("eventFormTitle").textContent="Editar evento";el("eventSave").textContent="Guardar cambios";el("eventCancel").classList.remove("hidden");updateEventType();el("eventName").focus();return}
+el("eventAdd").addEventListener("click",()=>{if(busy)return;resetEventForm();showEventForm()});
+el("eventList").addEventListener("click",async e=>{const card=e.target.closest("[data-event-id]");if(!card||busy)return;const ev=events.find(x=>String(x.id)===card.dataset.eventId);if(!ev)return;if(e.target.closest("[data-edit-event]")){el("eventId").value=ev.id;el("eventName").value=ev.event_name;el("eventLocation").value=ev.sales_location_id;el("eventDate").value=ev.event_date;el("eventType").value=ev.event_type;el("eventOpen").value=(ev.opens_at||"").slice(0,5);el("eventClose").value=(ev.closes_at||"").slice(0,5);el("eventDescription").value=ev.description||"";el("eventActive").checked=ev.is_active;el("eventFormTitle").textContent="Editar evento";el("eventSave").textContent="Guardar cambios";el("eventCancel").classList.remove("hidden");el("eventFormPanel").classList.remove("hidden");updateEventType();el("eventName").focus();return}
 if(e.target.closest("[data-toggle-event]")){const next=!ev.is_active;if(!window.confirm(next?"¿Querés volver a activar este evento?":"¿Querés desactivar este evento? Se conservará registrado."))return;busy=true;const b=e.target.closest("button");b.disabled=true;try{const {error}=await db.from("special_events").update({is_active:next}).eq("id",ev.id);if(error)throw error;note(next?"Evento activado.":"Evento desactivado.");await loadEvents()}catch(err){console.error(err);note("No se pudo cambiar el estado: "+err.message);b.disabled=false}finally{busy=false}return}
 if(e.target.closest("[data-delete-event]")){if(!window.confirm("¿Estás seguro que querés eliminar definitivamente este evento?"))return;busy=true;const b=e.target.closest("button");b.disabled=true;try{const {error}=await db.from("special_events").delete().eq("id",ev.id);if(error)throw error;note("Evento eliminado.");await loadEvents();if(el("eventId").value===String(ev.id))resetEventForm()}catch(err){console.error(err);note("No se pudo eliminar el evento: "+err.message);b.disabled=false}finally{busy=false}}});
 el("refresh").addEventListener("click",async()=>{if(busy)return;el("refresh").disabled=true;try{await loadLocations();if(currentTab==="events")await loadEvents();else{const type=currentTab==="store"?"store":"food_truck";currentLocationId=locations.find(x=>x.location_type===type)?.id??null;await loadWeekly()}note("Datos actualizados.")}finally{el("refresh").disabled=false}});
