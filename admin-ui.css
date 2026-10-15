@@ -108,3 +108,8 @@ body.dashboard-mode #dashboard{background:radial-gradient(ellipse at 84% 2%,var(
 #dashboard .module-frame-wrap iframe{display:block;width:100%;max-width:none;min-width:0}
 @media(max-width:900px){#dashboard .app-shell{grid-template-columns:220px minmax(0,1fr)}#dashboard .app-sidebar{width:220px}}
 @media(max-width:680px){#dashboard .app-shell{display:block}#dashboard .app-sidebar{position:relative;inset:auto;width:100%;height:auto;min-height:0;overflow:visible}#dashboard .app-main{width:100%;grid-column:auto}#dashboard .app-content{width:100%;padding:22px 16px 34px}}
+
+/* Respect the hidden state when modules are swapped inside the shared workspace. */
+#dashboard #catalogView[hidden],
+#dashboard #moduleFrameWrap[hidden],
+#dashboard #dashboardHome[hidden]{display:none!important}
