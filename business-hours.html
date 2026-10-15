@@ -29,7 +29,13 @@ select,input[type=date],input[type=time],input[type=text],textarea{min-height:42
 select{min-width:0}.hint{font-size:11px;color:var(--muted);margin:8px 0 0}
 .schedule-form{display:grid;grid-template-columns:1.1fr 1fr 1fr auto;gap:12px;align-items:end;margin-top:18px}
 .schedule-list{display:grid;gap:10px;margin-top:18px}
-.schedule-day{background:#15191f;border:1px solid #343943;border-radius:10px;padding:14px}
+.schedule-day{background:#15191f;border:1px solid #343943;border-radius:10px;overflow:hidden}
+.day-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;background:transparent;border:0;color:var(--text);text-align:left;cursor:pointer;font:700 14px Arial,sans-serif}
+.day-toggle:hover{background:#202630}
+.day-toggle small{color:var(--muted);font-size:11px;font-weight:400;margin-left:8px}
+.day-chevron{font-size:19px;color:var(--rose);transition:transform .15s ease}
+.day-toggle[aria-expanded=true] .day-chevron{transform:rotate(180deg)}
+.day-content{padding:0 14px 12px;border-top:1px solid #303640}
 .schedule-day h3{font-size:14px;margin:0 0 10px}
 .schedule-entry{display:grid;grid-template-columns:1fr 1fr auto auto;gap:9px;align-items:end;padding:10px 0;border-top:1px solid #303640}
 .schedule-entry:first-of-type{border-top:0}
@@ -55,7 +61,7 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
 <div id="noticeModal" class="modal-backdrop hidden" role="presentation">
  <section id="noticeCard" class="modal-card info" role="alertdialog" aria-modal="true" aria-labelledby="noticeTitle" aria-describedby="noticeMessage">
   <h2 id="noticeTitle">Aviso del sistema</h2><p id="noticeMessage"></p>
-  <div class="modal-actions"><button class="primary" id="noticeClose" type="button">Entendido</button></div>
+  <div class="modal-actions"><button class="btn hidden" id="noticeCancel" type="button">No, volver</button><button class="primary" id="noticeConfirm" type="button">Sí, continuar</button><button class="primary" id="noticeClose" type="button">Entendido</button></div>
  </section>
 </div>
 <nav class="tabs" role="tablist" aria-label="Secciones de horarios y eventos">
@@ -102,7 +108,7 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="session-timeout.js"></script>
 <script>
 const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
-const el=id=>document.getElementById(id);let locations=[];let currentTab="store";let currentLocationId=null;let weeklyRecords=[];let events=[];let schedulesReady=false;let busy=false;
+const el=id=>document.getElementById(id);let locations=[];let currentTab="store";let currentLocationId=null;let weeklyRecords=[];let events=[];let schedulesReady=false;let busy=false;let noticeResolver=null;
 const days=[{value:1,label:"Lunes"},{value:2,label:"Martes"},{value:3,label:"Miércoles"},{value:4,label:"Jueves"},{value:5,label:"Viernes"},{value:6,label:"Sábado"},{value:0,label:"Domingo"}];
 const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function note(v){
@@ -112,13 +118,35 @@ function note(v){
  const isError=/error|no se pudo|no podés|no puedes|superpone|no se encontró|completá|elegí|esperá|sesión no activa|no tiene permisos|no hay un punto/i.test(v);
  const isSuccess=/correctamente|agregado|actualizado|eliminado|activado|desactivado|datos actualizados/i.test(v);
  const card=el("noticeCard");
+ resetNoticeButtons();
  card.className="modal-card "+(isError?"error":isSuccess?"success":"info");
  el("noticeTitle").textContent=isError?"No se pudo completar la acción":isSuccess?"Operación realizada":"Aviso del sistema";
  el("noticeMessage").textContent=v;
  el("noticeModal").classList.remove("hidden");
  el("noticeClose").focus();
 }
-function closeNotice(){el("noticeModal").classList.add("hidden")}
+function closeNotice(result=false){el("noticeModal").classList.add("hidden");if(noticeResolver){const resolve=noticeResolver;noticeResolver=null;resolve(result)}}
+function confirmNotice(message,title="¿Confirmás esta acción?"){
+ return new Promise(resolve=>{
+  if(noticeResolver)closeNotice(false);
+  noticeResolver=resolve;
+  el("noticeCard").className="modal-card info";
+  el("noticeTitle").textContent=title;
+  el("noticeMessage").textContent=message;
+  el("noticeClose").classList.add("hidden");
+  el("noticeCancel").classList.remove("hidden");
+  el("noticeConfirm").classList.remove("hidden");
+  el("noticeConfirm").textContent="Sí, guardar";
+  el("noticeModal").classList.remove("hidden");
+  el("noticeConfirm").focus();
+ });
+}
+function resetNoticeButtons(){
+ el("noticeClose").classList.remove("hidden");
+ el("noticeCancel").classList.add("hidden");
+ el("noticeConfirm").classList.add("hidden");
+ el("noticeConfirm").textContent="Sí, continuar";
+}
 function resetScheduleForm(){el("scheduleForm").reset();el("scheduleFormPanel").classList.add("hidden")}
 function showScheduleForm(){el("scheduleFormPanel").classList.remove("hidden");el("scheduleDay").focus()}
 function formatDate(v){const d=new Date(v+"T12:00:00Z");return new Intl.DateTimeFormat("es-AR",{dateStyle:"full",timeZone:"UTC"}).format(d)}
@@ -128,7 +156,8 @@ function renderWeekly(){
  el("weeklyGrid").innerHTML=days.map(day=>{
   const rows=openRows.filter(x=>x.day_of_week===day.value).sort((a,b)=>(a.opens_at||"").localeCompare(b.opens_at||""));
   if(!rows.length)return "";
-  return '<article class="schedule-day" data-schedule-day="'+day.value+'"><h3>'+day.label+'</h3>'+rows.map(row=>'<div class="schedule-entry" data-id="'+safe(row.id)+'"><div class="time-field"><label>Desde</label><input type="time" data-open value="'+safe((row.opens_at||"").slice(0,5))+'" required></div><div class="time-field"><label>Hasta</label><input type="time" data-close value="'+safe((row.closes_at||"").slice(0,5))+'" required></div><button class="btn entry-save" type="button" data-save-entry>Guardar</button><button class="danger entry-delete" type="button" data-delete-entry>Eliminar</button></div>').join("")+'</article>';
+  const entries=rows.map(row=>'<div class="schedule-entry" data-id="'+safe(row.id)+'"><div class="time-field"><label>Desde</label><input type="time" data-open value="'+safe((row.opens_at||"").slice(0,5))+'" required></div><div class="time-field"><label>Hasta</label><input type="time" data-close value="'+safe((row.closes_at||"").slice(0,5))+'" required></div><button class="btn entry-save" type="button" data-save-entry>Guardar</button><button class="danger entry-delete" type="button" data-delete-entry>Eliminar</button></div>').join("");
+  return '<article class="schedule-day" data-schedule-day="'+day.value+'"><button class="day-toggle" type="button" data-toggle-day aria-expanded="false" aria-controls="schedule-day-'+day.value+'"><span>'+day.label+'<small>'+rows.length+' '+(rows.length===1?'horario':'horarios')+'</small></span><span class="day-chevron" aria-hidden="true">⌄</span></button><div class="day-content hidden" id="schedule-day-'+day.value+'">'+entries+'</div></article>';
  }).join("")||'<div class="empty">Todavía no hay horarios configurados. Podés agregar el primero cuando quieras.</div>';
 }
 async function loadWeekly(){
@@ -162,6 +191,8 @@ async function addSchedule(e){
  e.preventDefault();if(!schedulesReady||busy){note("Esperá a que los horarios terminen de cargar.");return}
  const day=el("scheduleDay").value,open=el("scheduleOpen").value,close=el("scheduleClose").value;
  try{if(day==="")throw new Error("Elegí el día de la semana.");validateTimeRange(open,close);assertNoScheduleOverlap(Number(day),open,close)}catch(err){note(err.message);return}
+ const dayLabel=days.find(x=>x.value===Number(day)).label;
+ if(!await confirmNotice("Vas a agregar un nuevo horario para "+dayLabel+", de "+open+" a "+close+". ¿Querés guardarlo?","¿Estás seguro de guardar este horario?"))return;
  busy=true;const button=el("scheduleAdd");button.disabled=true;button.textContent="Guardando...";el("scheduleShowForm").disabled=true;el("refresh").disabled=true;
  try{
   const payload={sales_location_id:currentLocationId,schedule_type:"weekly",day_of_week:Number(day),specific_date:null,is_open:true,opens_at:open,closes_at:close};
@@ -174,7 +205,9 @@ async function addSchedule(e){
 async function saveScheduleEntry(row){
  if(busy)return;const id=row.dataset.id,open=row.querySelector("[data-open]").value,close=row.querySelector("[data-close]").value;
  try{validateTimeRange(open,close);const existing=weeklyRecords.find(x=>String(x.id)===String(id));if(!existing)throw new Error("No se encontró este horario. Actualizá la lista.");assertNoScheduleOverlap(existing.day_of_week,open,close,id)}catch(err){note(err.message);return}
- if(!weeklyRecords.some(x=>String(x.id)===String(id))){note("No se encontró este horario. Actualizá la lista.");return}
+ const current=weeklyRecords.find(x=>String(x.id)===String(id));
+ if(!current){note("No se encontró este horario. Actualizá la lista.");return}
+ if(!await confirmNotice("Vas a modificar el horario del día "+(days.find(x=>x.value===current.day_of_week)?.label||"seleccionado")+", de "+open+" a "+close+". ¿Querés guardar los cambios?","¿Estás seguro de guardar los cambios?"))return;
  busy=true;const button=row.querySelector("[data-save-entry]");button.disabled=true;button.textContent="Guardando...";el("refresh").disabled=true;
  try{
   const {data,error}=await db.from("business_hours").update({opens_at:open,closes_at:close,is_open:true}).eq("id",id).eq("sales_location_id",currentLocationId).select("id,day_of_week,is_open,opens_at,closes_at").maybeSingle();
@@ -186,7 +219,7 @@ async function saveScheduleEntry(row){
 async function deleteScheduleEntry(row){
  if(busy)return;const id=row.dataset.id,existing=weeklyRecords.find(x=>String(x.id)===String(id));if(!existing)return;
  const dayName=days.find(x=>x.value===existing.day_of_week)?.label||"este día";
- if(!window.confirm("¿Querés eliminar únicamente este horario de "+dayName+"? Los demás horarios no se modificarán."))return;
+ if(!await confirmNotice("Se eliminará únicamente este horario de "+dayName+". Los demás turnos permanecerán sin cambios. ¿Querés continuar?","¿Estás seguro de eliminar este horario?"))return;
  busy=true;const button=row.querySelector("[data-delete-entry]");button.disabled=true;el("refresh").disabled=true;
  try{
   const {error}=await db.from("business_hours").delete().eq("id",id).eq("sales_location_id",currentLocationId);if(error)throw error;
@@ -204,10 +237,18 @@ function switchTab(tab){if(busy)return;resetScheduleForm();resetEventForm();curr
 el("scheduleForm").addEventListener("submit",addSchedule);
 el("scheduleShowForm").addEventListener("click",()=>{if(!busy){resetScheduleForm();showScheduleForm()}});
 el("scheduleCancel").addEventListener("click",resetScheduleForm);
-el("noticeClose").addEventListener("click",closeNotice);
-el("noticeModal").addEventListener("click",e=>{if(e.target===el("noticeModal"))closeNotice()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!el("noticeModal").classList.contains("hidden"))closeNotice()});
-el("weeklyGrid").addEventListener("click",async e=>{const row=e.target.closest(".schedule-entry");if(!row||busy)return;if(e.target.closest("[data-save-entry]"))await saveScheduleEntry(row);if(e.target.closest("[data-delete-entry]"))await deleteScheduleEntry(row)});
+el("noticeClose").addEventListener("click",()=>closeNotice());
+el("noticeCancel").addEventListener("click",()=>closeNotice(false));
+el("noticeConfirm").addEventListener("click",()=>closeNotice(true));
+el("noticeModal").addEventListener("click",e=>{if(e.target===el("noticeModal"))closeNotice(false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!el("noticeModal").classList.contains("hidden"))closeNotice(false)});
+el("weeklyGrid").addEventListener("click",async e=>{
+ const dayButton=e.target.closest("[data-toggle-day]");
+ if(dayButton){const content=el(dayButton.getAttribute("aria-controls"));const isOpen=dayButton.getAttribute("aria-expanded")==="true";dayButton.setAttribute("aria-expanded",String(!isOpen));content.classList.toggle("hidden",isOpen);return}
+ const row=e.target.closest(".schedule-entry");if(!row||busy)return;
+ if(e.target.closest("[data-save-entry]"))await saveScheduleEntry(row);
+ if(e.target.closest("[data-delete-entry]"))await deleteScheduleEntry(row)
+});
 el("eventType").addEventListener("change",updateEventType);
 el("eventForm").addEventListener("submit",async e=>{e.preventDefault();if(busy)return;const id=el("eventId").value;const eventType=el("eventType").value;const payload={event_name:el("eventName").value.trim(),sales_location_id:Number(el("eventLocation").value),event_date:el("eventDate").value,event_type:eventType,opens_at:eventType==="special_opening"?el("eventOpen").value:null,closes_at:eventType==="special_opening"?el("eventClose").value:null,description:el("eventDescription").value.trim()||null,is_active:el("eventActive").checked};if(!payload.event_name||!payload.event_date||!payload.sales_location_id){note("Completá el nombre, el punto de venta y la fecha del evento.");return}if(eventType==="special_opening"&&(!payload.opens_at||!payload.closes_at||payload.opens_at===payload.closes_at)){note("Para una apertura especial, ingresá horas válidas de apertura y cierre.");return}if(!window.confirm(id?"¿Querés guardar los cambios de este evento?":"¿Querés crear este evento?"))return;busy=true;const button=el("eventSave");button.disabled=true;button.textContent="Guardando...";el("refresh").disabled=true;try{const result=id?await db.from("special_events").update(payload).eq("id",id).select("id").maybeSingle():await db.from("special_events").insert(payload).select("id").single();if(result.error)throw result.error;if(id&&!result.data)throw new Error("No se encontró el evento que querías actualizar.");note(id?"Evento actualizado correctamente.":"Evento creado correctamente.");resetEventForm();await loadEvents()}catch(err){console.error(err);note("No se pudo guardar el evento: "+err.message)}finally{busy=false;button.disabled=false;button.textContent=el("eventId").value?"Guardar cambios":"Guardar evento";el("refresh").disabled=false}});
 el("eventCancel").addEventListener("click",resetEventForm);
