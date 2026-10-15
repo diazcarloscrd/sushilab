@@ -1110,6 +1110,7 @@
     window.yankunAvailableProductIds = new Set(allAvailable.map(product=>String(product.id)));
     window.yankunProductMap = new Map(allAvailable.map(product=>[String(product.id),product]));
     Object.entries(cartState.items).forEach(([id,item])=>{const latest=window.yankunProductMap.get(String(id));if(latest){item.name=latest.name;item.price=Number(latest.price);item.category=latest.category_id;}});
+    if(Object.keys(cartState.items).length)renderCart();
     const featured = available[0] ? {...available[0],category_name:visibleCategories.find(c=>c.id===available[0].category_id)?.name || ''} : null;
     renderFeatured(featured);
   }
