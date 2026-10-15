@@ -71,6 +71,7 @@
     .catalog-primary{border:0;background:var(--red);color:#fff;border-radius:8px;padding:11px 15px;font:800 10px var(--sans);letter-spacing:.7px;cursor:pointer}
     .catalog-secondary{border:1px solid var(--line);background:#20242b;color:var(--text);border-radius:8px;padding:10px 14px;font:700 10px var(--sans);cursor:pointer}
     .catalog-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+    .catalog-modal-backdrop{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:20px;background:#000b;overflow-y:auto}.catalog-modal-backdrop[hidden]{display:none}.catalog-modal-card{width:min(680px,100%);max-height:90vh;overflow:auto;background:#1b2028;border:1px solid #555c68;border-radius:16px;padding:24px;box-shadow:0 22px 70px #000b}.catalog-modal-card h2{font:500 21px var(--serif);margin:0 0 18px}.catalog-modal-card .product-editor{margin:0}.catalog-danger{border-color:#743b49!important;color:#ffb3b6!important}
     .catalog-field{display:flex;flex-direction:column;gap:7px}
     .catalog-field.full{grid-column:1/-1}
     .catalog-field label{font-size:10px;margin:0;color:#c9c3c8}
@@ -194,20 +195,21 @@
       <p class="catalog-message" id="catalogMessage" role="status"></p>
       <section id="categoriesPanel" class="catalog-panel">
         <div class="catalog-panel-head"><h2>Categorías</h2><button class="catalog-primary" id="newCategory" type="button">+ Nueva categoría</button></div>
-        <form id="categoryForm" class="catalog-form" hidden>
+        <div id="categoryModal" class="catalog-modal-backdrop" hidden><section class="catalog-modal-card" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle"><h2 id="categoryModalTitle">Nueva categoría</h2>
+        <form id="categoryForm" class="catalog-form">
           <input type="hidden" id="categoryId">
           <div class="catalog-field"><label for="categoryName">Nombre</label><input id="categoryName" maxlength="80" required placeholder="Ej. Rolls clásicos"></div>
           <div class="catalog-field"><label for="categoryOrder">Posición en la lista</label><input id="categoryOrder" type="number" min="1" step="1" value="1"><span class="catalog-row-meta">Si indicás una posición mayor a las disponibles, la categoría se ubicará al final.</span></div>
           <div class="catalog-field full"><label for="categoryDescription">Descripción (opcional)</label><textarea id="categoryDescription" maxlength="500" placeholder="Una breve descripción de la categoría"></textarea></div>
           <div class="catalog-form-actions"><button class="catalog-secondary" id="cancelCategory" type="button">Cancelar</button><button class="catalog-primary" type="submit">Guardar categoría</button></div>
-        </form>
+        </form></section></div>
         <input class="category-search" id="categorySearch" type="search" placeholder="Buscar una categoría..." aria-label="Buscar categorías">
         <div class="catalog-list" id="categoryList"><div class="catalog-empty">Cargando categorías...</div></div>
       </section>
       <section id="productsPanel" class="catalog-panel" hidden>
         <div class="catalog-panel-head"><div><h2>Productos</h2><p class="catalog-muted">Elegí cómo querés visualizar y administrar tus productos.</p></div><button class="catalog-primary" id="newProduct" type="button">+ Nuevo producto</button></div>
         <div class="product-toolbar"><input id="productSearch" type="search" placeholder="Buscar producto..." aria-label="Buscar productos"><select id="productCategoryFilter" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select><select id="productStatusFilter" aria-label="Filtrar por disponibilidad"><option value="">Todos los estados</option><option value="available">Disponibles</option><option value="paused">Pausados</option></select><div class="view-switch" role="group" aria-label="Vista de productos"><button type="button" data-product-view="cards" aria-pressed="true">▦ Tarjetas</button><button type="button" data-product-view="rows" aria-pressed="false">☷ Filas</button></div></div>
-        <form id="productForm" class="product-editor" hidden><h3 class="product-editor-title" id="productFormTitle">Nuevo producto</h3>
+        <div id="productModal" class="catalog-modal-backdrop" hidden><section class="catalog-modal-card" role="dialog" aria-modal="true" aria-labelledby="productFormTitle"><form id="productForm" class="product-editor"><h3 class="product-editor-title" id="productFormTitle">Nuevo producto</h3>
           <input type="hidden" id="productId">
           <div class="catalog-field"><label for="productName">Nombre</label><input id="productName" maxlength="120" required placeholder="Ej. Philadelphia roll"></div>
           <div class="catalog-field"><label for="productPrice">Precio (ARS)</label><input id="productPrice" type="number" min="0" step="0.01" required placeholder="Ej. 12500"></div>
@@ -217,7 +219,7 @@
           <div class="catalog-field full"><label for="productImageFile">Foto del producto</label><input id="productImageFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="catalog-upload-help">Elegí una foto desde esta computadora. Formatos JPG, PNG o WEBP; máximo 5 MB.</span><div class="catalog-upload-preview" id="productImagePreview"></div><input id="productImage" type="hidden"></div>
           <label class="catalog-check full"><input id="productAvailable" type="checkbox" checked> Producto disponible para la venta</label>
           <div class="catalog-form-actions"><button class="catalog-secondary" id="cancelProduct" type="button">Cancelar</button><button class="catalog-primary" type="submit">Guardar producto</button></div>
-        </form>
+        </form></section></div>
         <div class="product-list cards" id="productList"><div class="catalog-empty">Cargando productos...</div></div>
       </section>
     </main>
@@ -235,6 +237,7 @@
       toggleButton.setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
     });
   </script>
+  <div id="catalogConfirmModal" class="catalog-modal-backdrop" hidden><section class="catalog-modal-card" style="width:min(440px,100%)" role="alertdialog" aria-modal="true"><h2 id="catalogConfirmTitle">Confirmar acción</h2><p id="catalogConfirmMessage" class="catalog-muted"></p><div class="catalog-form-actions"><button class="catalog-secondary" id="catalogConfirmNo" type="button">No, volver</button><button class="catalog-primary" id="catalogConfirmYes" type="button">Sí, continuar</button></div></section></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="session-timeout.js"></script>
   <script>
@@ -462,7 +465,7 @@
         return `
         <article class="catalog-row ${String(category.id) === String(selectedCategoryId) ? 'category-selected' : ''}" data-category-row="${category.id}" tabindex="0" aria-pressed="${String(category.id) === String(selectedCategoryId)}" title="Seleccionar categoría">
           <div class="catalog-row-main"><div><p class="catalog-row-name">${escapeCatalog(category.name)}</p><div class="catalog-row-meta"><span class="catalog-position">${index + 1} de ${catalogCategories.length}</span>${category.is_active ? 'Activa' : 'Inactiva'}</div>${category.description ? `<div class="catalog-row-meta">${escapeCatalog(category.description)}</div>` : ''}</div></div>
-          <div class="catalog-row-actions"><button class="category-move" type="button" data-category-up="${category.id}" aria-label="Subir ${escapeCatalog(category.name)}" title="Subir categoría" ${index === 0 ? 'disabled' : ''}>↑</button><button class="category-move" type="button" data-category-down="${category.id}" aria-label="Bajar ${escapeCatalog(category.name)}" title="Bajar categoría" ${index === catalogCategories.length - 1 ? 'disabled' : ''}>↓</button><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button></div>
+          <div class="catalog-row-actions"><button class="category-move" type="button" data-category-up="${category.id}" aria-label="Subir ${escapeCatalog(category.name)}" title="Subir categoría" ${index === 0 ? 'disabled' : ''}>↑</button><button class="category-move" type="button" data-category-down="${category.id}" aria-label="Bajar ${escapeCatalog(category.name)}" title="Bajar categoría" ${index === catalogCategories.length - 1 ? 'disabled' : ''}>↓</button><button type="button" data-category-edit="${category.id}">Editar</button><button type="button" data-category-toggle="${category.id}">${category.is_active ? 'Desactivar' : 'Activar'}</button><button class="catalog-danger" type="button" data-category-delete="${category.id}">Eliminar</button></div>
         </article>`;
       }).join('') : '<div class="catalog-empty">No se encontraron categorías con ese nombre.</div>';
     }
@@ -510,7 +513,7 @@
         const photo = product.image_url ? '<img class="' + (productView === 'cards' ? 'product-card-image' : 'catalog-thumb') + '" src="' + escapeCatalog(product.image_url) + '" alt="' + escapeCatalog(product.name) + '" loading="lazy" onerror="this.style.display=\'none\'">' : (productView === 'cards' ? '<div class="product-card-placeholder">Sin fotografía</div>' : '<div class="catalog-thumb"></div>');
         const price = '$ ' + Number(product.price).toLocaleString('es-AR');
         const status = product.is_available ? '<span class="product-status">● Disponible</span>' : '<span class="product-status paused">● Pausado</span>';
-        if (productView === 'cards') return '<article class="product-card">' + photo + '<div class="product-card-body"><p class="product-card-name">' + escapeCatalog(product.name) + '</p><p class="product-card-category">' + category + '</p><p class="product-card-price">' + price + '</p>' + status + (product.description ? '<p class="catalog-row-meta">' + escapeCatalog(product.description) + '</p>' : '') + '<div class="product-card-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button></div></div></article>';
+        if (productView === 'cards') return '<article class="product-card">' + photo + '<div class="product-card-body"><p class="product-card-name">' + escapeCatalog(product.name) + '</p><p class="product-card-category">' + category + '</p><p class="product-card-price">' + price + '</p>' + status + (product.description ? '<p class="catalog-row-meta">' + escapeCatalog(product.description) + '</p>' : '') + '<div class="product-card-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></div></article>';
         return '<article class="catalog-row"><div class="catalog-row-main">' + photo + '<div><p class="catalog-row-name">' + escapeCatalog(product.name) + '</p><div class="catalog-row-meta">' + category + ' · ' + price + ' · ' + (product.is_available ? 'Disponible' : 'Pausado') + '</div>' + (product.description ? '<div class="catalog-row-meta">' + escapeCatalog(product.description) + '</div>' : '') + '</div></div><div class="catalog-row-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button></div></article>';
       }).join('');
     }
@@ -564,15 +567,28 @@
 
     const categoryForm = document.getElementById('categoryForm');
     const productForm = document.getElementById('productForm');
+    async function confirmCatalogAction(message, title, label) {
+      return new Promise((resolve) => {
+        const backdrop = document.getElementById('catalogConfirmModal');
+        document.getElementById('catalogConfirmTitle').textContent = title;
+        document.getElementById('catalogConfirmMessage').textContent = message;
+        const yes = document.getElementById('catalogConfirmYes'), no = document.getElementById('catalogConfirmNo');
+        yes.textContent = label; backdrop.hidden = false;
+        const finish = (value) => { backdrop.hidden = true; yes.removeEventListener('click', onYes); no.removeEventListener('click', onNo); resolve(value); };
+        const onYes = () => finish(true), onNo = () => finish(false);
+        yes.addEventListener('click', onYes); no.addEventListener('click', onNo);
+      });
+    }
 
     document.getElementById('newCategory').addEventListener('click', () => {
       categoryForm.reset();
       document.getElementById('categoryId').value = '';
       document.getElementById('categoryOrder').value = String(catalogCategories.length + 1);
-      categoryForm.hidden = false;
+      document.getElementById('categoryModal').hidden = false;
+      document.getElementById('categoryModalTitle').textContent = 'Nueva categoría';
       document.getElementById('categoryName').focus();
     });
-    document.getElementById('cancelCategory').addEventListener('click', () => { categoryForm.hidden = true; categoryForm.reset(); });
+    document.getElementById('cancelCategory').addEventListener('click', () => { document.getElementById('categoryModal').hidden = true; categoryForm.reset(); });
     document.getElementById('newProduct').addEventListener('click', () => {
       productForm.reset();
       document.getElementById('productId').value = '';
@@ -582,10 +598,10 @@
       document.getElementById('productImageFile').value = '';
       document.getElementById('productImagePreview').innerHTML = '';
       populateProductCategories();
-      productForm.hidden = false;
+      document.getElementById('productModal').hidden = false;
       document.getElementById('productName').focus();
     });
-    document.getElementById('cancelProduct').addEventListener('click', () => { productForm.hidden = true; productForm.reset(); document.getElementById('productImagePreview').innerHTML = ''; });
+    document.getElementById('cancelProduct').addEventListener('click', () => { document.getElementById('productModal').hidden = true; productForm.reset(); document.getElementById('productImagePreview').innerHTML = ''; });
     document.getElementById('productImageFile').addEventListener('change', (event) => {
       const file = event.target.files?.[0], preview = document.getElementById('productImagePreview');
       if (!file) { preview.innerHTML = ''; return; }
@@ -599,6 +615,7 @@
       const downButton = event.target.closest('[data-category-down]');
       const editButton = event.target.closest('[data-category-edit]');
       const toggleButton = event.target.closest('[data-category-toggle]');
+      const deleteButton = event.target.closest('[data-category-delete]');
       const row = event.target.closest('[data-category-row]');
       if (row) selectCategory(row.dataset.categoryRow);
       if (upButton || downButton) {
@@ -631,8 +648,22 @@
         document.getElementById('categoryName').value = category.name;
         document.getElementById('categoryDescription').value = category.description || '';
         document.getElementById('categoryOrder').value = category.sort_order ?? 1;
-        categoryForm.hidden = false;
+        document.getElementById('categoryModalTitle').textContent = 'Editar categoría';
+        document.getElementById('categoryModal').hidden = false;
         document.getElementById('categoryName').focus();
+      }
+      if (deleteButton) {
+        const category = catalogCategories.find((item) => String(item.id) === deleteButton.dataset.categoryDelete);
+        if (!category) return;
+        deleteButton.disabled = true;
+        const check = await client.from('products').select('id', { count: 'exact', head: true }).eq('category_id', category.id);
+        if (check.error) { showCatalogMessage('No se pudo comprobar si la categoría tiene productos asociados. No se realizó ningún cambio.'); deleteButton.disabled = false; return; }
+        if (check.count > 0) { showCatalogMessage('No se puede eliminar «' + category.name + '» porque tiene ' + check.count + ' producto(s) asociado(s). Primero reasigná esos productos o eliminálos.'); deleteButton.disabled = false; return; }
+        if (!await confirmCatalogAction('La categoría «' + category.name + '» se eliminará permanentemente. Esta acción no se puede deshacer.', '¿Eliminar categoría?', 'Sí, eliminar')) { deleteButton.disabled = false; return; }
+        const result = await client.from('categories').delete().eq('id', category.id).select('id').maybeSingle();
+        if (result.error || !result.data) { showCatalogMessage('No se pudo eliminar la categoría. No se realizó ningún cambio.'); deleteButton.disabled = false; return; }
+        if (String(selectedCategoryId) === String(category.id)) selectedCategoryId = null;
+        await loadCatalog(); showCatalogMessage('Categoría eliminada correctamente.'); return;
       }
       if (toggleButton) {
         const category = catalogCategories.find((item) => String(item.id) === toggleButton.dataset.categoryToggle);
@@ -647,6 +678,7 @@
     document.getElementById('productList').addEventListener('click', async (event) => {
       const editButton = event.target.closest('[data-product-edit]');
       const toggleButton = event.target.closest('[data-product-toggle]');
+      const deleteButton = event.target.closest('[data-product-delete]');
       if (editButton) {
         const product = catalogProducts.find((item) => String(item.id) === editButton.dataset.productEdit);
         if (!product) return;
@@ -661,8 +693,17 @@
         document.getElementById('productImageFile').value = '';
         document.getElementById('productImagePreview').innerHTML = product.image_url ? `<img src="${escapeCatalog(product.image_url)}" alt="Foto actual"><span>Foto actual. Si elegís otra, se reemplazará.</span>` : '';
         document.getElementById('productAvailable').checked = product.is_available;
-        productForm.hidden = false;
+        document.getElementById('productModal').hidden = false;
         document.getElementById('productName').focus();
+      }
+      if (deleteButton) {
+        const product = catalogProducts.find((item) => String(item.id) === deleteButton.dataset.productDelete);
+        if (!product) return;
+        if (!await confirmCatalogAction('«' + product.name + '» se eliminará permanentemente del catálogo. Esta acción no se puede deshacer.', '¿Eliminar producto?', 'Sí, eliminar')) return;
+        deleteButton.disabled = true;
+        const result = await client.from('products').delete().eq('id', product.id);
+        if (result.error) { showCatalogMessage('No se pudo eliminar el producto: ' + result.error.message); deleteButton.disabled = false; return; }
+        await loadCatalog(); showCatalogMessage('Producto eliminado correctamente.'); return;
       }
       if (toggleButton) {
         const product = catalogProducts.find((item) => String(item.id) === toggleButton.dataset.productToggle);
@@ -719,7 +760,7 @@
         await loadCatalog();
         return;
       }
-      categoryForm.hidden = true;
+      document.getElementById('categoryModal').hidden = true;
       categoryForm.reset();
       await loadCatalog();
       if (selectedCategoryId) selectCategory(selectedCategoryId, true);
@@ -766,7 +807,7 @@
         : await client.from('products').insert(payload);
       saveButton.disabled = false;
       if (result.error) { showCatalogMessage('No se pudo guardar el producto: ' + result.error.message); return; }
-      productForm.hidden = true;
+      document.getElementById('productModal').hidden = true;
       productForm.reset();
       document.getElementById('productImagePreview').innerHTML = '';
       await loadCatalog();
