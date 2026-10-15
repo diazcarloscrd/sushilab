@@ -98,6 +98,25 @@
     .catalog-empty{padding:24px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed #454954;border-radius:9px}
     .catalog-message{margin:0 0 16px;padding:12px 14px;border:1px solid #57434a;background:#291c22;color:#e3cbd0;border-radius:8px;font-size:11px;line-height:1.6}
     .catalog-message:empty{display:none}
+    .product-toolbar{display:grid;grid-template-columns:minmax(180px,1.5fr) repeat(2,minmax(145px,1fr)) auto;gap:10px;align-items:center;margin:0 0 18px}
+    .product-toolbar input,.product-toolbar select{width:100%;height:42px;border:1px solid #41434b;border-radius:8px;background:#10141a;color:var(--text);padding:0 12px;font:500 11px var(--sans)}
+    .view-switch{display:flex;gap:5px;padding:4px;background:#10141a;border:1px solid var(--line);border-radius:9px}
+    .view-switch button{border:0;border-radius:6px;background:transparent;color:var(--muted);padding:8px 10px;font:700 10px var(--sans);cursor:pointer}
+    .view-switch button.active{background:#39252c;color:var(--rose)}
+    .product-list{display:grid;gap:12px}.product-list.cards{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+    .product-card{overflow:hidden;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,#1c2026,#15191f);transition:border-color .2s,transform .2s}
+    .product-card:hover{border-color:#80515a;transform:translateY(-2px)}
+    .product-card-image,.product-card-placeholder{width:100%;height:170px;display:block;object-fit:cover;background:#242832}
+    .product-card-placeholder{display:grid;place-items:center;color:#777e8b;font-size:11px}
+    .product-card-body{padding:14px}.product-card-name{font-size:13px;font-weight:800;margin:0 0 5px}
+    .product-card-category{font-size:10px;color:var(--muted);margin:0 0 10px}.product-card-price{font:700 19px var(--serif);color:var(--rose);margin:0 0 10px}
+    .product-status{display:inline-flex;font-size:9px;font-weight:800;border-radius:20px;padding:5px 8px;background:#183329;color:#9be0bd}.product-status.paused{background:#343039;color:#b8b2bd}
+    .product-card-actions{display:flex;gap:7px;margin-top:13px}.product-card-actions button{flex:1;border:1px solid var(--line);background:#20242b;color:var(--text);border-radius:7px;padding:9px 8px;font:700 9px var(--sans);cursor:pointer}.product-card-actions button:first-child{border-color:#80515a;color:var(--rose)}
+    .product-list.rows .catalog-row{min-width:0}.product-list.rows .catalog-thumb{width:62px;height:62px;flex-basis:62px;border-radius:9px}
+    .product-editor{background:linear-gradient(145deg,#1c2026,#15191f);border:1px solid #57434a;border-radius:12px;padding:20px;margin-bottom:18px}.product-editor-title{font:500 19px var(--serif);margin:0 0 17px}
+    .catalog-upload-preview img{width:116px;height:116px;object-fit:cover;border-radius:10px}.catalog-upload-preview{padding:10px;border:1px dashed #454954;border-radius:9px;min-height:80px}
+    @media(max-width:760px){.product-toolbar{grid-template-columns:1fr 1fr}.product-toolbar input{grid-column:1/-1}.view-switch{grid-column:1/-1;justify-content:flex-start}}
+    @media(max-width:480px){.product-list.cards{grid-template-columns:1fr}.product-card-image,.product-card-placeholder{height:200px}}
     @media(max-width:650px){.catalog-head{align-items:flex-start;flex-direction:column}.catalog-form{grid-template-columns:1fr}.catalog-field.full,.catalog-form-actions{grid-column:1}.catalog-row{align-items:flex-start;flex-direction:column}.catalog-row-actions{width:100%;justify-content:flex-start}}
 
   </style>
@@ -186,8 +205,9 @@
         <div class="catalog-list" id="categoryList"><div class="catalog-empty">Cargando categorías...</div></div>
       </section>
       <section id="productsPanel" class="catalog-panel" hidden>
-        <div class="catalog-panel-head"><h2>Productos</h2><button class="catalog-primary" id="newProduct" type="button">+ Nuevo producto</button></div>
-        <form id="productForm" class="catalog-form" hidden>
+        <div class="catalog-panel-head"><div><h2>Productos</h2><p class="catalog-muted">Elegí cómo querés visualizar y administrar tus productos.</p></div><button class="catalog-primary" id="newProduct" type="button">+ Nuevo producto</button></div>
+        <div class="product-toolbar"><input id="productSearch" type="search" placeholder="Buscar producto..." aria-label="Buscar productos"><select id="productCategoryFilter" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option></select><select id="productStatusFilter" aria-label="Filtrar por disponibilidad"><option value="">Todos los estados</option><option value="available">Disponibles</option><option value="paused">Pausados</option></select><div class="view-switch" role="group" aria-label="Vista de productos"><button type="button" data-product-view="cards" aria-pressed="true">▦ Tarjetas</button><button type="button" data-product-view="rows" aria-pressed="false">☷ Filas</button></div></div>
+        <form id="productForm" class="product-editor" hidden><h3 class="product-editor-title" id="productFormTitle">Nuevo producto</h3>
           <input type="hidden" id="productId">
           <div class="catalog-field"><label for="productName">Nombre</label><input id="productName" maxlength="120" required placeholder="Ej. Philadelphia roll"></div>
           <div class="catalog-field"><label for="productPrice">Precio (ARS)</label><input id="productPrice" type="number" min="0" step="0.01" required placeholder="Ej. 12500"></div>
@@ -198,7 +218,7 @@
           <label class="catalog-check full"><input id="productAvailable" type="checkbox" checked> Producto disponible para la venta</label>
           <div class="catalog-form-actions"><button class="catalog-secondary" id="cancelProduct" type="button">Cancelar</button><button class="catalog-primary" type="submit">Guardar producto</button></div>
         </form>
-        <div class="catalog-list" id="productList"><div class="catalog-empty">Cargando productos...</div></div>
+        <div class="product-list cards" id="productList"><div class="catalog-empty">Cargando productos...</div></div>
       </section>
     </main>
   </section>
@@ -372,6 +392,7 @@
       }
       catalogCategories = categoryResult.data || [];
       catalogProducts = productResult.data || [];
+      populateProductCategoryFilter();
       renderCategories();
       renderProducts();
       populateProductCategories();
@@ -420,20 +441,45 @@
       if ([...select.options].some((option) => option.value === selected)) select.value = selected;
     }
 
-    function renderProducts() {
+    let productView = 'cards';
+    let productSearchTerm = '';
+    let productCategoryFilter = '';
+    let productStatusFilter = '';
+
+    function setProductView(view, persist = true) {
+      productView = view === 'rows' ? 'rows' : 'cards';
       const list = document.getElementById('productList');
-      if (!catalogProducts.length) {
-        list.innerHTML = '<div class="catalog-empty">Todavía no hay productos. Cuando cargues el primero, aparecerá en esta lista.</div>';
-        return;
-      }
-      const categoryNames = new Map(catalogCategories.map((category) => [String(category.id), category.name]));
-      list.innerHTML = catalogProducts.map((product) => `
-        <article class="catalog-row">
-          <div class="catalog-row-main">${product.image_url ? `<img class="catalog-thumb" src="${escapeCatalog(product.image_url)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '<div class="catalog-thumb"></div>'}<div><p class="catalog-row-name">${escapeCatalog(product.name)}</p><div class="catalog-row-meta">${escapeCatalog(categoryNames.get(String(product.category_id)) || 'Sin categoría')} · $ ${Number(product.price).toLocaleString('es-AR')} · ${product.is_available ? 'Disponible' : 'Pausado'}</div>${product.description ? `<div class="catalog-row-meta">${escapeCatalog(product.description)}</div>` : ''}</div></div>
-          <div class="catalog-row-actions"><button type="button" data-product-edit="${product.id}">Editar</button><button type="button" data-product-toggle="${product.id}">${product.is_available ? 'Pausar' : 'Activar'}</button></div>
-        </article>`).join('');
+      list.classList.toggle('cards', productView === 'cards');
+      list.classList.toggle('rows', productView === 'rows');
+      document.querySelectorAll('[data-product-view]').forEach((button) => {
+        const active = button.dataset.productView === productView;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      if (persist) { try { localStorage.setItem('yankun-product-view', productView); } catch (_) {} }
     }
 
+    function populateProductCategoryFilter() {
+      const select = document.getElementById('productCategoryFilter');
+      select.innerHTML = '<option value="">Todas las categorías</option>' + catalogCategories.map((category) => '<option value="' + category.id + '">' + escapeCatalog(category.name) + '</option>').join('');
+      select.value = productCategoryFilter;
+    }
+
+    function renderProducts() {
+      const list = document.getElementById('productList');
+      if (!catalogProducts.length) { list.innerHTML = '<div class="catalog-empty">Todavía no hay productos. Cuando cargues el primero, aparecerá en esta lista.</div>'; return; }
+      const categoryNames = new Map(catalogCategories.map((category) => [String(category.id), category.name]));
+      const filtered = catalogProducts.filter((product) => product.name.toLocaleLowerCase('es').includes(productSearchTerm) && (!productCategoryFilter || String(product.category_id || '') === productCategoryFilter) && (!productStatusFilter || (productStatusFilter === 'available' ? product.is_available : !product.is_available)));
+      if (!filtered.length) { list.innerHTML = '<div class="catalog-empty">No hay productos que coincidan con esos filtros.</div>'; return; }
+      list.innerHTML = filtered.map((product) => {
+        const category = escapeCatalog(categoryNames.get(String(product.category_id)) || 'Sin categoría');
+        const photo = product.image_url ? '<img class="' + (productView === 'cards' ? 'product-card-image' : 'catalog-thumb') + '" src="' + escapeCatalog(product.image_url) + '" alt="' + escapeCatalog(product.name) + '" loading="lazy" onerror="this.style.display=\'none\'">' : (productView === 'cards' ? '<div class="product-card-placeholder">Sin fotografía</div>' : '<div class="catalog-thumb"></div>');
+        const price = '$ ' + Number(product.price).toLocaleString('es-AR');
+        const status = product.is_available ? '<span class="product-status">● Disponible</span>' : '<span class="product-status paused">● Pausado</span>';
+        if (productView === 'cards') return '<article class="product-card">' + photo + '<div class="product-card-body"><p class="product-card-name">' + escapeCatalog(product.name) + '</p><p class="product-card-category">' + category + '</p><p class="product-card-price">' + price + '</p>' + status + (product.description ? '<p class="catalog-row-meta">' + escapeCatalog(product.description) + '</p>' : '') + '<div class="product-card-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button></div></div></article>';
+        return '<article class="catalog-row"><div class="catalog-row-main">' + photo + '<div><p class="catalog-row-name">' + escapeCatalog(product.name) + '</p><div class="catalog-row-meta">' + category + ' · ' + price + ' · ' + (product.is_available ? 'Disponible' : 'Pausado') + '</div>' + (product.description ? '<div class="catalog-row-meta">' + escapeCatalog(product.description) + '</div>' : '') + '</div></div><div class="catalog-row-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button></div></article>';
+      }).join('');
+    }
     function openCatalog() {
       dashboard.hidden = true;
       catalogView.hidden = false;
@@ -471,6 +517,11 @@
       submitButton.textContent = 'Ingresar';
     });
     document.getElementById('reloadCatalog').addEventListener('click', () => loadCatalog());
+    document.querySelectorAll('[data-product-view]').forEach((button) => button.addEventListener('click', () => setProductView(button.dataset.productView)));
+    document.getElementById('productSearch').addEventListener('input', (event) => { productSearchTerm = event.target.value.trim().toLocaleLowerCase('es'); renderProducts(); });
+    document.getElementById('productCategoryFilter').addEventListener('change', (event) => { productCategoryFilter = event.target.value; renderProducts(); });
+    document.getElementById('productStatusFilter').addEventListener('change', (event) => { productStatusFilter = event.target.value; renderProducts(); });
+    try { setProductView(localStorage.getItem('yankun-product-view') || 'cards', false); } catch (_) { setProductView('cards', false); }
     document.getElementById('categorySearch').addEventListener('input', (event) => { categorySearchTerm = event.target.value.trim().toLocaleLowerCase('es'); renderCategories(); });
     document.querySelectorAll('[data-catalog-tab]').forEach((button) => {
       button.addEventListener('click', () => setCatalogTab(button.dataset.catalogTab));
@@ -490,6 +541,7 @@
     document.getElementById('newProduct').addEventListener('click', () => {
       productForm.reset();
       document.getElementById('productId').value = '';
+      document.getElementById('productFormTitle').textContent = 'Nuevo producto';
       document.getElementById('productOrder').value = '0';
       document.getElementById('productAvailable').checked = true;
       document.getElementById('productImageFile').value = '';
@@ -564,6 +616,7 @@
         const product = catalogProducts.find((item) => String(item.id) === editButton.dataset.productEdit);
         if (!product) return;
         document.getElementById('productId').value = product.id;
+        document.getElementById('productFormTitle').textContent = 'Editar producto';
         document.getElementById('productName').value = product.name;
         document.getElementById('productPrice').value = product.price;
         document.getElementById('productCategory').value = product.category_id ?? '';
