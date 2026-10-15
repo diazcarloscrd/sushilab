@@ -670,6 +670,10 @@
             .panel{padding:15px!important;border-radius:13px!important}
           }
         `;
+        const fontLink = doc.createElement("link");
+        fontLink.rel = "stylesheet";
+        fontLink.href = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Serif:ital,wght@0,400;0,500;0,700;1,400&display=swap";
+        doc.head.appendChild(fontLink);
         doc.head.appendChild(style);
         const resize = () => {
           const height = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, 900);
