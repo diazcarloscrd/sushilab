@@ -1109,8 +1109,9 @@
       const open=!!start&&!!end&&now.minutes>=a&&now.minutes<b;
       return {open,text:open?'Abierto por evento · hasta '+end:'Apertura especial · '+(start||'horario pendiente')+' a '+(end||'')};
     }
-    const rows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day&&item.is_open);
-    if (!rows.length) return {open:false,text:'Horario no configurado o cerrado hoy'};
+    const dayRows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day);
+    const rows=dayRows.filter(item=>item.is_open);
+    if (!rows.length) return {open:false,text:dayRows.length?'Cerrado hoy':'Horario no configurado'};
     const current=rows.find(row=>{
       const start=row.opens_at?.slice(0,5),end=row.closes_at?.slice(0,5);
       if(!start||!end)return false;
@@ -1126,7 +1127,7 @@
     const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
     const parts=days.map((day,index)=>{
       const rows=schedule.weekly.filter(item=>Number(item.day_of_week)===index&&item.is_open);
-      if(!rows.length)return day+': cerrado';
+      if(!rows.length)return schedule.weekly.some(item=>Number(item.day_of_week)===index)?day+': cerrado':day+': sin configurar';
       return day+': '+rows.map(row=>(row.opens_at||'').slice(0,5)+'–'+(row.closes_at||'').slice(0,5)).join(', ');
     });
     return schedule.weekly.some(item=>item.is_open)?parts.join(' · '):'Horarios pendientes de configuración';
@@ -1176,7 +1177,10 @@
       db.from('business_hours').select('sales_location_id,schedule_type,day_of_week,specific_date,is_open,opens_at,closes_at').eq('sales_location_id',locationId),
       db.from('special_events').select('event_date,event_type,opens_at,closes_at').eq('sales_location_id',locationId).eq('is_active',true)
     ]);
-    if (hoursResult.error || specialResult.error) { console.warn('No se pudo sincronizar el horario público.'); return; }
+    if (hoursResult.error || specialResult.error) {
+      console.warn('No se pudo sincronizar el horario público.',hoursResult.error,specialResult.error);
+      schedule.weekly=[];schedule.special=[];scheduleKnown=true;updateScheduleUI();return;
+    }
     schedule.weekly=(hoursResult.data||[]).filter(x=>x.schedule_type==='weekly');
     schedule.special=(specialResult.data||[]);
     scheduleKnown=true;
