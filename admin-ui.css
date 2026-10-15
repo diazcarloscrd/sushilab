@@ -87,7 +87,7 @@ body.dashboard-mode #dashboard{background:radial-gradient(ellipse at 84% 2%,var(
 .app-content{max-width:none;width:100%;padding:clamp(28px,3.5vw,54px)}
 .module-frame-wrap{min-width:0;width:100%;border-radius:18px}
 .module-frame-wrap iframe{width:100%;max-width:100%;border:0;border-radius:16px;background:transparent}
-#moduleFrameWrap{background:transparent}
+#moduleFrameWrap{min-height:calc(100vh - 76px);background:radial-gradient(ellipse at 84% 0%,rgba(225,29,72,.13),transparent 36%),radial-gradient(ellipse at 8% 52%,rgba(88,103,139,.09),transparent 42%),var(--yk-bg)!important}
 #catalogView{background:radial-gradient(ellipse at 84% 0%,rgba(225,29,72,.13),transparent 36%),radial-gradient(ellipse at 8% 52%,rgba(88,103,139,.09),transparent 42%),var(--yk-bg)!important}
 #catalogView .product-card{background:linear-gradient(145deg,#202936,#151b24);border-color:rgba(239,232,226,.11)}
 #catalogView .product-card:hover{border-color:#87505b;box-shadow:0 16px 38px rgba(0,0,0,.2)}
