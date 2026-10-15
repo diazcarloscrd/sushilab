@@ -387,7 +387,7 @@
     const catalogView = document.getElementById('catalogView');
     const catalogMessage = document.getElementById('catalogMessage');
     let catalogCategories = [];
-    let catalogProducts = [];
+    let catalogProducts = [];\n    let cartOfferProductId = null;
     let selectedCategoryId = null;
     let categorySearchTerm = '';
 
@@ -420,17 +420,20 @@
 
     async function loadCatalog() {
       showCatalogMessage('Actualizando información desde Supabase...');
-      const [categoryResult, productResult] = await Promise.all([
+      const [categoryResult, productResult, settingsResult] = await Promise.all([
         client.from('categories').select('id,name,slug,description,sort_order,is_active').order('sort_order').order('name'),
-        client.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').order('sort_order').order('name')
+        client.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').order('sort_order').order('name'),
+        client.from('business_settings').select('value').eq('key', 'public_site').maybeSingle()
       ]);
-      if (categoryResult.error || productResult.error) {
-        console.error('Error cargando catálogo:', categoryResult.error, productResult.error);
-        showCatalogMessage('No se pudo cargar el catálogo. Verificá que la sesión siga activa e intentá actualizar. Si persiste, revisaremos los permisos.');
+      if (categoryResult.error || productResult.error || settingsResult.error) {
+        console.error('Error cargando catálogo/configuración:', categoryResult.error, productResult.error, settingsResult.error);
+        showCatalogMessage('No se pudo cargar el catálogo y su configuración comercial. Verificá la sesión e intentá actualizar.');
         return;
       }
       catalogCategories = categoryResult.data || [];
       catalogProducts = productResult.data || [];
+      const publicSettings = settingsResult.data?.value || {};
+      cartOfferProductId = publicSettings.upsell_enabled === false ? null : String(publicSettings.upsell_product_id || '');
       populateProductCategoryFilter();
       renderCategories();
       renderProducts();
@@ -514,9 +517,12 @@
         const category = escapeCatalog(categoryNames.get(String(product.category_id)) || 'Sin categoría');
         const photo = product.image_url ? '<img class="' + (productView === 'cards' ? 'product-card-image' : 'catalog-thumb') + '" src="' + escapeCatalog(product.image_url) + '" alt="' + escapeCatalog(product.name) + '" loading="lazy" onerror="this.style.display=\'none\'">' : (productView === 'cards' ? '<div class="product-card-placeholder">Sin fotografía</div>' : '<div class="catalog-thumb"></div>');
         const price = '$ ' + Number(product.price).toLocaleString('es-AR');
+        const isCartOffer = cartOfferProductId !== null && String(product.id) === cartOfferProductId;
         const status = product.is_available ? '<span class="product-status">● Disponible</span>' : '<span class="product-status paused">● Pausado</span>';
-        if (productView === 'cards') return '<article class="product-card">' + photo + '<div class="product-card-body"><p class="product-card-name">' + escapeCatalog(product.name) + '</p><p class="product-card-category">' + category + '</p><p class="product-card-price">' + price + '</p>' + status + (product.description ? '<p class="catalog-row-meta">' + escapeCatalog(product.description) + '</p>' : '') + '<div class="product-card-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></div></article>';
-        return '<article class="catalog-row"><div class="catalog-row-main">' + photo + '<div><p class="catalog-row-name">' + escapeCatalog(product.name) + '</p><div class="catalog-row-meta">' + category + ' · ' + price + ' · ' + (product.is_available ? 'Disponible' : 'Pausado') + '</div>' + (product.description ? '<div class="catalog-row-meta">' + escapeCatalog(product.description) + '</div>' : '') + '</div></div><div class="catalog-row-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></article>';
+        const offerBadge = isCartOffer ? '<span class="cart-offer-badge">✦ SUGERENCIA DEL CARRITO</span>' : '';
+        const offerNote = isCartOffer ? '<p class="cart-offer-note">Este producto aparece como venta sugerida junto al carrito en la carta pública. No forma parte de la grilla habitual del catálogo.</p>' : '';
+        if (productView === 'cards') return '<article class="product-card ' + (isCartOffer ? 'is-cart-offer' : '') + '">' + photo + '<div class="product-card-body">' + offerBadge + '<p class="product-card-name">' + escapeCatalog(product.name) + '</p><p class="product-card-category">' + category + '</p><p class="product-card-price">' + price + '</p>' + status + offerNote + (product.description ? '<p class="catalog-row-meta">' + escapeCatalog(product.description) + '</p>' : '') + '<div class="product-card-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></div></article>';
+        return '<article class="catalog-row ' + (isCartOffer ? 'is-cart-offer' : '') + '"><div class="catalog-row-main">' + photo + '<div>' + offerBadge + '<p class="catalog-row-name">' + escapeCatalog(product.name) + '</p><div class="catalog-row-meta">' + category + ' · ' + price + ' · ' + (product.is_available ? 'Disponible' : 'Pausado') + '</div>' + offerNote + (product.description ? '<div class="catalog-row-meta">' + escapeCatalog(product.description) + '</div>' : '') + '</div></div><div class="catalog-row-actions"><button type="button" data-product-edit="' + product.id + '">Editar</button><button type="button" data-product-toggle="' + product.id + '">' + (product.is_available ? 'Pausar' : 'Activar') + '</button><button class="catalog-danger" type="button" data-product-delete="' + product.id + '">Eliminar</button></div></article>';
       }).join('');
     }
     function openCatalog() {
@@ -611,13 +617,33 @@
         const style = doc.createElement("style");
         style.id = "yk-embedded-module-style";
         style.textContent = `
-          html,body{background:transparent!important;color:#f1eee9!important}
-          body{margin:0!important;padding:0!important}
+          :root{color-scheme:dark!important;--yk-bg:#0d1015;--yk-surface:#171d26;--yk-surface-2:#1d2530;--yk-line:rgba(239,232,226,.10);--yk-text:#f1eee9;--yk-muted:#a6a7ad;--yk-rose:#ffb3b6;--yk-red:#e11d48}
+          *,*::before,*::after{box-sizing:border-box}
+          html{min-height:100%;background:#0d1015!important}
+          body{min-height:100vh!important;margin:0!important;padding:0!important;color:var(--yk-text)!important;font-family:Manrope,Arial,sans-serif!important;background:radial-gradient(ellipse at 82% 0%,rgba(225,29,72,.13),transparent 38%),radial-gradient(ellipse at 8% 55%,rgba(88,103,139,.09),transparent 42%),linear-gradient(145deg,#111720,#0d1015 68%)!important}
           body>header{display:none!important}
           body>main{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
-          body>main>h1{font:500 30px Georgia,serif!important;color:#f5f0eb!important;margin:0 0 8px!important}
-          body>main>p{color:#a6a7ad!important}
+          body>main>h1{font:500 clamp(27px,3vw,36px) Georgia,serif!important;color:#f5f0eb!important;margin:0 0 8px!important}
+          body>main>p{color:var(--yk-muted)!important}
+          .wrap{grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr)!important;gap:18px!important}
+          .toolbar{grid-template-columns:minmax(180px,1fr) minmax(180px,.7fr) auto!important;gap:10px!important}
+          .panel,.catalog-panel{background:linear-gradient(145deg,rgba(29,37,48,.96),rgba(19,25,33,.98))!important;border:1px solid var(--yk-line)!important;border-radius:16px!important;box-shadow:0 18px 45px rgba(0,0,0,.18)!important}
+          .order,.cell,.schedule-day,.event-card,.location,.catalog-row{background:linear-gradient(145deg,#1a222d,#151b24)!important;border-color:var(--yk-line)!important;border-radius:12px!important}
+          .order:hover,.order.selected,.location:hover,.event-card:hover{border-color:#87505b!important;background:linear-gradient(145deg,#29232d,#1a2029)!important}
+          .empty{background:rgba(12,16,22,.38)!important;border-color:rgba(239,232,226,.16)!important;border-radius:12px!important}
+          input,select,textarea{background:#101720!important;color:#f1eee9!important;border-color:#3b4552!important;border-radius:9px!important;font-family:Manrope,Arial,sans-serif!important}
+          input:focus,select:focus,textarea:focus{outline:2px solid rgba(255,179,182,.28)!important;border-color:var(--yk-rose)!important}
           button,a,[role="button"]{cursor:pointer}
+          .btn,.tab,.catalog-secondary{background:linear-gradient(145deg,#252d39,#1a222d)!important;border-color:#3b4552!important;color:#eee9e3!important;border-radius:9px!important}
+          .primary,.catalog-primary{background:linear-gradient(110deg,#e11d48,#a9163c)!important;color:#fff!important;border:0!important;border-radius:9px!important;box-shadow:0 7px 20px rgba(225,29,72,.18)!important}
+          .tag,.badge{border-radius:30px!important}
+          .section{border-color:var(--yk-line)!important}
+          .item,.history-row,.total-row{border-color:var(--yk-line)!important}
+          .cart-offer-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;margin:0 0 9px;border:1px solid rgba(255,179,182,.35);border-radius:30px;background:linear-gradient(100deg,rgba(225,29,72,.2),rgba(113,58,89,.18));color:#ffc5c8;font:800 9px Manrope,Arial,sans-serif;letter-spacing:.8px}
+          .cart-offer-note{margin:9px 0 0!important;padding:9px 10px;border-left:2px solid #e11d48;background:rgba(225,29,72,.08);border-radius:0 8px 8px 0;color:#d7c1c5!important;font-size:10px!important;line-height:1.6}
+          .product-card.is-cart-offer,.catalog-row.is-cart-offer{border-color:rgba(255,179,182,.5)!important;box-shadow:0 0 0 1px rgba(225,29,72,.12),0 16px 35px rgba(0,0,0,.18)!important}
+          @media(max-width:900px){.wrap{grid-template-columns:1fr!important}.toolbar{grid-template-columns:1fr 1fr!important}}
+          @media(max-width:620px){.toolbar{grid-template-columns:1fr!important}.wrap{grid-template-columns:1fr!important}}
         `;
         doc.head.appendChild(style);
         const resize = () => {
