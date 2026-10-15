@@ -1120,7 +1120,7 @@
     }
     const dayRows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day);
     const rows=dayRows.filter(item=>item.is_open);
-    if (!rows.length) return {open:false,text:dayRows.length?'Cerrado hoy':'Horario no configurado'};
+    if (!rows.length) return {open:false,text:dayRows.length?'Cerrado hoy':'Horarios en actualización'};
     const current=rows.find(row=>{
       const start=row.opens_at?.slice(0,5),end=row.closes_at?.slice(0,5);
       if(!start||!end)return false;
