@@ -768,6 +768,7 @@
         }
         const sessionActive = await window.startYanKunIdleSession(client, false);
         if (sessionActive) showDashboard();
+        else message.textContent = 'La sesión se cerró automáticamente por inactividad. Ingresá nuevamente para continuar.';
       } catch (error) {
         console.error('No se pudo restaurar la sesión administrativa:', error);
       }
