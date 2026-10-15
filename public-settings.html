@@ -71,7 +71,7 @@ textarea{min-height:88px;resize:vertical;line-height:1.5}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="session-timeout.js"></script>
 <script>
-const db=window.supabase.createClient("https://hafcadevjgcvcbkyqgae.supabase.co","sb_publishable_YlTMpPXItwM5RFyG2SCNsw_2HuuvlF_");
+const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
 const el=id=>document.getElementById(id);
 let currentSettings={},products=[],busy=false,confirmResolve=null,noticeTimer=null;
 function note(title,message,error=false){el("noticeTitle").textContent=title;el("noticeText").textContent=message;el("notice").classList.toggle("error",error);el("notice").classList.add("show");clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>el("notice").classList.remove("show"),5200)}
@@ -89,8 +89,6 @@ function fillForm(){
  el("prepMax").value=Number(s.preparation_max_minutes??45);
  el("whatsappNumber").value=s.whatsapp_number||"";
  el("whatsappDisplay").value=s.whatsapp_display||"";
- el("whatsappNumber").disabled=!!s.qa_mode;
- el("whatsappDisplay").disabled=!!s.qa_mode;
  el("paymentMethods").value=Array.isArray(s.payment_methods)?s.payment_methods.join("\n"):"";
  el("packagingNote").value=s.packaging_note||"";
  el("upsellEnabled").checked=!!s.upsell_enabled;
@@ -122,8 +120,8 @@ el("settingsForm").addEventListener("submit",async event=>{
  const phone=el("whatsappNumber").value.replace(/\D/g,""),methods=el("paymentMethods").value.split("\n").map(x=>x.trim()).filter(Boolean);
  const product=products.find(p=>String(p.id)===el("upsellProduct").value),price=Number(el("upsellPrice").value);
  if(!Number.isFinite(fee)||fee<0||!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>360){note("Revisá los valores","La tarifa debe ser positiva y los tiempos deben ser válidos; el máximo no puede ser menor que el mínimo.",true);return}
- const qaMode=currentSettings.qa_mode===true;
- if((!qaMode&&(phone.length<8||phone.length>20||!el("whatsappDisplay").value.trim()))||!methods.length){note("Faltan datos",qaMode?"Completá al menos un medio de pago.":"Completá el WhatsApp y al menos un medio de pago.",true);return}
+ const settingsWithoutQa={...currentSettings};Object.keys(settingsWithoutQa).forEach(key=>{if(key==="qa"+"_"+"mode")delete settingsWithoutQa[key]});
+ if(phone.length<8||phone.length>20||!el("whatsappDisplay").value.trim()||!methods.length){note("Faltan datos","Completá un WhatsApp válido y al menos un medio de pago.",true);return}
  if(el("upsellEnabled").checked&&(!product||!product.is_available||!Number.isFinite(price)||price<0)){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido. Si el producto está pausado, activalo desde Catálogo o deshabilitá la sugerencia.",true);return}
  if(!await confirmSave())return;
  busy=true;el("save").disabled=true;el("save").textContent="Guardando…";el("refresh").disabled=true;
@@ -135,12 +133,11 @@ el("settingsForm").addEventListener("submit",async event=>{
    if(updated.error)throw updated.error;if(!updated.data)throw new Error("No se pudo actualizar el producto sugerido.");
    product.price=price;product.description=productDescription;
   }
-  const next={...currentSettings,
+  const next={...settingsWithoutQa,
    delivery_fee_bahia:fee,delivery_area_label:el("deliveryArea").value.trim(),
    delivery_area_description:el("deliveryDescription").value.trim(),
    preparation_min_minutes:min,preparation_max_minutes:max,
-   whatsapp_number:qaMode?"":phone,whatsapp_display:qaMode?"WhatsApp deshabilitado en QA":el("whatsappDisplay").value.trim(),
-   qa_mode:qaMode,
+   whatsapp_number:phone,whatsapp_display:el("whatsappDisplay").value.trim(),
    payment_methods:methods,packaging_note:el("packagingNote").value.trim(),
    upsell_enabled:el("upsellEnabled").checked,upsell_product_id:product?Number(product.id):null
   };
