@@ -126,7 +126,7 @@ function note(v){
  el("noticeClose").focus();
 }
 function closeNotice(result=false){el("noticeModal").classList.add("hidden");if(noticeResolver){const resolve=noticeResolver;noticeResolver=null;resolve(result)}}
-function confirmNotice(message,title="¿Confirmás esta acción?"){
+function confirmNotice(message,title="¿Confirmás esta acción?",confirmLabel="Sí, guardar"){
  return new Promise(resolve=>{
   if(noticeResolver)closeNotice(false);
   noticeResolver=resolve;
@@ -136,7 +136,7 @@ function confirmNotice(message,title="¿Confirmás esta acción?"){
   el("noticeClose").classList.add("hidden");
   el("noticeCancel").classList.remove("hidden");
   el("noticeConfirm").classList.remove("hidden");
-  el("noticeConfirm").textContent="Sí, guardar";
+  el("noticeConfirm").textContent=confirmLabel;
   el("noticeModal").classList.remove("hidden");
   el("noticeConfirm").focus();
  });
@@ -219,7 +219,7 @@ async function saveScheduleEntry(row){
 async function deleteScheduleEntry(row){
  if(busy)return;const id=row.dataset.id,existing=weeklyRecords.find(x=>String(x.id)===String(id));if(!existing)return;
  const dayName=days.find(x=>x.value===existing.day_of_week)?.label||"este día";
- if(!await confirmNotice("Se eliminará únicamente este horario de "+dayName+". Los demás turnos permanecerán sin cambios. ¿Querés continuar?","¿Estás seguro de eliminar este horario?"))return;
+ if(!await confirmNotice("Se eliminará únicamente este horario de "+dayName+". Los demás turnos permanecerán sin cambios. ¿Querés continuar?","¿Estás seguro de eliminar este horario?","Sí, eliminar"))return;
  busy=true;const button=row.querySelector("[data-delete-entry]");button.disabled=true;el("refresh").disabled=true;
  try{
   const {error}=await db.from("business_hours").delete().eq("id",id).eq("sales_location_id",currentLocationId);if(error)throw error;
