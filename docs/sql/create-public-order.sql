@@ -255,6 +255,8 @@ BEGIN
 END;
 $policy$;
 
+GRANT SELECT ON public.business_settings TO anon, authenticated;
+
 -- Only the server-side Edge Function, authenticated with the secret key, may call this RPC.
 REVOKE ALL ON FUNCTION public.create_public_order(uuid, jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_public_order(uuid, jsonb) TO service_role;
