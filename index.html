@@ -1211,7 +1211,7 @@
     publicSettings=settingsResult.data.value||{};mainLocation=locationResult.data;publicSettingsKnown=true;window.yankunPublicLocation=mainLocation;
     window.yankunPublicSettings=publicSettings;window.yankunPublicSettingsKnown=true;
     const zonesResult=await db.from('delivery_zones').select('name,description,delivery_fee').eq('sales_location_id',mainLocation.id).eq('is_active',true).order('sort_order');
-    const zones=(zonesResult.data||[]).map(zone=>zone.name+' ($'+Number(zone.delivery_fee||0).toLocaleString('es-AR')+')');
+    const zones=(zonesResult.data||[]).map(zone=>zone.name);
     const address=[mainLocation.address,mainLocation.locality].filter(Boolean).join(', ');
     const setText=(id,value)=>{const node=document.getElementById(id);if(node&&value)node.textContent=value;};
     setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');setText('publicAddressQuick',address);setText('publicAddressFooter',mainLocation.address||'Punto de retiro');setText('publicAddressPhilosophy',mainLocation.address||'el punto de retiro oficial');setText('publicAddressFaq',mainLocation.address||'el local');setText('publicLocalityFooter',mainLocation.locality||'');setText('pickupAddressNotice',address);setText('termsPickupAddress',address+'. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.');
