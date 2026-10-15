@@ -1229,7 +1229,22 @@
     set('upsellTitle','Sumá '+data.name);
     set('upsellDescription',data.description||'Un complemento para tu pedido');
     const requiresQuote=isQuoteProduct(data);
-    set('upsellPrice',requiresQuote?'Precio a consultar':'
+    set('upsellPrice',requiresQuote?'Precio a consultar':money(data.price));
+    const button=document.getElementById('upsellAddButton');
+    if(button){
+      button.textContent=requiresQuote?'Consultar por WhatsApp':'+ Agregar';
+      button.onclick=()=>{
+        if(requiresQuote){
+          const phone=String(publicSettings?.whatsapp_number||'5492915101491').replace(/\D/g,'');
+          const message=encodeURIComponent('Hola, quisiera consultar el precio de '+data.name+'.');
+          window.open('https://wa.me/'+phone+'?text='+message,'_blank','noopener');
+          return;
+        }
+        if(window.addToCart(Number(data.id),data.name,Number(data.price),'Entradas')===false)return;
+      };
+    }
+    container.hidden=false;
+    updateUpsellVisibility();
   }
 
   async function loadPublicSettings() {
