@@ -568,25 +568,9 @@
   }
 
   function checkFirstOrderCoupon() {
-    const phoneInput = document.getElementById('clientPhone').value.trim().replace(/\D/g, '');
+    cartState.hasDiscount = false;
     const couponMsg = document.getElementById('couponMessageContainer');
-
-    if (phoneInput.length >= 6) {
-      if (previousCustomers.includes(phoneInput)) {
-        cartState.hasDiscount = false;
-        couponMsg.className = 'p-space-xs rounded text-[11px] bg-surface-container text-tertiary';
-        couponMsg.textContent = 'Cliente habitual registrado: No aplica cupon de bienvenida para este numero.';
-        couponMsg.classList.remove('hidden');
-      } else {
-        cartState.hasDiscount = true;
-        couponMsg.className = 'p-space-xs rounded text-[11px] bg-emerald-950/60 text-emerald-400 font-semibold';
-        couponMsg.textContent = 'Primer Pedido Detectado! Calificas para 10% OFF con cupon YANKUN10.';
-        couponMsg.classList.remove('hidden');
-      }
-    } else {
-      cartState.hasDiscount = false;
-      couponMsg.classList.add('hidden');
-    }
+    if (couponMsg) couponMsg.classList.add('hidden');
     renderCartSummary();
   }
 
@@ -723,31 +707,96 @@
     return msg;
   }
 
-  function checkoutViaWhatsApp() {
+  async function checkoutViaWhatsApp() {
     const itemsList = Object.values(cartState.items);
     if (itemsList.length === 0) {
-      alert('Por favor agrega al menos un item al carrito antes de enviar el pedido.');
+      window.showOrderFeedback?.('Carrito vacío', 'Agregá al menos un producto antes de enviar el pedido.');
       return;
     }
-
+    const name = document.getElementById('clientName').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
     const address = document.getElementById('clientAddress').value.trim();
-    if (cartState.deliveryMode === 'delivery_bahia' && !address) {
-      alert('Por favor ingresa tu direccion para el envio a domicilio.');
+    if (!name || !phone) {
+      window.showOrderFeedback?.('Faltan tus datos', 'Completá tu nombre y teléfono para registrar el pedido.');
+      return;
+    }
+    if (cartState.deliveryMode !== 'pickup' && !address) {
+      window.showOrderFeedback?.('Falta la dirección', 'Completá la dirección para el envío.');
       document.getElementById('clientAddress').focus();
       return;
     }
-
+    if (window.yankunOrderSubmitting) return;
+    window.yankunOrderSubmitting = true;
+    const submitButton = document.querySelector('[onclick*="checkoutViaWhatsApp"]');
+    if (submitButton) { submitButton.disabled = true; submitButton.dataset.originalText = submitButton.textContent; submitButton.textContent = 'REGISTRANDO...'; }
+    const waTab = window.open('about:blank', '_blank');
+    const requestedTime = document.getElementById('deliveryTimeSlot')?.value || '';
+    const paymentMethod = document.getElementById('paymentMethod')?.value || '';
+    const customerNotes = document.getElementById('generalNotes')?.value.trim() || '';
+    const payload = {
+      customer_name: name,
+      customer_phone: phone,
+      delivery_mode: cartState.deliveryMode,
+      delivery_address: address,
+      requested_time: requestedTime,
+      payment_method: paymentMethod,
+      customer_notes: customerNotes,
+      items: itemsList.map(item => ({ product_id: Number(item.id), quantity: Number(item.quantity) }))
+    };
+    const fingerprint = JSON.stringify(payload);
+    let requestId;
     try {
-      localStorage.setItem('yankun_last_order', JSON.stringify({
-        items: cartState.items,
-        deliveryMode: cartState.deliveryMode
-      }));
-    } catch (e) {}
-
-    const msg = getOrderText();
-    const encodedMsg = encodeURIComponent(msg);
-    const waUrl = `https://wa.me/5492915101491?text=${encodedMsg}`;
-    window.open(waUrl, '_blank');
+      const previous = JSON.parse(sessionStorage.getItem('yankun_pending_order') || 'null');
+      requestId = previous && previous.fingerprint === fingerprint ? previous.request_id : crypto.randomUUID();
+      sessionStorage.setItem('yankun_pending_order', JSON.stringify({ fingerprint, request_id: requestId }));
+      const response = await fetch('https://cdhnpsowlsesoobrytvh.supabase.co/functions/v1/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': window.yankunPublishableKey,
+          'Authorization': 'Bearer ' + window.yankunPublishableKey
+        },
+        body: JSON.stringify({ ...payload, request_id: requestId, website: '' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.order) throw new Error(result.error || 'No se pudo registrar el pedido.');
+      const order = result.order;
+      try {
+        localStorage.setItem('yankun_last_order', JSON.stringify({ items: cartState.items, deliveryMode: cartState.deliveryMode }));
+      } catch (e) {}
+      const detailLines = itemsList.map(item => '- ' + item.quantity + ' x ' + item.name).join('\n');
+      const message = [
+        'Hola, acabo de registrar un pedido en YanKun SushiLab.',
+        'Pedido: ' + order.order_number,
+        'Cliente: ' + name,
+        'Teléfono: ' + phone,
+        'Modalidad: ' + (cartState.deliveryMode === 'pickup' ? 'Retiro' : cartState.deliveryMode === 'otra_zona' ? 'Envío a coordinar' : 'Delivery Bahía Blanca'),
+        address ? 'Dirección: ' + address : '',
+        'Horario solicitado: ' + (requestedTime || 'A coordinar'),
+        'Medio de pago: ' + (paymentMethod || 'A coordinar'),
+        customerNotes ? 'Observaciones: ' + customerNotes : '',
+        'Detalle:',
+        detailLines,
+        'Total registrado: $' + Number(order.total).toLocaleString('es-AR') + ' ARS',
+        'Estado: Pendiente'
+      ].filter(Boolean).join('\n');
+      const waUrl = 'https://wa.me/5492915101491?text=' + encodeURIComponent(message);
+      sessionStorage.removeItem('yankun_pending_order');
+      cartState.items = {};
+      renderCart();
+      if (waTab) {
+        waTab.location.href = waUrl;
+        window.showOrderFeedback?.('Pedido registrado', 'Tu pedido ' + order.order_number + ' quedó guardado correctamente. Se abrió WhatsApp para completar el envío.');
+      } else {
+        window.showOrderFeedback?.('Pedido registrado', 'Tu pedido ' + order.order_number + ' quedó guardado correctamente. Abrí WhatsApp para enviar el mensaje.', waUrl);
+      }
+    } catch (error) {
+      if (waTab) waTab.close();
+      window.showOrderFeedback?.('No pudimos registrar el pedido', error.message || 'Revisá tu conexión e intentá nuevamente.');
+    } finally {
+      window.yankunOrderSubmitting = false;
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = submitButton.dataset.originalText || 'ENVIAR PEDIDO'; }
+    }
   }
 
   function copyOrderToClipboard() {
@@ -898,134 +947,220 @@
   @media (prefers-reduced-motion: reduce) { #aviso-cerrado-toast { transition: none; } }
 </style>
 
-<script id="horario-pedidos">
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="yankun-live-integration">
 (function () {
   'use strict';
+  const SUPABASE_URL = 'https://cdhnpsowlsesoobrytvh.supabase.co';
+  const PUBLISHABLE_KEY = 'sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP';
+  const db = window.supabase.createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
+  window.yankunPublicDb = db;
+  window.yankunPublishableKey = PUBLISHABLE_KEY;
+  let schedule = { weekly: [], special: [] };
+  let scheduleKnown = false;
+  let submitting = false;
 
-  // ---- CONFIGURACIÓN (si cambia el horario, se modifica solo acá) ----
-  var TZ = 'America/Argentina/Buenos_Aires';
-  var DIAS_ABIERTO = [2, 3, 4, 5, 6];      // 0=Dom, 1=Lun, 2=Mar ... 6=Sáb
-  var APERTURA = 18 * 60 + 30;             // 18:30
-  var CIERRE = 21 * 60;                    // 21:00 (no se reciben pedidos desde esa hora)
-  var TXT_APERTURA = '18:30';
-  var TXT_CIERRE = '21:00';
-  var NOMBRES_DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-
-  // Acciones que cuentan como "hacer un pedido"
-  var ACCIONES_BLOQUEADAS = ['addToCart', 'checkoutViaWhatsApp', 'copyOrderToClipboard', 'repeatLastOrder'];
-  var SELECTOR_BOTONES = '[onclick*="addToCart("], [onclick*="checkoutViaWhatsApp"], ' +
-                         '[onclick*="copyOrderToClipboard"], [onclick*="repeatLastOrder"]';
-
-  // Hora y día actuales en Bahía Blanca (no depende de la zona horaria del dispositivo)
-  function ahoraEnBahia(fecha) {
-    var partes = new Intl.DateTimeFormat('en-US', {
-      timeZone: TZ, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
-    }).formatToParts(fecha || new Date());
-    function get(tipo) {
-      for (var i = 0; i < partes.length; i++) if (partes[i].type === tipo) return partes[i].value;
-      return '0';
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+  function money(value) {
+    return '</html> + Number(value || 0).toLocaleString('es-AR') + ' ARS';
+  }
+  function showFeedback(title, message, link) {
+    let overlay = document.getElementById('yk-order-feedback');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'yk-order-feedback';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#05070bd9;backdrop-filter:blur(5px);display:grid;place-items:center;padding:18px';
+      document.body.appendChild(overlay);
     }
-    var dias = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-    var h = parseInt(get('hour'), 10);
-    if (h === 24) h = 0;
-    return { dia: dias[get('weekday')], minutos: h * 60 + parseInt(get('minute'), 10) };
+    overlay.innerHTML = '';
+    const card = document.createElement('section');
+    card.setAttribute('role','alertdialog');
+    card.setAttribute('aria-modal','true');
+    card.style.cssText = 'width:min(100%,440px);background:#1b2028;border:1px solid #6b4650;border-radius:16px;padding:24px;color:#e8e8ee;box-shadow:0 24px 80px #000b;font-family:Manrope,Arial,sans-serif';
+    const h = document.createElement('h2'); h.textContent = title; h.style.cssText = 'font:500 22px Georgia,serif;margin:0 0 10px';
+    const p = document.createElement('p'); p.textContent = message; p.style.cssText = 'font-size:13px;line-height:1.7;color:#c5c6ce;margin:0 0 18px';
+    const actions = document.createElement('div'); actions.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap';
+    if (link) {
+      const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = 'Abrir WhatsApp';
+      a.style.cssText = 'padding:11px 15px;border-radius:8px;background:#e11d48;color:white;text-decoration:none;font-size:12px;font-weight:800';
+      actions.appendChild(a);
+    }
+    const close = document.createElement('button'); close.type='button'; close.textContent='Entendido'; close.style.cssText='padding:11px 15px;border-radius:8px;border:1px solid #454954;background:#252a32;color:#e5e7eb;font-size:12px;font-weight:800;cursor:pointer';
+    close.addEventListener('click',()=>overlay.remove()); actions.appendChild(close);
+    card.append(h,p,actions); overlay.appendChild(card);
+  }
+  window.showOrderFeedback = showFeedback;
+
+  function renderFeatured(product) {
+    const title = Array.from(document.querySelectorAll('h3')).find(el => el.textContent.trim() === 'La Scaloneta x20');
+    if (!title) return;
+    const root = title.closest('div.relative.bg-surface-container-low');
+    if (!root) return;
+    const image = root.querySelector('img');
+    const description = root.querySelector('.font-body-sm');
+    const price = root.querySelector('.font-headline-sm');
+    const button = root.querySelector('button');
+    const heading = root.querySelector('h3');
+    if (!product) { root.hidden = true; return; }
+    if (image) { image.src = product.image_url || ''; image.alt = product.name; image.hidden = !product.image_url; }
+    if (heading) heading.textContent = product.name;
+    if (description) description.textContent = product.description || 'Elaboración de YanKun SushiLab.';
+    if (price) price.textContent = money(product.price);
+    if (button) {
+      button.removeAttribute('onclick');
+      button.onclick = () => { window.addToCart(Number(product.id), product.name, Number(product.price), product.category_name); document.getElementById('pedido-seccion')?.scrollIntoView({behavior:'smooth',block:'start'}); };
+    }
   }
 
-  // Devuelve { abierto, texto, cuando }. Si algo falla, NO bloquea (error: true).
-  function calcularEstado(fecha) {
-    try {
-      var t = ahoraEnBahia(fecha);
-      var abiertoHoy = DIAS_ABIERTO.indexOf(t.dia) !== -1;
+  function buildCatalog(categories, products) {
+    const filterGroup = document.getElementById('categoryFilterGroup');
+    const container = document.getElementById('productsCatalogContainer');
+    if (!filterGroup || !container) return;
+    const available = products.filter(p => categories.some(c => c.id === p.category_id));
+    const byCategory = new Map(categories.map(c => [c.id, []]));
+    available.forEach(p => byCategory.get(p.category_id)?.push(p));
+    const visibleCategories = categories.filter(c => (byCategory.get(c.id) || []).length);
+    filterGroup.innerHTML = '';
+    const allButton = document.createElement('button');
+    allButton.className = 'category-pill active-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider bg-primary-container text-on-primary-container font-bold shadow-md transition-all duration-200 shrink-0';
+    allButton.dataset.cat = 'all'; allButton.textContent = 'TODO'; allButton.onclick = () => window.filterCategory('all');
+    filterGroup.appendChild(allButton);
+    visibleCategories.forEach(category => {
+      const button = document.createElement('button');
+      button.className = 'category-pill px-space-md py-1.5 rounded-lg font-label-md text-label-md uppercase tracking-wider text-tertiary hover:text-on-surface hover:bg-surface-container transition-all duration-200 shrink-0';
+      button.dataset.cat = category.slug; button.textContent = category.name;
+      button.onclick = () => window.filterCategory(category.slug);
+      filterGroup.appendChild(button);
+    });
+    container.innerHTML = '';
+    visibleCategories.forEach(category => {
+      const section = document.createElement('section');
+      section.className = 'catalog-section p-space-md rounded-xl bg-surface-container-low border border-surface-container-high/60 shadow-lg';
+      section.dataset.section = category.slug;
+      section.id = 'seccion-' + category.slug.replace(/[^a-z0-9-]/gi,'-');
+      const heading = document.createElement('div');
+      heading.className = 'flex items-center justify-between mb-space-md';
+      heading.innerHTML = '<h3 class="font-headline-md text-headline-md text-on-surface">' + esc(category.name) + '</h3><span class="text-[10px] text-tertiary">' + (byCategory.get(category.id).length) + ' productos</span>';
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-space-sm';
+      byCategory.get(category.id).forEach(product => {
+        const card = document.createElement('article');
+        card.className = 'p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60 min-w-0';
+        const image = product.image_url ? '<img src="' + esc(product.image_url) + '" alt="' + esc(product.name) + '" loading="lazy" class="w-full h-36 object-cover rounded-md mb-3">' : '';
+        card.innerHTML = image +
+          '<div class="mb-3"><h4 class="font-headline-sm text-[16px] text-on-surface font-semibold">' + esc(product.name) + '</h4>' +
+          '<p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-3">' + esc(product.description || '') + '</p></div>' +
+          '<div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-container-high/40"><span class="font-bold text-[14px] text-on-surface">' + esc(money(product.price)) + '</span></div>';
+        const button = document.createElement('button');
+        button.type='button'; button.className='mt-2 w-full px-2 py-2 rounded bg-primary-container text-on-primary-container text-[11px] uppercase tracking-wider font-bold hover:brightness-110 cursor-pointer';
+        button.textContent='＋ Sumar al pedido';
+        button.addEventListener('click',()=>window.addToCart(Number(product.id),product.name,Number(product.price),category.name));
+        card.lastElementChild.appendChild(button);
+        grid.appendChild(card);
+      });
+      section.append(heading,grid); container.appendChild(section);
+    });
+    window.filterCategory('all', false);
 
-      if (abiertoHoy && t.minutos >= APERTURA && t.minutos < CIERRE) {
-        return { abierto: true, cuando: '', texto: 'Abierto ahora · cocinamos hasta las ' + TXT_CIERRE };
-      }
-      var cuando = null;
-      if (abiertoHoy && t.minutos < APERTURA) {
-        cuando = 'hoy';
-      } else {
-        for (var i = 1; i <= 7; i++) {
-          var d = (t.dia + i) % 7;
-          if (DIAS_ABIERTO.indexOf(d) !== -1) { cuando = (i === 1) ? 'mañana' : 'el ' + NOMBRES_DIA[d]; break; }
-        }
-      }
-      return { abierto: false, cuando: cuando, texto: 'Cerrado · abrimos ' + cuando + ' a las ' + TXT_APERTURA };
-    } catch (err) {
-      return { abierto: true, error: true, texto: '', cuando: '' };
+    const headerNav = document.getElementById('headerNav');
+    if (headerNav) {
+      headerNav.innerHTML = '';
+      const addNav = (label,target,href) => {
+        const link = document.createElement('a');
+        link.href=href; link.dataset.navTarget=target;
+        link.className='nav-header-link font-label-md text-label-md uppercase tracking-wider text-on-surface-variant hover:text-on-surface border-b-2 border-transparent transition-colors py-1 leading-none flex items-center justify-center shrink-0 cursor-pointer';
+        link.textContent=label;
+        link.addEventListener('click',event=>window.handleNavClick(event,target));
+        headerNav.appendChild(link);
+      };
+      addNav('Carta completa','all','#catalogo');
+      visibleCategories.forEach(category=>addNav(category.name,category.slug,'#seccion-'+category.slug));
+      addNav('Mi pedido','pedidos','#pedido-seccion');
     }
+    const featured = available[0] ? {...available[0],category_name:visibleCategories.find(c=>c.id===available[0].category_id)?.name || ''} : null;
+    renderFeatured(featured);
   }
 
-  // ---- Aviso flotante ----
-  var toast, timerToast;
-  function avisar(texto) {
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'aviso-cerrado-toast';
-      toast.setAttribute('role', 'alert');
-      document.body.appendChild(toast);
-    }
-    toast.textContent = texto;
-    toast.classList.add('visible');
-    clearTimeout(timerToast);
-    timerToast = setTimeout(function () { toast.classList.remove('visible'); }, 5000);
+  function getLocalParts(date) {
+    const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+    const get = type => parts.find(p=>p.type===type)?.value || '';
+    const dayMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+    return {date:get('year')+'-'+get('month')+'-'+get('day'),day:dayMap[get('weekday')],minutes:Number(get('hour'))*60+Number(get('minute'))};
   }
-
-  // ---- Actualiza la pantalla según el estado ----
-  function actualizar() {
-    var e = calcularEstado();
-    if (e.error) return;
-
-    var txt = document.getElementById('statusText');
-    if (txt) { txt.textContent = e.texto; txt.setAttribute('data-estado', e.abierto ? 'abierto' : 'cerrado'); }
-
-    var dot = document.getElementById('statusDot');
-    if (dot) {
-      dot.style.backgroundColor = e.abierto ? '#10b981' : '#ef4444';
-      dot.classList.toggle('animate-pulse', e.abierto);
+  function getScheduleState() {
+    const now=getLocalParts(new Date());
+    const special=schedule.special.find(item=>item.event_date===now.date);
+    if (special?.event_type==='exceptional_closure') return {open:false,text:'Cerrado por excepción'};
+    if (special?.event_type==='special_opening') {
+      const start=special.opens_at?.slice(0,5),end=special.closes_at?.slice(0,5);
+      const a=start?Number(start.slice(0,2))*60+Number(start.slice(3)):0;
+      const b=end?Number(end.slice(0,2))*60+Number(end.slice(3)):0;
+      return {open:!!start&&!!end&&now.minutes>=a&&now.minutes<b,text:!!start&&!!end?'Apertura especial · '+start+' a '+end:'Apertura especial'};
     }
-
-    document.documentElement.setAttribute('data-local', e.abierto ? 'abierto' : 'cerrado');
-
-    var aviso = document.getElementById('avisoCerradoTexto');
-    if (aviso && !e.abierto) {
-      aviso.textContent = 'Ahora estamos cerrados, abrimos ' + e.cuando + ' a las ' + TXT_APERTURA +
-        '. Los pedidos se habilitan de martes a sábado de ' + TXT_APERTURA + ' a ' + TXT_CIERRE + ' hs.';
-    }
-
-    document.querySelectorAll(SELECTOR_BOTONES).forEach(function (el) {
-      el.classList.toggle('pedido-bloqueado', !e.abierto);
-      el.setAttribute('aria-disabled', String(!e.abierto));
+    const row=schedule.weekly.find(item=>Number(item.day_of_week)===now.day);
+    let start=row?.opens_at?.slice(0,5),end=row?.closes_at?.slice(0,5),isOpen=row?row.is_open:[2,3,4,5,6].includes(now.day);
+    if (!row) { start='18:30'; end='21:00'; }
+    const a=start?Number(start.slice(0,2))*60+Number(start.slice(3)):0;
+    const b=end?Number(end.slice(0,2))*60+Number(end.slice(3)):0;
+    const open=!!isOpen&&!!start&&!!end&&now.minutes>=a&&now.minutes<b;
+    const nextText=!!isOpen&&start?'Abre '+start+' · cierra '+end:'Cerrado hoy';
+    return {open,text:open?'Abierto ahora · hasta '+end:nextText};
+  }
+  function updateScheduleUI() {
+    if (!scheduleKnown) return;
+    const state=getScheduleState();
+    const text=document.getElementById('statusText');
+    const dot=document.getElementById('statusDot');
+    if(text){text.textContent=state.text;text.dataset.estado=state.open?'abierto':'cerrado';}
+    if(dot){dot.style.backgroundColor=state.open?'#10b981':'#ef4444';dot.classList.toggle('animate-pulse',state.open);}
+    document.documentElement.dataset.local=state.open?'abierto':'cerrado';
+    document.querySelectorAll('[onclick*="addToCart("], [onclick*="checkoutViaWhatsApp"], .yk-add-product').forEach(button=>{
+      button.classList.toggle('pedido-bloqueado',!state.open);
+      button.setAttribute('aria-disabled',String(!state.open));
     });
   }
+  const originalAdd=window.addToCart;
+  if (typeof originalAdd==='function') window.addToCart=function(){if(scheduleKnown&&!getScheduleState().open){showFeedback('Estamos cerrados',getScheduleState().text+'. Podés consultar por WhatsApp.');return false;}return originalAdd.apply(this,arguments);};
+  const originalCheckout=window.checkoutViaWhatsApp;
+  if (typeof originalCheckout==='function') window.checkoutViaWhatsApp=function(){if(scheduleKnown&&!getScheduleState().open){showFeedback('Estamos cerrados',getScheduleState().text+'. Los pedidos se habilitan según el horario del local.');return false;}return originalCheckout.apply(this,arguments);};
 
-  // ---- Bloqueo real: se vuelve a verificar la hora en el momento del clic ----
-  function puedePedir() {
-    var e = calcularEstado();
-    if (e.error || e.abierto) return true;
-    actualizar();
-    avisar('Estamos cerrados, abrimos ' + e.cuando + ' a las ' + TXT_APERTURA +
-      '. Podés ver la carta, pero los pedidos se habilitan de martes a sábado de ' +
-      TXT_APERTURA + ' a ' + TXT_CIERRE + ' hs.');
-    return false;
+  async function loadSchedule() {
+    const [hoursResult,specialResult] = await Promise.all([
+      db.from('business_hours').select('sales_location_id,schedule_type,day_of_week,specific_date,is_open,opens_at,closes_at').eq('sales_location_id',1),
+      db.from('special_events').select('event_date,event_type,opens_at,closes_at').eq('sales_location_id',1).eq('is_active',true)
+    ]);
+    if (hoursResult.error || specialResult.error) { console.warn('No se pudo sincronizar el horario público.'); return; }
+    schedule.weekly=(hoursResult.data||[]).filter(x=>x.schedule_type==='weekly');
+    schedule.special=(specialResult.data||[]);
+    scheduleKnown=true;
+    updateScheduleUI();
+    window.setInterval(updateScheduleUI,30000);
   }
 
-  ACCIONES_BLOQUEADAS.forEach(function (nombre) {
-    var original = window[nombre];
-    if (typeof original !== 'function') return;
-    window[nombre] = function () {
-      if (!puedePedir()) return false;
-      return original.apply(this, arguments);
-    };
+  async function loadCatalog() {
+    const [categoriesResult,productsResult] = await Promise.all([
+      db.from('categories').select('id,name,slug,sort_order').eq('is_active',true).order('sort_order'),
+      db.from('products').select('id,category_id,name,description,price,image_url,is_available,sort_order').eq('is_available',true).order('sort_order')
+    ]);
+    if (categoriesResult.error || productsResult.error) {
+      console.error('No se pudo cargar la carta desde Supabase.',categoriesResult.error,productsResult.error);
+      const container=document.getElementById('productsCatalogContainer');
+      if(container)container.innerHTML='<div class="empty">No pudimos cargar la carta en este momento. Intentá nuevamente más tarde.</div>';
+      return;
+    }
+    buildCatalog(categoriesResult.data||[],productsResult.data||[]);
+  }
+
+  document.addEventListener('DOMContentLoaded',()=> {
+    loadCatalog().catch(error=>{console.error(error);});
+    loadSchedule().catch(error=>{console.error(error);});
   });
-
-  actualizar();
-  setInterval(actualizar, 30000);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) actualizar(); });
-
-  // Para probar desde la consola (F12), por ejemplo:
-  // YanKunHorario.estado(new Date('2026-10-13T22:00:00Z'))  -> martes 19:00 en Bahía Blanca
-  window.YanKunHorario = { estado: calcularEstado };
 })();
 </script>
-
 </body></html>
