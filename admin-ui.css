@@ -93,3 +93,18 @@ body.dashboard-mode #dashboard{background:radial-gradient(ellipse at 84% 2%,var(
 #catalogView .product-card:hover{border-color:#87505b;box-shadow:0 16px 38px rgba(0,0,0,.2)}
 #catalogView .catalog-panel{box-shadow:0 18px 45px rgba(0,0,0,.16)}
 @media(max-width:680px){.app-content{padding:22px 16px 34px}.module-frame-wrap iframe{min-height:900px}}
+
+
+/* Unified workspace: persistent sidebar and full-width module canvas. */
+#dashboard{width:100%;min-width:0}
+#dashboard .app-shell{display:grid;width:100%;min-width:0;grid-template-columns:258px minmax(0,1fr)}
+#dashboard .app-sidebar{position:fixed;inset:0 auto 0 0;width:258px;height:100vh;min-height:100vh;overflow-y:auto;overscroll-behavior:contain}
+#dashboard .app-main{grid-column:2;min-width:0;width:100%;max-width:none}
+#dashboard .app-content{display:block;width:100%;max-width:none;min-width:0;margin:0;padding:clamp(28px,3.5vw,54px)}
+#dashboard #catalogView{display:block;position:relative;width:100%;max-width:none;min-width:0;min-height:0;padding:0 0 36px;background:transparent}
+#dashboard #catalogView .catalog-wrap{display:block;width:100%;max-width:none;min-width:0;margin:0}
+#dashboard #catalogView .catalog-panel{width:100%;max-width:none}
+#dashboard .module-frame-wrap{display:block;width:100%;max-width:none;min-width:0}
+#dashboard .module-frame-wrap iframe{display:block;width:100%;max-width:none;min-width:0}
+@media(max-width:900px){#dashboard .app-shell{grid-template-columns:220px minmax(0,1fr)}#dashboard .app-sidebar{width:220px}}
+@media(max-width:680px){#dashboard .app-shell{display:block}#dashboard .app-sidebar{position:relative;inset:auto;width:100%;height:auto;min-height:0;overflow:visible}#dashboard .app-main{width:100%;grid-column:auto}#dashboard .app-content{width:100%;padding:22px 16px 34px}}
