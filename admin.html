@@ -158,15 +158,15 @@
         <div class="app-brand"><div class="mark">Y</div><div><div class="app-brand-name">YanKun <span>SushiLab</span></div><div class="app-brand-caption">PANEL DE OPERACIONES</div></div></div>
         <nav class="app-nav">
           <div class="app-nav-label">General</div>
-          <a class="active" href="admin.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>Dashboard</a>
+          <a class="active" href="admin.html" data-dashboard-home aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>Dashboard</a>
           <button type="button" data-open-catalog><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-1.5 15h-13L4 5Z"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/></svg>Catálogo y productos</button>
-          <a href="orders.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l1 13H4L5 7Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>Pedidos</a>
+          <a href="orders.html" data-module="orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l1 13H4L5 7Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>Pedidos</a>
           <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v1"/></svg>Clientes<small>Próximo</small></span>
           <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Ventas y estadísticas<small>Próximo</small></span>
           <div class="app-nav-label">Operaciones</div>
           <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v13H3zM7 7V4h10v3M3 12h18M9 12v3h6v-3"/></svg>Inventario<small>Próximo</small></span>
-          <a href="sales-locations.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10 5 4h14l2 6M4 10v10h16V10M3 10h18M9 20v-6h6v6"/></svg>Puntos de venta</a>
-          <a href="business-hours.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horarios y eventos</a>
+          <a href="sales-locations.html" data-module="sales-locations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10 5 4h14l2 6M4 10v10h16V10M3 10h18M9 20v-6h6v6"/></svg>Puntos de venta</a>
+          <a href="business-hours.html" data-module="business-hours"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horarios y eventos</a>
           <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-8-8 18-2-8-8-2Z"/></svg>Marketing<small>Próximo</small></span>
           <div class="app-nav-label">Sistema</div>
           <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19 15 1.5 1-1.5 2.5-1.8-.6-1.4.8-.3 1.8h-3l-.3-1.8-1.4-.8-1.8.6L7.5 16l1.5-1a7 7 0 0 1 0-2l-1.5-1L9 9.5l1.8.6 1.4-.8.3-1.8h3l.3 1.8 1.4.8 1.8-.6 1.5 2.5-1.5 1a7 7 0 0 1 0 2Z"/></svg>Configuración<small>Próximo</small></span>
@@ -176,6 +176,7 @@
       <div class="app-main">
         <header class="app-topbar"><div class="app-breadcrumb">YanKun SushiLab <span aria-hidden="true">/</span> <strong>Dashboard</strong></div><div class="app-top-actions"><span class="app-top-user">Sesión de administrador</span><button class="dash-btn" id="refreshDashboard" type="button">Actualizar datos</button><button class="dash-btn" id="logoutButton" type="button">Cerrar sesión</button></div></header>
         <main class="app-content">
+          <div id="dashboardHome">
           <div class="app-page-heading"><div><p class="app-eyebrow">Centro de operaciones</p><h1 class="app-page-title">Resumen general</h1><p class="app-page-subtitle">Una vista rápida de la actividad y las herramientas de gestión de YanKun SushiLab.</p></div><span class="app-live-chip">Panel conectado</span></div>
           <div class="stats">
             <article class="stat"><div class="stat-label">Productos registrados</div><div class="stat-value" id="productCount">—</div><div class="stat-note">En el catálogo del negocio</div></article>
@@ -197,6 +198,8 @@
             <article class="module is-coming-soon"><h3>Marketing</h3><p>Promociones y campañas comerciales.</p><span class="module-tag">Próxima etapa</span></article>
           </div>
           <div class="dash-status" id="dashboardMessage" role="status">Consultando los datos de Supabase...</div>
+          </div>
+          <section id="moduleFrameWrap" class="module-frame-wrap" hidden><iframe id="moduleFrame" title="Módulo de gestión" loading="lazy"></iframe></section>
         </main>
       </div>
     </div>
@@ -542,15 +545,102 @@
       }).join('');
     }
     function openCatalog() {
-      dashboard.hidden = true;
+      dashboard.hidden = false;
+      document.getElementById("dashboardHome").hidden = true;
+      document.getElementById("moduleFrameWrap").hidden = true;
       catalogView.hidden = false;
       document.body.classList.add('dashboard-mode');
+      setActiveNavigation("catalog");
+      setBreadcrumb("Catálogo y productos");
       setCatalogTab('categories');
       loadCatalog().catch((error) => {
         console.error(error);
         showCatalogMessage('Ocurrió un error al cargar el catálogo.');
       });
     }
+
+    const appContent = document.querySelector(".app-content");
+    appContent.appendChild(catalogView);
+    const moduleFrame = document.getElementById("moduleFrame");
+    const moduleFrameWrap = document.getElementById("moduleFrameWrap");
+    const dashboardHome = document.getElementById("dashboardHome");
+    const moduleTitles = {
+      orders: "Pedidos",
+      "sales-locations": "Puntos de venta",
+      "business-hours": "Horarios y eventos"
+    };
+    function setBreadcrumb(label) {
+      const strong = document.querySelector(".app-breadcrumb strong");
+      if (strong) strong.textContent = label;
+    }
+    function setActiveNavigation(key) {
+      document.querySelectorAll(".app-nav a, .app-nav button").forEach((item) => {
+        item.classList.remove("active");
+        item.removeAttribute("aria-current");
+      });
+      const target = key === "dashboard" ? document.querySelector("[data-dashboard-home]") :
+        key === "catalog" ? document.querySelector("[data-open-catalog]") :
+        document.querySelector('[data-module="' + key + '"]');
+      if (target) { target.classList.add("active"); target.setAttribute("aria-current", "page"); }
+    }
+    function openModule(key) {
+      const title = moduleTitles[key];
+      if (!title) return;
+      dashboard.hidden = false;
+      dashboardHome.hidden = true;
+      catalogView.hidden = true;
+      moduleFrameWrap.hidden = false;
+      setActiveNavigation(key);
+      setBreadcrumb(title);
+      const src = key + ".html";
+      if (moduleFrame.dataset.module !== key) {
+        moduleFrame.dataset.module = key;
+        moduleFrame.src = src;
+      } else if (!moduleFrame.contentWindow || moduleFrame.src.indexOf(src) === -1) {
+        moduleFrame.src = src;
+      }
+    }
+    document.querySelectorAll("[data-module]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        openModule(link.dataset.module);
+      });
+    });
+    document.querySelector("[data-dashboard-home]").addEventListener("click", (event) => {
+      event.preventDefault();
+      catalogView.hidden = true;
+      moduleFrameWrap.hidden = true;
+      dashboardHome.hidden = false;
+      setActiveNavigation("dashboard");
+      setBreadcrumb("Dashboard");
+    });
+    moduleFrame.addEventListener("load", () => {
+      try {
+        const doc = moduleFrame.contentDocument;
+        if (!doc || doc.getElementById("yk-embedded-module-style")) return;
+        const style = doc.createElement("style");
+        style.id = "yk-embedded-module-style";
+        style.textContent = `
+          html,body{background:transparent!important;color:#f1eee9!important}
+          body{margin:0!important;padding:0!important}
+          body>header{display:none!important}
+          body>main{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+          body>main>h1{font:500 30px Georgia,serif!important;color:#f5f0eb!important;margin:0 0 8px!important}
+          body>main>p{color:#a6a7ad!important}
+          button,a,[role="button"]{cursor:pointer}
+        `;
+        doc.head.appendChild(style);
+        const resize = () => {
+          const height = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, 900);
+          moduleFrame.style.height = height + "px";
+        };
+        resize();
+        setTimeout(resize, 250);
+        setTimeout(resize, 900);
+      } catch (error) {
+        console.warn("No se pudo adaptar el módulo al panel principal:", error);
+      }
+    });
 
     document.querySelectorAll('[data-open-catalog]').forEach((catalogTrigger) => {
       catalogTrigger.addEventListener('click', openCatalog);
@@ -560,7 +650,11 @@
     });
     document.getElementById('backToDashboard').addEventListener('click', async () => {
       catalogView.hidden = true;
+      document.getElementById("dashboardHome").hidden = false;
+      document.getElementById("moduleFrameWrap").hidden = true;
       dashboard.hidden = false;
+      setActiveNavigation("dashboard");
+      setBreadcrumb("Dashboard");
       try {
         await loadDashboardData();
       } catch (error) {
