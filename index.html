@@ -1484,10 +1484,10 @@
       .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>{loadSchedule();loadPublicAgenda();})
       .on('postgres_changes',{event:'*',schema:'public',table:'food_truck_events'},()=>loadPublicAgenda())
       .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings().then(()=>loadCatalog()).catch(error=>console.warn(error)))
-      .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>loadPublicSettings())
+      .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>{loadPublicSettings();loadPublicAgenda();})
       .on('postgres_changes',{event:'*',schema:'public',table:'delivery_zones'},()=>loadPublicSettings())
       .subscribe();
-    window.setInterval(()=>{loadPublicSettings().then(()=>loadCatalog()).catch(()=>{});loadSchedule().catch(()=>{});},60000);
+    window.setInterval(()=>{loadPublicSettings().then(()=>loadCatalog()).catch(()=>{});loadSchedule().catch(()=>{});loadPublicAgenda().catch(()=>{});},60000);
   });
 })();
 </script>
