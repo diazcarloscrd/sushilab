@@ -5,8 +5,7 @@ ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS client_request_id uuid;
 
 CREATE UNIQUE INDEX IF NOT EXISTS orders_client_request_id_uidx
-  ON public.orders (client_request_id)
-  WHERE client_request_id IS NOT NULL;
+  ON public.orders (client_request_id);
 
 CREATE OR REPLACE FUNCTION public.create_public_order(
   p_request_id uuid,
