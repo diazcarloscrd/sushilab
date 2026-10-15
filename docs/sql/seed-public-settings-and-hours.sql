@@ -33,8 +33,7 @@ BEGIN
   ELSE
     UPDATE public.products
     SET category_id = v_category_id,
-        description = 'Crocantes en panko + salsa',
-        price = 9800,
+        description = COALESCE(description, 'Crocantes en panko + salsa'),
         is_available = true,
         sort_order = 999
     WHERE id = v_upsell_id;
