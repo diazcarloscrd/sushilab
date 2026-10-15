@@ -699,6 +699,9 @@
       if (deleteButton) {
         const product = catalogProducts.find((item) => String(item.id) === deleteButton.dataset.productDelete);
         if (!product) return;
+        const historyCheck = await client.from('order_items').select('id', { count: 'exact', head: true }).eq('product_id', product.id);
+        if (historyCheck.error) { showCatalogMessage('No se pudo comprobar si el producto aparece en pedidos anteriores. No se realizó ningún cambio.'); return; }
+        if (historyCheck.count > 0) { showCatalogMessage('No se puede eliminar «' + product.name + '» porque aparece en ' + historyCheck.count + ' ítem(s) de pedidos registrados. Para conservar el historial de ventas, pausá el producto en lugar de eliminarlo.'); return; }
         if (!await confirmCatalogAction('«' + product.name + '» se eliminará permanentemente del catálogo. Esta acción no se puede deshacer.', '¿Eliminar producto?', 'Sí, eliminar')) return;
         deleteButton.disabled = true;
         const result = await client.from('products').delete().eq('id', product.id);
