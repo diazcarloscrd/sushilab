@@ -62,7 +62,7 @@
 </div>
 <!-- Hero Visual Showcase -->
 <div class="lg:col-span-5 relative">
-<div class="relative bg-surface-container-low rounded-xl p-space-md shadow-2xl overflow-hidden">
+<div id="featuredProductCard" class="relative bg-surface-container-low rounded-xl p-space-md shadow-2xl overflow-hidden">
 <div class="relative rounded-lg overflow-hidden h-[420px] bg-surface-container-lowest"><img alt="La Scaloneta x20 Piezas" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7IjmX610MWe52K7fpcdvhldID9gWP0vjk1-S1CDdPeFYJnKqTf1b2FkMDwRCurhxplI3qsWY2ZtoVL1KuT8ixv5aeGAH47dozS-agKhSyiM1pf_qFzkczXtnZ6Ll86OQ6273_lMgGIRJBJr1KFbMfJ3mCPlh28K1KIHUFO2U0ObJTMQjDoxEIriPrtPE4KX4QJoLsRDbszXT4KF807qhK1bchmpXUmPyuVC0L6x93Tav77MGAc7U_vC2mhogZRkPFo6g"/><div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent"></div><div class="absolute top-space-md left-space-md"><span class="px-space-sm py-1 rounded bg-secondary-container text-on-primary-container font-label-sm text-label-sm uppercase tracking-widest font-bold shadow-md">EL MAS VENDIDO</span></div><div class="absolute bottom-space-md left-space-md right-space-md"><p class="font-label-sm text-label-sm uppercase tracking-widest text-primary mb-1">Estrella YanKun - 20 Piezas</p><h3 class="font-headline-md text-headline-md text-on-surface mb-1">La Scaloneta x20</h3><p class="font-body-sm text-body-sm text-tertiary line-clamp-2">8 Sake Roll + 8 Philadelphia Roll + 4 Super Salmon coronados con volcan de salmon fresco tartare.</p><div class="mt-space-sm flex items-center justify-between"><span class="font-headline-sm text-headline-sm text-on-surface">$19.500 <span class="font-label-sm text-label-sm text-tertiary">ARS</span></span><button class="px-space-md py-2 rounded bg-primary-container text-on-primary-container font-label-md text-label-md uppercase tracking-wider hover:brightness-110 flex items-center gap-1 shadow-lg" onclick="if (addToCart('combo-scaloneta', 'La Scaloneta x20', 19500, 'Combos') === false) return; document.getElementById('pedido-seccion').scrollIntoView({ behavior: 'smooth', block: 'start' });"><span class="material-symbols-outlined text-[16px]">add</span> Pedir Ahora</button></div></div></div>
 </div>
 </div>
@@ -973,6 +973,12 @@
   function money(value) {
     return String.fromCharCode(36) + Number(value || 0).toLocaleString('es-AR') + ' ARS';
   }
+  function safeImageUrl(value) {
+    try {
+      const url = new URL(String(value || ''), window.location.origin);
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+    } catch { return ''; }
+  }
   function showFeedback(title, message, link) {
     let overlay = document.getElementById('yk-order-feedback');
     if (!overlay) {
@@ -1001,9 +1007,7 @@
   window.showOrderFeedback = showFeedback;
 
   function renderFeatured(product) {
-    const title = Array.from(document.querySelectorAll('h3')).find(el => el.textContent.trim() === 'La Scaloneta x20');
-    if (!title) return;
-    const root = title.closest('div.relative.bg-surface-container-low');
+    const root = document.getElementById('featuredProductCard');
     if (!root) return;
     const image = root.querySelector('img');
     const description = root.querySelector('.font-body-sm');
@@ -1011,7 +1015,8 @@
     const button = root.querySelector('button');
     const heading = root.querySelector('h3');
     if (!product) { root.hidden = true; return; }
-    if (image) { image.src = product.image_url || ''; image.alt = product.name; image.hidden = !product.image_url; }
+    const safeImage = safeImageUrl(product.image_url);
+    if (image) { image.src = safeImage; image.alt = product.name; image.hidden = !safeImage; }
     if (heading) heading.textContent = product.name;
     if (description) description.textContent = product.description || 'Elaboración de YanKun SushiLab.';
     if (price) price.textContent = money(product.price);
@@ -1056,7 +1061,8 @@
       byCategory.get(category.id).forEach(product => {
         const card = document.createElement('article');
         card.className = 'p-space-sm rounded-lg bg-surface-container-lowest flex flex-col justify-between border border-surface-container-high/60 min-w-0';
-        const image = product.image_url ? '<img src="' + esc(product.image_url) + '" alt="' + esc(product.name) + '" loading="lazy" class="w-full h-36 object-cover rounded-md mb-3">' : '';
+        const safeImage = safeImageUrl(product.image_url);
+        const image = safeImage ? '<img src="' + esc(safeImage) + '" alt="' + esc(product.name) + '" loading="lazy" class="w-full h-36 object-cover rounded-md mb-3">' : '';
         card.innerHTML = image +
           '<div class="mb-3"><h4 class="font-headline-sm text-[16px] text-on-surface font-semibold">' + esc(product.name) + '</h4>' +
           '<p class="font-body-sm text-[12px] text-tertiary mt-1 line-clamp-3">' + esc(product.description || '') + '</p></div>' +
