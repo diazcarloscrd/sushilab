@@ -114,9 +114,8 @@ BEGIN
          OR v_local_time < v_day_open_time OR v_local_time >= v_day_close_time THEN
         RAISE EXCEPTION 'El local está fuera del horario de atención';
       END IF;
-    ELSIF v_local_day NOT IN (2,3,4,5,6)
-       OR v_local_time < time '18:30' OR v_local_time >= time '21:00' THEN
-      RAISE EXCEPTION 'El local está fuera del horario de atención';
+    ELSE
+      RAISE EXCEPTION 'No hay horario configurado para hoy';
     END IF;
   END IF;
 
