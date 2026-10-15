@@ -73,7 +73,11 @@ BEGIN
   END IF;
 
   -- Return an existing order before checking today's schedule, so safe retries stay idempotent.
-  SELECT to_jsonb(o) INTO v_existing
+  SELECT jsonb_build_object(
+    'id',o.id,'order_number',o.order_number,'status',o.status,
+    'subtotal',o.subtotal,'delivery_fee',o.delivery_fee,'discount',o.discount,
+    'total',o.total,'created_at',o.created_at
+  ) INTO v_existing
   FROM public.orders o
   WHERE o.client_request_id = p_request_id;
   IF v_existing IS NOT NULL THEN
@@ -118,22 +122,27 @@ BEGIN
       END IF;
     END IF;
   ELSE
-    SELECT bh.is_open, bh.opens_at, bh.closes_at
-      INTO v_day_open, v_day_open_time, v_day_close_time
-    FROM public.business_hours bh
-    WHERE bh.sales_location_id = v_store_id
-      AND bh.schedule_type = 'weekly'
-      AND bh.day_of_week = v_local_day
-    ORDER BY bh.id DESC
-    LIMIT 1;
-
-    IF FOUND THEN
-      IF NOT v_day_open OR v_day_open_time IS NULL OR v_day_close_time IS NULL
-         OR v_local_time < v_day_open_time OR v_local_time >= v_day_close_time THEN
-        RAISE EXCEPTION 'El local está fuera del horario de atención';
-      END IF;
-    ELSE
+    IF NOT EXISTS (
+      SELECT 1
+      FROM public.business_hours bh
+      WHERE bh.sales_location_id = v_store_id
+        AND bh.schedule_type = 'weekly'
+        AND bh.day_of_week = v_local_day
+    ) THEN
       RAISE EXCEPTION 'No hay horario configurado para hoy';
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1
+      FROM public.business_hours bh
+      WHERE bh.sales_location_id = v_store_id
+        AND bh.schedule_type = 'weekly'
+        AND bh.day_of_week = v_local_day
+        AND bh.is_open = true
+        AND v_local_time >= bh.opens_at
+        AND v_local_time < bh.closes_at
+    ) THEN
+      RAISE EXCEPTION 'El local está fuera del horario de atención';
     END IF;
   END IF;
 
@@ -155,7 +164,11 @@ BEGIN
 
   -- A retry with the same request ID returns the original order without duplicating it.
   IF v_order_id IS NULL THEN
-    SELECT to_jsonb(o) INTO v_existing
+    SELECT jsonb_build_object(
+      'id',o.id,'order_number',o.order_number,'status',o.status,
+      'subtotal',o.subtotal,'delivery_fee',o.delivery_fee,'discount',o.discount,
+      'total',o.total,'created_at',o.created_at
+    ) INTO v_existing
     FROM public.orders o
     WHERE o.client_request_id = p_request_id;
     RETURN jsonb_build_object('duplicate', true, 'order', v_existing);
