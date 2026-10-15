@@ -80,7 +80,7 @@ Deno.serve(async (req: Request) => {
     const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { count, error: rateError } = await admin.from("orders")
       .select("id", { count: "exact", head: true })
-      .eq("customer_phone", customerPhone)
+      .eq("customer_phone", digits)
       .gte("created_at", since);
     if (rateError) {
       console.error("No se pudo verificar el límite de pedidos:", rateError.message);
@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
       p_request_id: requestId,
       p_payload: {
         customer_name: customerName,
-        customer_phone: customerPhone,
+        customer_phone: digits,
         delivery_mode: mode,
         delivery_address: address || null,
         customer_notes: notes || null,
