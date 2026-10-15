@@ -4,6 +4,9 @@
   const STORAGE_KEY = 'yankun-admin-last-activity';
 
   window.startYanKunIdleSession = async function (client, freshLogin) {
+    // El dashboard principal controla la sesión compartida; los módulos embebidos no duplican timers ni modales.
+    if (window.self !== window.top) return true;
+
     const previousActivity = Number(localStorage.getItem(STORAGE_KEY) || 0);
     if (!freshLogin && previousActivity && Date.now() - previousActivity >= IDLE_LIMIT) {
       localStorage.removeItem(STORAGE_KEY);
