@@ -1071,7 +1071,7 @@
     container.style.visibility='visible';
     const allAvailable = products.filter(p => categories.some(c => c.id === p.category_id));
     const upsellId = publicSettings?.upsell_enabled ? String(publicSettings.upsell_product_id || '') : '';
-    const available = allAvailable.filter(p => String(p.id) !== upsellId && !isQuoteProduct(p));
+    const available = allAvailable.filter(p => String(p.id) !== upsellId || isQuoteProduct(p));
     const byCategory = new Map(categories.map(c => [c.id, []]));
     available.forEach(p => byCategory.get(p.category_id)?.push(p));
     const visibleCategories = categories.filter(c => (byCategory.get(c.id) || []).length);
