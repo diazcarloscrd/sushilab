@@ -168,7 +168,7 @@
       <div class="module-grid">
         <article class="module" data-open-catalog role="button" tabindex="0" aria-label="Abrir catálogo y productos"><h3>Catálogo y productos</h3><p>Administración de productos, precios, disponibilidad, imágenes y categorías.</p><span class="module-tag">Próxima etapa</span></article>
         <article class="module" data-open-orders role="button" tabindex="0"><h3>Pedidos</h3><p>Seguimiento de pedidos, estados, datos del cliente y detalle de cada compra.</p><span class="module-tag">Gestión disponible</span></article>
-        <article class="module"><h3>Puntos de venta</h3><p>Local principal, food truck, salidas y ubicaciones de venta.</p><span class="module-tag">Próxima etapa</span></article>
+        <article class="module" data-open-sales-locations role="button" tabindex="0" aria-label="Abrir puntos de venta"><h3>Puntos de venta</h3><p>Administración del local principal y el food truck.</p><span class="module-tag">Gestión disponible</span></article>
         <article class="module"><h3>Horarios y fechas especiales</h3><p>Configuración de días y horarios de atención, feriados y excepciones.</p><span class="module-tag">Próxima etapa</span></article>
         <article class="module"><h3>Zonas de envío</h3><p>Configuración de zonas de reparto y sus costos de envío.</p><span class="module-tag">Próxima etapa</span></article>
         <article class="module"><h3>Configuración</h3><p>Datos del negocio y reglas generales de funcionamiento.</p><span class="module-tag">Próxima etapa</span></article>
@@ -357,6 +357,15 @@
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         window.location.href = 'orders.html';
+      }
+    });
+
+    const salesLocationsCard = document.querySelector("[data-open-sales-locations]");
+    salesLocationsCard.addEventListener("click", () => { window.location.href = "sales-locations.html"; });
+    salesLocationsCard.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        window.location.href = "sales-locations.html";
       }
     });
 
