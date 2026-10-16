@@ -1313,6 +1313,11 @@
     if(!productId){container.hidden=true;window.yankunUpsellProduct=null;return;}
     const {data,error}=await db.from('products').select('id,name,description,price,category_id,is_available').eq('id',productId).eq('is_available',true).maybeSingle();
     if(error||!data){container.hidden=true;window.yankunUpsellProduct=null;console.warn('No se pudo cargar el producto sugerido.',error);return;}
+    if(/bombas de salm[oó]n/i.test(String(data.name||''))){
+      container.hidden=true;
+      window.yankunUpsellProduct=null;
+      return;
+    }
     window.yankunUpsellProduct=data;
     const set=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value;};
     set('upsellTitle','Sumá '+data.name);
@@ -1430,7 +1435,7 @@
     }else{
       const message=(truckResult.error||specialResult.error||locationsResult.error)
         ? 'No se pudo actualizar la agenda en este momento. Volvé a consultar más tarde.'
-        : 'Todavía no hay próximas actividades programadas. Las salidas del Food Truck y las fechas especiales que se carguen desde el CRM aparecerán acá.';
+        : 'Aún no hay eventos programados';
       cardContainer.innerHTML='<div class="col-span-full rounded-lg border border-dashed border-surface-container-high p-space-md text-sm text-tertiary leading-relaxed">'+esc(message)+'</div>';
     }
     panel.classList.remove('hidden');
