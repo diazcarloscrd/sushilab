@@ -39,6 +39,7 @@ textarea{min-height:88px;resize:vertical;line-height:1.5}
 <div class="field full"><label for="deliveryDescription">Descripción de cobertura</label><input id="deliveryDescription" maxlength="180"></div>
 <div class="field"><label for="prepMin">Preparación mínima (minutos)</label><input id="prepMin" type="number" min="1" max="360" step="1" required></div>
 <div class="field"><label for="prepMax">Preparación máxima (minutos)</label><input id="prepMax" type="number" min="1" max="360" step="1" required></div>
+<div class="field full"><label for="preferredTimeSlots">Horarios preferidos para pedidos (uno por línea)</label><textarea id="preferredTimeSlots" rows="4" maxlength="1200" placeholder="Lo antes posible&#10;19:00 - 19:30 hs&#10;19:30 - 20:00 hs"></textarea><p class="hint">Cada línea será una opción en la web. Si incluís “Lo antes posible”, se agrega el tiempo de preparación configurado arriba. Si lo dejás vacío, las opciones se generan a partir de los horarios semanales del CRM.</p></div>
 </div>
 </section>
 <section class="panel">
@@ -87,6 +88,7 @@ function fillForm(){
  el("deliveryDescription").value=s.delivery_area_description||"";
  el("prepMin").value=Number(s.preparation_min_minutes??30);
  el("prepMax").value=Number(s.preparation_max_minutes??45);
+ el("preferredTimeSlots").value=Array.isArray(s.preferred_time_slots)?s.preferred_time_slots.join("\n"):"";
  el("whatsappNumber").value=s.whatsapp_number||"";
  el("whatsappDisplay").value=s.whatsapp_display||"";
  el("paymentMethods").value=Array.isArray(s.payment_methods)?s.payment_methods.join("\n"):"";
@@ -117,6 +119,8 @@ async function load(){
 el("settingsForm").addEventListener("submit",async event=>{
  event.preventDefault();if(busy)return;
  const fee=Number(el("deliveryFee").value),min=Number(el("prepMin").value),max=Number(el("prepMax").value);
+ const preferredTimeSlots=[...new Set(el("preferredTimeSlots").value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean))];
+ if(preferredTimeSlots.length>20){note("Demasiadas opciones","Podés configurar hasta 20 horarios preferidos.",true);return}
  const phone=el("whatsappNumber").value.replace(/\D/g,""),methods=el("paymentMethods").value.split("\n").map(x=>x.trim()).filter(Boolean);
  const product=products.find(p=>String(p.id)===el("upsellProduct").value),price=Number(el("upsellPrice").value);
  if(!Number.isFinite(fee)||fee<0||!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>360){note("Revisá los valores","La tarifa debe ser positiva y los tiempos deben ser válidos; el máximo no puede ser menor que el mínimo.",true);return}
@@ -137,6 +141,7 @@ el("settingsForm").addEventListener("submit",async event=>{
    delivery_fee_bahia:fee,delivery_area_label:el("deliveryArea").value.trim(),
    delivery_area_description:el("deliveryDescription").value.trim(),
    preparation_min_minutes:min,preparation_max_minutes:max,
+   preferred_time_slots:preferredTimeSlots,
    whatsapp_number:phone,whatsapp_display:el("whatsappDisplay").value.trim(),
    payment_methods:methods,packaging_note:el("packagingNote").value.trim(),
    upsell_enabled:el("upsellEnabled").checked,upsell_product_id:product?Number(product.id):null

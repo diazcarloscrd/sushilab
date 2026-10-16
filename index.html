@@ -476,7 +476,7 @@
 </div>
 
 <!-- AGENDA YANKUN: próximas salidas y fechas especiales -->
-<section id="agendaYanKun" class="hidden rounded-xl bg-surface-container-low border border-surface-container-high/70 p-space-md shadow-lg" aria-labelledby="agendaYanKunTitle">
+<section id="agendaYanKun" class="rounded-xl bg-surface-container-low border border-surface-container-high/70 p-space-md shadow-lg" aria-labelledby="agendaYanKunTitle">
   <div class="flex items-start justify-between gap-3 mb-space-md">
     <div class="min-w-0">
       <span class="font-label-sm text-label-sm uppercase tracking-widest text-primary block mb-1">Agenda</span>
@@ -493,10 +493,9 @@
 <select id="deliveryModeSelect" onchange="setDeliveryMode(this.value)" aria-label="Modalidad de entrega" class="w-full px-space-sm py-2.5 rounded-lg bg-surface-container-lowest border border-surface-container-high text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container">
   <option value="delivery_bahia">Envío en Bahía Blanca</option>
   <option value="pickup">Retiro en local · Gratis</option>
-  <option value="otra_zona">Otra zona · Consultar por WhatsApp</option>
 </select>
 <p id="deliveryModeInfo" class="text-[11px] text-tertiary mt-1.5 leading-relaxed">Seleccioná cómo querés recibir tu pedido.</p>
-</div><div class="mb-space-sm" id="addressFieldContainer"><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="clientAddress">Direccion de Entrega (Calle, Altura, Piso/Depto)</label><input class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="clientAddress" oninput="renderCartSummary()" placeholder="Ej: Alem 1250, 4to B" type="text"/></div><div class="mb-space-sm p-space-sm rounded bg-surface-container-lowest text-[12px] text-tertiary hidden" id="pickupNotice"><p><strong class="text-on-surface">Punto de Retiro:</strong> <span id="pickupAddressNotice">Consultá el punto de retiro</span>.</p><p class="text-primary mt-0.5">Retiro según los horarios vigentes publicados en la carta.</p></div></div><div class="space-y-space-xs"><div class="grid grid-cols-2 gap-space-xs"><div><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="deliveryTimeSlot">Horario preferido</label><select class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="deliveryTimeSlot"><option value="A coordinar con cocina">A coordinar con cocina</option></select></div><div><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="paymentMethod">Medio de Pago</label><select class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="paymentMethod"><option value="Transferencia bancaria">Transferencia bancaria</option><option value="Efectivo al recibir/retirar">Efectivo al recibir/retirar</option></select></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-space-xs"><div><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="clientName">Nombre Completo</label><input class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="clientName" placeholder="Tu nombre" type="text"/></div><div><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="clientPhone">Telefono WhatsApp <span class="text-primary text-[10px]">(Para coordinar tu pedido)</span></label><input class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="clientPhone" oninput="checkFirstOrderCoupon()" placeholder="Ej: 291 5123456" type="tel"/></div></div><details class="rounded-lg border border-surface-container-high/70 bg-surface-container-lowest/50 p-space-sm"><summary class="cursor-pointer font-label-md text-label-md text-on-surface">Agregar aclaraciones (opcional)</summary><div class="pt-2"><textarea class="w-full px-space-sm py-1.5 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="generalNotes" placeholder="Ej.: sin palta, sin sésamo o alguna indicación especial..." rows="2"></textarea><p class="text-[10px] text-tertiary mt-1">Las indicaciones se envían junto con el pedido para coordinarlas por WhatsApp.</p></div></details><div class="hidden p-space-xs rounded text-[11px]" id="couponMessageContainer"></div></div><div class="p-space-xs rounded bg-surface-container-lowest border border-surface-container-high text-[11px] text-tertiary space-y-1"><div class="flex items-center gap-1.5 text-on-surface font-semibold"><span class="material-symbols-outlined text-[14px] text-primary-container">timer</span><span id="preparationTimeLabel">Tiempo estimado: según demanda</span></div><p class="text-[11px] text-outline leading-tight" id="publicPackagingCart">Consultá las condiciones de empaque al confirmar tu pedido.</p></div><div class="pt-space-xs border-t border-surface-container-high/60 space-y-1 font-body-sm text-body-sm"><div class="flex justify-between text-tertiary"><span>Subtotal Productos:</span><span class="font-semibold text-on-surface" id="summarySubtotal">$0 ARS</span></div><div class="flex justify-between text-tertiary"><span>Costo de Entrega:</span><span class="font-semibold text-on-surface" id="summaryShipping">Consultar tarifa</span></div><div class="hidden flex justify-between text-emerald-400" id="discountRow"><span>Descuento 1er Pedido (10%):</span><span class="font-semibold" id="summaryDiscount">-$0 ARS</span></div><div class="flex justify-between items-baseline pt-space-xs mt-space-xs border-t border-surface-container-high"><span class="font-headline-sm text-headline-sm text-on-surface">TOTAL:</span><span class="font-headline-md text-headline-md text-primary font-bold" id="summaryTotal">$0 ARS</span></div></div><div class="aviso-cerrado" id="avisoCerrado" role="status"><span class="material-symbols-outlined" style="font-size:18px">schedule</span><p id="avisoCerradoTexto">Los pedidos se habilitan dentro de los horarios de atención publicados.</p></div><div class="flex flex-col gap-2"><button class="w-full py-3 px-space-md rounded-lg bg-[#0F291E] hover:bg-[#133829] text-[#10B981] font-label-lg text-label-lg uppercase tracking-wider flex items-center justify-center gap-space-xs shadow-xl transition-all" onclick="checkoutViaWhatsApp()" type="button"><span class="material-symbols-outlined text-[20px]">chat</span> Pedir por WhatsApp Automatico</button><button class="w-full py-2 px-space-md rounded-lg bg-surface-container hover:bg-surface-variant text-on-surface font-label-md text-label-md uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all text-[12px]" onclick="copyOrderToClipboard()" type="button"><span class="material-symbols-outlined text-[16px]">content_copy</span> Copiar pedido</button></div><p class="text-[11px] text-center text-outline">Al presionar, se registrará el pedido y se abrirá WhatsApp para coordinarlo.</p></div></div>
+</div><div class="mb-space-sm" id="addressFieldContainer"><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="clientAddress">Direccion de Entrega (Calle, Altura, Piso/Depto)</label><input class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="clientAddress" oninput="renderCartSummary()" placeholder="Ej: Alem 1250, 4to B" type="text"/></div><div class="mb-space-sm p-space-sm rounded bg-surface-container-lowest text-[12px] text-tertiary hidden" id="pickupNotice"><p><strong class="text-on-surface">Punto de Retiro:</strong> <span id="pickupAddressNotice">Consultá el punto de retiro</span>.</p><p class="text-primary mt-0.5">Retiro según los horarios vigentes publicados en la carta.</p></div></div><div class="space-y-space-xs"><div class="grid grid-cols-2 gap-space-xs"><div><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="deliveryTimeSlot">Horario preferido</label><select class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="deliveryTimeSlot"><option value="A coordinar con cocina">A coordinar con cocina</option></select></div><div><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="paymentMethod">Medio de Pago</label><select class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="paymentMethod"><option value="Transferencia bancaria">Transferencia bancaria</option><option value="Efectivo al recibir/retirar">Efectivo al recibir/retirar</option></select></div></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-space-xs"><div><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="clientName">Nombre Completo</label><input class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="clientName" placeholder="Tu nombre" type="text"/></div><div><label class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary block mb-1" for="clientPhone">Teléfono WhatsApp</label><input class="w-full px-space-sm py-2 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="clientPhone" oninput="checkFirstOrderCoupon()" placeholder="Ej: 291 5123456" type="tel"/><p class="text-[10px] text-tertiary mt-1">Para coordinar tu pedido.</p></div></div><details class="rounded-lg border border-surface-container-high/70 bg-surface-container-lowest/50 p-space-sm"><summary class="cursor-pointer font-label-md text-label-md text-on-surface">Agregar aclaraciones (opcional)</summary><div class="pt-2"><textarea class="w-full px-space-sm py-1.5 rounded bg-surface-container-lowest text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="generalNotes" placeholder="Ej.: sin palta, sin sésamo o alguna indicación especial..." rows="2"></textarea><p class="text-[10px] text-tertiary mt-1">Las indicaciones se envían junto con el pedido para coordinarlas por WhatsApp.</p></div></details><div class="hidden p-space-xs rounded text-[11px]" id="couponMessageContainer"></div></div><div class="p-space-xs rounded bg-surface-container-lowest border border-surface-container-high text-[11px] text-tertiary space-y-1"><div class="flex items-center gap-1.5 text-on-surface font-semibold"><span class="material-symbols-outlined text-[14px] text-primary-container">timer</span><span id="preparationTimeLabel">Tiempo estimado: según demanda</span></div><p class="text-[11px] text-outline leading-tight" id="publicPackagingCart">Consultá las condiciones de empaque al confirmar tu pedido.</p></div><div class="pt-space-xs border-t border-surface-container-high/60 space-y-1 font-body-sm text-body-sm"><div class="flex justify-between text-tertiary"><span>Subtotal Productos:</span><span class="font-semibold text-on-surface" id="summarySubtotal">$0 ARS</span></div><div class="flex justify-between text-tertiary"><span>Costo de Entrega:</span><span class="font-semibold text-on-surface" id="summaryShipping">Consultar tarifa</span></div><div class="hidden flex justify-between text-emerald-400" id="discountRow"><span>Descuento 1er Pedido (10%):</span><span class="font-semibold" id="summaryDiscount">-$0 ARS</span></div><div class="flex justify-between items-baseline pt-space-xs mt-space-xs border-t border-surface-container-high"><span class="font-headline-sm text-headline-sm text-on-surface">TOTAL:</span><span class="font-headline-md text-headline-md text-primary font-bold" id="summaryTotal">$0 ARS</span></div></div><div class="aviso-cerrado" id="avisoCerrado" role="status"><span class="material-symbols-outlined" style="font-size:18px">schedule</span><p id="avisoCerradoTexto">Los pedidos se habilitan dentro de los horarios de atención publicados.</p></div><div class="flex flex-col gap-2"><button class="w-full py-3 px-space-md rounded-lg bg-[#0F291E] hover:bg-[#133829] text-[#10B981] font-label-lg text-label-lg uppercase tracking-wider flex items-center justify-center gap-space-xs shadow-xl transition-all" onclick="checkoutViaWhatsApp()" type="button"><span class="material-symbols-outlined text-[20px]">chat</span> Pedir por WhatsApp Automatico</button><button class="w-full py-2 px-space-md rounded-lg bg-surface-container hover:bg-surface-variant text-on-surface font-label-md text-label-md uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all text-[12px]" onclick="copyOrderToClipboard()" type="button"><span class="material-symbols-outlined text-[16px]">content_copy</span> Copiar pedido</button></div><p class="text-[11px] text-center text-outline">Al presionar, se registrará el pedido y se abrirá WhatsApp para coordinarlo.</p></div></div>
 </div>
 </div>
 </section>
@@ -589,7 +588,7 @@
 
   const cartState = {
     items: {}, // key: { id, name, price, category, quantity }
-    deliveryMode: 'delivery_bahia', // delivery_bahia, pickup, or otra_zona
+    deliveryMode: 'delivery_bahia', // delivery_bahia or pickup
     shippingCost: 0,
     hasDiscount: false,
     discountPercent: 0.10
@@ -614,7 +613,7 @@
   }
 
   function setDeliveryMode(mode) {
-    const allowedModes = ['delivery_bahia', 'pickup', 'otra_zona'];
+    const allowedModes = ['delivery_bahia', 'pickup'];
     if (!allowedModes.includes(mode)) mode = 'delivery_bahia';
     cartState.deliveryMode = mode;
     const modeSelect = document.getElementById('deliveryModeSelect');
@@ -632,18 +631,11 @@
       addressContainer.classList.remove('hidden');
       pickupNotice.classList.add('hidden');
       if (modeInfo) modeInfo.textContent = 'Envío en ' + area + ' · Tarifa: ' + (Number.isFinite(fee) && fee >= 0 ? '$' + fee.toLocaleString('es-AR') + ' ARS' : 'a confirmar');
-    } else if (mode === 'pickup') {
+    } else {
       cartState.shippingCost = 0;
       addressContainer.classList.add('hidden');
       pickupNotice.classList.remove('hidden');
       if (modeInfo) modeInfo.textContent = 'Retiro sin cargo' + (address ? ' en ' + address : ' en el punto oficial') + '.';
-    } else {
-      cartState.shippingCost = 0;
-      addressContainer.classList.remove('hidden');
-      pickupNotice.classList.add('hidden');
-      const zones = Array.isArray(window.yankunDeliveryZones) ? window.yankunDeliveryZones : [];
-      const zoneHint = zones.length ? ' Zonas habituales: ' + zones.join(' · ') + '.' : '';
-      if (modeInfo) modeInfo.textContent = 'Disponibilidad y tarifa se confirman por WhatsApp.' + zoneHint;
     }
     renderCartSummary();
   }
@@ -734,11 +726,7 @@
         shippingText = window.yankunPublicSettings ? '+$' + shipping.toLocaleString('es-AR') + ' ARS' : 'No disponible';
       } else if (cartState.deliveryMode === 'pickup') {
         shipping = 0;
-        shippingText = 'GRATIS ($0 ARS)';
-      } else if (cartState.deliveryMode === 'otra_zona') {
-        shipping = 0;
-        shippingText = 'A consultar por WhatsApp';
-      }
+        shippingText = 'GRATIS ($0 ARS)';}
     }
 
     const finalTotal = Math.max(0, subtotal - discount + shipping);
@@ -771,9 +759,8 @@
     const shipping = cartState.deliveryMode === 'delivery_bahia' ? Number(window.yankunPublicSettings?.delivery_fee_bahia || 0) : 0;
     const finalTotal = subtotal - discount + shipping;
 
-    let modalidadTxt = 'Envio en Bahia Blanca';
-    if (cartState.deliveryMode === 'pickup') modalidadTxt = 'Take Away (Retiro en ' + (window.yankunPublicLocation?.address || 'local') + ')';
-    if (cartState.deliveryMode === 'otra_zona') modalidadTxt = 'Otra zona (A consultar por WhatsApp)';
+    let modalidadTxt = 'Envío en ' + (window.yankunPublicSettings?.delivery_area_label || window.yankunPublicLocation?.locality || 'Bahía Blanca');
+    if (cartState.deliveryMode === 'pickup') modalidadTxt = 'Retiro en ' + (window.yankunPublicLocation?.address || 'el local');
 
     let msg = `NUEVO PEDIDO - YANKUN SUSHILAB\n`;
     msg += `------------------------------------\n`;
@@ -872,7 +859,7 @@
         'Pedido: ' + order.order_number,
         'Cliente: ' + name,
         'Teléfono: ' + phone,
-        'Modalidad: ' + (cartState.deliveryMode === 'pickup' ? 'Retiro' : cartState.deliveryMode === 'otra_zona' ? 'Envío a coordinar' : 'Delivery Bahía Blanca'),
+        'Modalidad: ' + (cartState.deliveryMode === 'pickup' ? 'Retiro' : 'Delivery ' + (window.yankunPublicSettings?.delivery_area_label || window.yankunPublicLocation?.locality || 'Bahía Blanca')),
         address ? 'Dirección: ' + address : '',
         'Horario solicitado: ' + (requestedTime || 'A coordinar'),
         'Medio de pago: ' + (paymentMethod || 'A coordinar'),
@@ -1248,19 +1235,36 @@
     const rows=schedule.weekly.filter(item=>Number(item.day_of_week)===now.day&&item.is_open);
     const min=Number(publicSettings?.preparation_min_minutes),max=Number(publicSettings?.preparation_max_minutes);
     const hasRange=Number.isFinite(min)&&Number.isFinite(max)&&min>0&&max>=min;
+    const configured=Array.isArray(publicSettings?.preferred_time_slots)
+      ? publicSettings.preferred_time_slots.map(value=>String(value??'').trim()).filter(Boolean).slice(0,20)
+      : [];
+    select.innerHTML='';
+    const appendOption=value=>{
+      const option=document.createElement('option');
+      option.value=value;option.textContent=value;select.appendChild(option);
+    };
+    if(configured.length){
+      configured.forEach(value=>{
+        const label=/^lo antes posible$/i.test(value)&&hasRange
+          ? 'Lo antes posible ('+min+'–'+max+' min)'
+          : value;
+        appendOption(label);
+      });
+      return;
+    }
     const firstLabel=hasRange?'Lo antes posible ('+min+'-'+max+' min)':'A coordinar con cocina';
-    select.innerHTML='<option value="'+firstLabel+'">'+firstLabel+'</option>';
+    appendOption(firstLabel);
     rows.forEach(row=>{
       if(!row.opens_at||!row.closes_at)return;
       const start=Number(row.opens_at.slice(0,2))*60+Number(row.opens_at.slice(3));
       const end=Number(row.closes_at.slice(0,2))*60+Number(row.closes_at.slice(3));
       for(let minute=start;minute+30<=end;minute+=30){
         const fmt=value=>String(Math.floor(value/60)).padStart(2,'0')+':'+String(value%60).padStart(2,'0');
-        const label=fmt(minute)+' - '+fmt(minute+30)+' hs';
-        const option=document.createElement('option');option.value=label;option.textContent=label;select.appendChild(option);
+        appendOption(fmt(minute)+' - '+fmt(minute+30)+' hs');
       }
     });
   }
+
   function updateScheduleUI() {
     if (!scheduleKnown) return;
     const state=getScheduleState();
@@ -1336,9 +1340,6 @@
     }
     publicSettings=settingsResult.data.value||{};mainLocation=locationResult.data;publicSettingsKnown=true;window.yankunPublicLocation=mainLocation;
     window.yankunPublicSettings=publicSettings;window.yankunPublicSettingsKnown=true;
-    const zonesResult=await db.from('delivery_zones').select('name,description,delivery_fee').eq('sales_location_id',mainLocation.id).eq('is_active',true).order('sort_order');
-    const zones=(zonesResult.data||[]).map(zone=>zone.name);
-    window.yankunDeliveryZones=zones;
     const address=[mainLocation.address,mainLocation.locality].filter(Boolean).join(', ');
     const setText=(id,value)=>{const node=document.getElementById(id);if(node&&value)node.textContent=value;};
     setText('publicAddressRibbon',mainLocation.address||'Punto de retiro');setText('publicAddressQuick',address);setText('publicAddressFooter',mainLocation.address||'Punto de retiro');setText('publicAddressPhilosophy',mainLocation.address||'el punto de retiro oficial');setText('publicAddressFaq',mainLocation.address||'el local');setText('publicLocalityFooter',mainLocation.locality||'');setText('pickupAddressNotice',address);setText('termsPickupAddress',address+'. Retiro sin cargo dentro de los horarios vigentes publicados en la carta.');
@@ -1347,7 +1348,6 @@
     const modeSelect=document.getElementById('deliveryModeSelect');
     const deliveryOption=modeSelect?.querySelector('option[value="delivery_bahia"]');if(deliveryOption)deliveryOption.textContent='Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'Bahía Blanca');
     const pickupOption=modeSelect?.querySelector('option[value="pickup"]');if(pickupOption)pickupOption.textContent='Retiro en local · Gratis';
-    const otherOption=modeSelect?.querySelector('option[value="otra_zona"]');if(otherOption)otherOption.textContent='Otra zona · Consultar por WhatsApp';
     const deliveryFee=Number(publicSettings.delivery_fee_bahia);
     const feeLabel=Number.isFinite(deliveryFee)&&deliveryFee>=0?'$'+deliveryFee.toLocaleString('es-AR'):'A consultar';
     
@@ -1356,7 +1356,7 @@
     const prepLabel=Number.isFinite(prepMin)&&Number.isFinite(prepMax)&&prepMin>0&&prepMax>=prepMin?prepMin+'–'+prepMax+' min':'A coordinar con cocina';
     setText('preparationTimeLabel','Preparación estimada: '+prepLabel);
     setText('publicPackagingFooter',publicSettings.packaging_note||'');setText('publicPackagingCart',publicSettings.packaging_note||'');setText('publicPackagingQuick',publicSettings.packaging_note||'');setText('termsPackaging',publicSettings.packaging_note||'');
-    setText('termsDeliveryInfo','Cadetería urbana en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana')+' con tarifa de '+feeLabel+'. Zonas especiales o periféricas se cotizan por WhatsApp.');
+    setText('termsDeliveryInfo','Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana')+' con tarifa configurada de '+feeLabel+'. Retiro sin cargo en '+(mainLocation.address||'el punto de retiro oficial')+'.');
     setText('termsPreparation','Elaboración al momento: '+prepLabel+', según demanda de cocina.');
     setText('deliveryOptionLabel','Envío en '+(publicSettings.delivery_area_label||mainLocation.locality||'zona urbana'));
     document.querySelectorAll('a[data-business-whatsapp],a[href*="wa.me/"]').forEach(link=>{if(publicSettings.whatsapp_number)link.href='https://wa.me/'+publicSettings.whatsapp_number;if(link.textContent.includes('+54'))link.textContent=publicSettings.whatsapp_display||link.textContent;});
@@ -1425,8 +1425,15 @@
     });
     cards.sort((a,b)=>a.sort-b.sort);
     const visibleCards=cards.slice(0,4);
-    cardContainer.innerHTML=visibleCards.map(card=>card.html).join('');
-    panel.classList.toggle('hidden',visibleCards.length===0);
+    if(visibleCards.length){
+      cardContainer.innerHTML=visibleCards.map(card=>card.html).join('');
+    }else{
+      const message=(truckResult.error||specialResult.error||locationsResult.error)
+        ? 'No se pudo actualizar la agenda en este momento. Volvé a consultar más tarde.'
+        : 'Todavía no hay próximas actividades programadas. Las salidas del Food Truck y las fechas especiales que se carguen desde el CRM aparecerán acá.';
+      cardContainer.innerHTML='<div class="col-span-full rounded-lg border border-dashed border-surface-container-high p-space-md text-sm text-tertiary leading-relaxed">'+esc(message)+'</div>';
+    }
+    panel.classList.remove('hidden');
   }
 
   async function loadSchedule() {
@@ -1483,11 +1490,11 @@
       .on('postgres_changes',{event:'*',schema:'public',table:'business_hours'},()=>loadSchedule())
       .on('postgres_changes',{event:'*',schema:'public',table:'special_events'},()=>{loadSchedule();loadPublicAgenda();})
       .on('postgres_changes',{event:'*',schema:'public',table:'food_truck_events'},()=>loadPublicAgenda())
-      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings().then(()=>loadCatalog()).catch(error=>console.warn(error)))
+      .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings().then(()=>{renderTimeSlots();return loadCatalog();}).catch(error=>console.warn(error)))
       .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>{loadPublicSettings();loadPublicAgenda();})
       .on('postgres_changes',{event:'*',schema:'public',table:'delivery_zones'},()=>loadPublicSettings())
       .subscribe();
-    window.setInterval(()=>{loadPublicSettings().then(()=>loadCatalog()).catch(()=>{});loadSchedule().catch(()=>{});loadPublicAgenda().catch(()=>{});},60000);
+    window.setInterval(()=>{loadPublicSettings().then(()=>{renderTimeSlots();return loadCatalog();}).catch(()=>{});loadSchedule().catch(()=>{});loadPublicAgenda().catch(()=>{});},60000);
   });
 })();
 </script>
