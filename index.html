@@ -1382,7 +1382,7 @@
     const feeLabel=Number.isFinite(deliveryFee)&&deliveryFee>=0?'$'+deliveryFee.toLocaleString('es-AR'):'A consultar';
     
     setText('publicDeliveryQuick','Delivery '+feeLabel+' · Retiro sin cargo');
-    const prepMin=Number(publicSettings.preparation_min_minutes),prepMax=Number(publicSettings.preparation_max_minutes);
+    const prepMin=Number(publicSettings.preparation_min_minutes??30),prepMax=Number(publicSettings.preparation_max_minutes??45);
     const prepLabel=Number.isFinite(prepMin)&&Number.isFinite(prepMax)&&prepMin>0&&prepMax>=prepMin?prepMin+'–'+prepMax+' min':'A coordinar con cocina';
     setText('preparationTimeLabel','Preparación desde que ingresa el pedido: '+prepLabel);
     setText('publicPackagingFooter',publicSettings.packaging_note||'');setText('publicPackagingCart',publicSettings.packaging_note||'');setText('publicPackagingQuick',publicSettings.packaging_note||'');setText('termsPackaging',publicSettings.packaging_note||'');
