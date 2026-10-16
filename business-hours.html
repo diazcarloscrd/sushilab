@@ -48,6 +48,7 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
 .event-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.event-title{font-weight:800;font-size:15px}.event-meta{font-size:11px;color:var(--muted);margin-top:6px}
 .event-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.danger{border:1px solid #56343d;background:#2b2026;color:#ffb3b6;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:700;cursor:pointer}
 .badge{display:inline-block;border-radius:20px;padding:5px 9px;font-size:10px;font-weight:800;background:#263b32;color:#a9e4c5}.badge.closed{background:#44282f;color:#ffb3b6}.badge.off{background:#343943;color:#c5c8d0}.badge.scheduled{background:#203b50;color:#a9d9f5}.badge.completed{background:#263b32;color:#a9e4c5}.badge.cancelled{background:#44282f;color:#ffb3b6}
+.modal-backdrop#noticeModal{z-index:2400}
 .hidden{display:none!important}
 @media(max-width:760px){.schedule-form{grid-template-columns:1fr 1fr}.event-form{grid-template-columns:1fr}.event-form .wide{grid-column:auto}.schedule-entry{grid-template-columns:1fr 1fr}.schedule-entry .entry-save,.schedule-entry .entry-delete{width:100%}}
 @media(max-width:480px){main{margin:26px auto}.panel{padding:13px}.schedule-form{grid-template-columns:1fr}.schedule-entry{grid-template-columns:1fr 1fr;gap:7px}.tab{flex:1;padding:11px 8px}}
@@ -56,7 +57,7 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
 <body>
 <header><strong>YanKun SushiLab</strong><a href="admin.html">← Volver al panel</a></header>
 <main>
-<div class="head"><div><p style="color:#ffb3b6;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Administración comercial</p><h1>Horarios y eventos</h1><p style="margin:0">Administrá los horarios habituales, los eventos y las salidas programadas del food truck.</p></div><button class="btn" id="refresh" type="button">Actualizar</button></div>
+<div class="head"><div><p style="color:#ffb3b6;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Administración comercial</p><h1>Horarios y Agenda</h1><p style="margin:0">Administrá los horarios habituales, los eventos y las salidas programadas del food truck.</p></div><button class="btn" id="refresh" type="button">Actualizar</button></div>
 <div id="status" role="status" aria-live="polite"></div>
 <div id="noticeModal" class="modal-backdrop hidden" role="presentation">
  <section id="noticeCard" class="modal-card info" role="alertdialog" aria-modal="true" aria-labelledby="noticeTitle" aria-describedby="noticeMessage">
@@ -68,6 +69,7 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
 <button class="tab" type="button" data-tab="store" role="tab" aria-selected="true">Local principal</button>
 <button class="tab" type="button" data-tab="truck" role="tab" aria-selected="false">Food truck</button>
 <button class="tab" type="button" data-tab="events" role="tab" aria-selected="false">Eventos</button>
+<button class="tab" type="button" data-tab="locations" role="tab" aria-selected="false">Ubicaciones</button>
 </nav>
 <section id="schedulePanel" class="panel" role="tabpanel">
 <div class="panel-head"><div><h2 id="scheduleTitle">Horario semanal · Local principal</h2><span class="hint">Configuración habitual</span></div><button class="primary" id="scheduleShowForm" type="button">+ Agregar día y horario</button></div>
@@ -120,6 +122,9 @@ input[type=time]{width:100%;min-width:0;padding:0 10px}
    <div class="event-actions wide"><button class="primary" id="truckEventSave" type="submit">Guardar salida</button><button class="btn" id="truckEventCancel" type="button">Volver</button></div>
   </form>
  </section></div>
+</section>
+<section id="locationsPanel" class="panel hidden" role="tabpanel" aria-label="Ubicaciones y puntos de venta" style="padding:0;overflow:hidden">
+ <iframe id="locationsFrame" title="Administración de ubicaciones" data-src="sales-locations.html?embedded=1" loading="lazy" style="display:block;width:100%;height:900px;min-height:75vh;border:0;background:#10141a"></iframe>
 </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="session-timeout.js"></script>
@@ -250,7 +255,7 @@ function showEventForm(){el("eventFormPanel").classList.remove("hidden");el("eve
 function renderEvents(){if(!events.length){el("eventList").innerHTML='<div class="empty">Todavía no hay eventos registrados. Podés crear el primero desde el formulario.</div>';return}el("eventList").innerHTML=events.map(ev=>{const loc=locations.find(x=>String(x.id)===String(ev.sales_location_id));const opening=ev.event_type==="special_opening";return '<article class="event-card" data-event-id="'+ev.id+'"><div class="event-card-head"><div><div class="event-title">'+safe(ev.event_name)+'</div><div class="event-meta">'+safe(loc?.name||"Punto de venta")+' · '+safe(formatDate(ev.event_date))+'</div><div class="event-meta">'+(opening?"Apertura especial · "+safe((ev.opens_at||"").slice(0,5))+" a "+safe((ev.closes_at||"").slice(0,5)):"Cierre excepcional")+'</div>'+(ev.description?'<div class="event-meta">'+safe(ev.description)+'</div>':"")+'</div><span class="badge '+(!ev.is_active?"off":opening?"":"closed")+'">'+(!ev.is_active?"Inactivo":opening?"Apertura especial":"Cierre excepcional")+'</span></div><div class="event-actions"><button class="btn" type="button" data-edit-event>Editar</button><button class="btn" type="button" data-toggle-event>'+(ev.is_active?"Desactivar":"Activar")+'</button><button class="danger" type="button" data-delete-event>Eliminar</button></div></article>'}).join("")}
 async function loadEvents(){el("eventList").innerHTML='<div class="empty">Cargando eventos...</div>';const {data,error}=await db.from("special_events").select("id,sales_location_id,event_name,event_date,event_type,opens_at,closes_at,description,is_active,created_at").order("event_date").order("id");if(error){console.error(error);events=[];el("eventList").innerHTML='<div class="empty">No se pudieron cargar los eventos: '+safe(error.message)+'</div>';return}events=data||[];renderEvents()}
 function fillLocationOptions(){const options=locations.map(x=>'<option value="'+x.id+'">'+safe(x.name)+(x.is_active?"":" · Inactivo")+'</option>').join("");el("eventLocation").innerHTML=options||'<option value="">No hay puntos de venta registrados</option>';el("eventLocation").disabled=!locations.length}
-function switchTab(tab){if(busy)return;resetScheduleForm();resetEventForm();resetTruckEventForm();currentTab=tab;document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===tab)));el("schedulePanel").classList.toggle("hidden",tab!=="store"&&tab!=="truck");el("eventsPanel").classList.toggle("hidden",tab!=="events");if(tab==="events"){loadEvents();loadTruckEvents();return}const type=tab==="store"?"store":"food_truck";const location=locations.find(x=>x.location_type===type);currentLocationId=location?.id??null;el("scheduleTitle").textContent="Horario semanal · "+(tab==="store"?"Local principal":"Food truck");loadWeekly()}
+function switchTab(tab){if(busy)return;resetScheduleForm();resetEventForm();resetTruckEventForm();currentTab=tab;document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===tab)));el("schedulePanel").classList.toggle("hidden",tab!=="store"&&tab!=="truck");el("eventsPanel").classList.toggle("hidden",tab!=="events");el("locationsPanel").classList.toggle("hidden",tab!=="locations");if(tab==="locations"){const frame=el("locationsFrame");if(!frame.src||frame.src==="about:blank")frame.src=frame.dataset.src;return}if(tab==="events"){loadEvents();loadTruckEvents();return}const type=tab==="store"?"store":"food_truck";const location=locations.find(x=>x.location_type===type);currentLocationId=location?.id??null;el("scheduleTitle").textContent="Horario semanal · "+(tab==="store"?"Local principal":"Food truck");loadWeekly()}
 
 let truckEvents=[];
 const truckStatusLabels={scheduled:"Programada",completed:"Completada",cancelled:"Cancelada"};

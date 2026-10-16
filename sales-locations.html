@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Puntos de venta | YanKun SushiLab</title>
 <style>
+body.embedded>header{display:none}body.embedded main{width:100%;margin:0;padding:22px 20px}body.embedded{background:#10141a}
 :root{color-scheme:dark;--bg:#10141a;--panel:#181c22;--line:#393d45;--text:#dfe2eb;--muted:#a7aab4;--rose:#ffb3b6;--red:#e11d48}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Arial,sans-serif}
 header{padding:20px 5%;background:#181c22;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -71,6 +72,7 @@ input:focus,select:focus{outline:2px solid #ffb3b640;border-color:var(--rose)}
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="session-timeout.js"></script>
 <script>
+if(new URLSearchParams(location.search).get("embedded")==="1")document.body.classList.add("embedded");
 const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
 const el=id=>document.getElementById(id);let records=[];let noticeResolver=null;
 const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
