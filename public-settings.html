@@ -43,16 +43,6 @@ textarea{min-height:88px;resize:vertical;line-height:1.5}
 </div>
 </section>
 <section class="panel">
-<div class="panel-head"><div><h2>Producto sugerido en el carrito</h2><p class="hint">Elegí un producto de la base de datos y definí el precio desde su ficha. El backend usará ese mismo precio al registrar el pedido.</p></div></div>
-<div class="grid">
-<div class="field full"><label class="checkline"><input id="upsellEnabled" type="checkbox"><span>Mostrar una sugerencia de producto en el carrito</span></label></div>
-<div class="field full"><label for="upsellProduct">Producto sugerido</label><select id="upsellProduct" required></select></div>
-<div class="field"><label id="upsellPriceLabel" for="upsellPrice">Precio del producto (ARS)</label><input id="upsellPrice" type="number" min="0" step="100" required><p class="hint" id="upsellQuoteHint" hidden>Este producto no tiene precio fijo. Se consulta por WhatsApp y no se incorpora al total del pedido.</p></div>
-<div class="field"><label for="upsellNote">Descripción corta</label><input id="upsellNote" maxlength="180"></div>
-<p class="hint full">El producto sugerido se administra como un producto real. No se duplica en la carta principal mientras esté seleccionado como sugerencia.</p>
-</div>
-</section>
-<section class="panel">
 <div class="panel-head"><div><h2>Contacto y medios de pago</h2><p class="hint">Se actualizan los enlaces de WhatsApp y las opciones del checkout.</p></div></div>
 <div class="grid">
 <div class="field"><label for="whatsappNumber">WhatsApp comercial (solo números)</label><input id="whatsappNumber" inputmode="numeric" maxlength="20" required></div>
@@ -74,13 +64,11 @@ textarea{min-height:88px;resize:vertical;line-height:1.5}
 <script>
 const db=window.supabase.createClient("https://cdhnpsowlsesoobrytvh.supabase.co","sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP");
 const el=id=>document.getElementById(id);
-let currentSettings={},products=[],busy=false,confirmResolve=null,noticeTimer=null;
+let currentSettings={},busy=false,confirmResolve=null,noticeTimer=null;
 function note(title,message,error=false){el("noticeTitle").textContent=title;el("noticeText").textContent=message;el("notice").classList.toggle("error",error);el("notice").classList.add("show");clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>el("notice").classList.remove("show"),5200)}
 function confirmSave(){el("confirmOverlay").classList.remove("hidden");return new Promise(resolve=>{confirmResolve=resolve})}
 function closeConfirm(value){el("confirmOverlay").classList.add("hidden");if(confirmResolve){confirmResolve(value);confirmResolve=null}}
 el("confirmNo").addEventListener("click",()=>closeConfirm(false));el("confirmYes").addEventListener("click",()=>closeConfirm(true));
-function syncUpsellPriceField(product){el("upsellPrice").disabled=false;el("upsellPrice").required=true;el("upsellPrice").value=product?Number(product.price||0):"";el("upsellPrice").placeholder="Ej. 14500";el("upsellPriceLabel").textContent="Precio del producto (ARS)";el("upsellQuoteHint").hidden=true}
-el("upsellProduct").addEventListener("change",()=>{const product=products.find(p=>String(p.id)===el("upsellProduct").value);if(product){syncUpsellPriceField(product);el("upsellNote").value=product.description||""}});
 function fillForm(){
  const s=currentSettings;
  el("deliveryFee").value=Number(s.delivery_fee_bahia??0);
@@ -93,27 +81,14 @@ function fillForm(){
  el("whatsappDisplay").value=s.whatsapp_display||"";
  el("paymentMethods").value=Array.isArray(s.payment_methods)?s.payment_methods.join("\n"):"";
  el("packagingNote").value=s.packaging_note||"";
- el("upsellEnabled").checked=!!s.upsell_enabled;
- const selectedId=String(s.upsell_product_id||"");
- const options=products.map(p=>{const current=String(p.id)===selectedId;return '<option value="'+p.id+'" '+(!p.is_available&&!current?'disabled':'')+'>'+escapeHtml(p.name)+(p.is_available?'':' · Pausado')+'</option>'}).join("");
- const configuredMissing=selectedId&&!products.some(p=>String(p.id)===selectedId);
- el("upsellProduct").innerHTML=options+(configuredMissing?'<option value="'+escapeHtml(selectedId)+'" selected disabled>Producto configurado no disponible</option>':"");
- if(selectedId)el("upsellProduct").value=selectedId;
- const selected=products.find(p=>String(p.id)===el("upsellProduct").value);
- syncUpsellPriceField(selected);
- el("upsellNote").value=selected?.description||"";
 }
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
 async function load(){
  el("loading").classList.remove("hidden");el("settingsForm").classList.add("hidden");
- const [settingsResult,productsResult]=await Promise.all([
-  db.from("business_settings").select("value").eq("key","public_site").maybeSingle(),
-  db.from("products").select("id,name,description,price,is_available,category_id").order("sort_order").order("name")
- ]);
- if(settingsResult.error)throw settingsResult.error;if(productsResult.error)throw productsResult.error;
+ const settingsResult=await db.from("business_settings").select("value").eq("key","public_site").maybeSingle();
+ if(settingsResult.error)throw settingsResult.error;
  if(!settingsResult.data)throw new Error("No existe la configuración pública del comercio.");
- currentSettings=settingsResult.data.value||{};products=productsResult.data||[];
- if(!products.length)throw new Error("No hay productos disponibles para configurar la sugerencia del carrito.");
+ currentSettings=settingsResult.data.value||{};
  fillForm();el("loading").classList.add("hidden");el("settingsForm").classList.remove("hidden");
 }
 el("settingsForm").addEventListener("submit",async event=>{
@@ -122,21 +97,12 @@ el("settingsForm").addEventListener("submit",async event=>{
  const preferredTimeSlots=[...new Set(el("preferredTimeSlots").value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean))];
  if(preferredTimeSlots.length>20){note("Demasiadas opciones","Podés configurar hasta 20 horarios preferidos.",true);return}
  const phone=el("whatsappNumber").value.replace(/\D/g,""),methods=el("paymentMethods").value.split("\n").map(x=>x.trim()).filter(Boolean);
- const product=products.find(p=>String(p.id)===el("upsellProduct").value),price=Number(el("upsellPrice").value);
  if(!Number.isFinite(fee)||fee<0||!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>360){note("Revisá los valores","La tarifa debe ser positiva y los tiempos deben ser válidos; el máximo no puede ser menor que el mínimo.",true);return}
- const settingsWithoutQa={...currentSettings};Object.keys(settingsWithoutQa).forEach(key=>{if(key==="qa"+"_"+"mode")delete settingsWithoutQa[key]});
+ const settingsWithoutQa={...currentSettings};Object.keys(settingsWithoutQa).forEach(key=>{if(key==="qa"+"_"+"mode"||key==="upsell_enabled"||key==="upsell_product_id")delete settingsWithoutQa[key]});
  if(phone.length<8||phone.length>20||!el("whatsappDisplay").value.trim()||!methods.length){note("Faltan datos","Completá un WhatsApp válido y al menos un medio de pago.",true);return}
- if(el("upsellEnabled").checked&&(!product||!product.is_available||!Number.isFinite(price)||price<0)){note("Producto sugerido inválido","Elegí un producto disponible e ingresá un precio válido. Si el producto está pausado, activalo desde Catálogo o deshabilitá la sugerencia.",true);return}
  if(!await confirmSave())return;
  busy=true;el("save").disabled=true;el("save").textContent="Guardando…";el("refresh").disabled=true;
  try{
-  const productDescription=el("upsellNote").value.trim()||null;
-  if(el("upsellEnabled").checked&&product&&product.is_available&&(Number(product.price)!==price||(product.description||null)!==productDescription)){
-   const productUpdate={price,description:productDescription};
-   const updated=await db.from("products").update(productUpdate).eq("id",product.id).eq("is_available",true).select("id,price,description").maybeSingle();
-   if(updated.error)throw updated.error;if(!updated.data)throw new Error("No se pudo actualizar el producto sugerido.");
-   product.price=price;product.description=productDescription;
-  }
   const next={...settingsWithoutQa,
    delivery_fee_bahia:fee,delivery_area_label:el("deliveryArea").value.trim(),
    delivery_area_description:el("deliveryDescription").value.trim(),
@@ -144,7 +110,6 @@ el("settingsForm").addEventListener("submit",async event=>{
    preferred_time_slots:preferredTimeSlots,
    whatsapp_number:phone,whatsapp_display:el("whatsappDisplay").value.trim(),
    payment_methods:methods,packaging_note:el("packagingNote").value.trim(),
-   upsell_enabled:el("upsellEnabled").checked,upsell_product_id:product?Number(product.id):null
   };
   const saved=await db.from("business_settings").update({value:next,updated_at:new Date().toISOString()}).eq("key","public_site").select("key").maybeSingle();
   if(saved.error)throw saved.error;if(!saved.data)throw new Error("No se pudo guardar la configuración. Verificá los permisos de administrador.");
