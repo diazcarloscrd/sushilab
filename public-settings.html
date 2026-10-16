@@ -37,9 +37,10 @@ textarea{min-height:88px;resize:vertical;line-height:1.5}
 <div class="field"><label for="deliveryFee">Tarifa de delivery en Bahía Blanca (ARS)</label><input id="deliveryFee" type="number" min="0" step="100" required></div>
 <div class="field"><label for="deliveryArea">Nombre de la zona</label><input id="deliveryArea" maxlength="80" required></div>
 <div class="field full"><label for="deliveryDescription">Descripción de cobertura</label><input id="deliveryDescription" maxlength="180"></div>
-<div class="field"><label for="prepMin">Preparación mínima (minutos)</label><input id="prepMin" type="number" min="1" max="360" step="1" required></div>
-<div class="field"><label for="prepMax">Preparación máxima (minutos)</label><input id="prepMax" type="number" min="1" max="360" step="1" required></div>
-<div class="field full"><label for="preferredTimeSlots">Horarios preferidos para pedidos (uno por línea)</label><textarea id="preferredTimeSlots" rows="4" maxlength="1200" placeholder="Lo antes posible&#10;19:00 - 19:30 hs&#10;19:30 - 20:00 hs"></textarea><p class="hint">Cada línea será una opción en la web. Si incluís “Lo antes posible”, se agrega el tiempo de preparación configurado arriba. Si lo dejás vacío, las opciones se generan a partir de los horarios semanales del CRM.</p></div>
+<div class="field"><label for="prepMin">Preparación mínima desde que ingresa el pedido (minutos)</label><input id="prepMin" type="number" min="1" max="360" step="1" required></div>
+<div class="field"><label for="prepMax">Preparación máxima desde que ingresa el pedido (minutos)</label><input id="prepMax" type="number" min="1" max="360" step="1" required></div>
+<div class="field full"><p class="hint">La configuración actual recomendada es de 30 a 45 minutos. La web calcula “Lo antes posible” desde el momento del pedido y evita ofrecer franjas horarias anteriores al tiempo mínimo desde la apertura.</p></div>
+<div class="field full"><label for="preferredTimeSlots">Franjas de horario preferidas para pedidos (una por línea)</label><textarea id="preferredTimeSlots" rows="4" maxlength="1200" placeholder="Lo antes posible&#10;19:00 - 19:30 hs&#10;19:30 - 20:00 hs"></textarea><p class="hint">Las franjas con hora solo aparecen si respetan el tiempo mínimo desde el pedido y quedan dentro de un horario de apertura. Si lo dejás vacío, se generan a partir de los horarios del CRM. “Lo antes posible” muestra una estimación calculada al momento.</p></div>
 </div>
 </section>
 <section class="panel">
