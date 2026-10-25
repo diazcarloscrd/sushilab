@@ -113,3 +113,186 @@ body.dashboard-mode #dashboard{background:radial-gradient(ellipse at 84% 2%,rgba
 #dashboard #catalogView[hidden],
 #dashboard #moduleFrameWrap[hidden],
 #dashboard #dashboardHome[hidden]{display:none!important}
+
+
+/* Finance CRM visual system — presentation only, matching Mi Finanzas Local. */
+:root{
+  color-scheme:light;
+  --yk-bg:#f5f7fb;--yk-surface:#fff;--yk-surface-2:#f8f9fc;--yk-surface-3:#eef1f7;
+  --yk-line:#e7ebf2;--yk-text:#172238;--yk-muted:#748097;--yk-rose:#5d69e8;--yk-red:#5d69e8;
+  --yk-primary:#5d69e8;--yk-primary-soft:#edf0ff;--yk-radius:17px;
+  --bg:#f5f7fb;--panel:#fff;--panel2:#f8f9fc;--line:#e7ebf2;--text:#172238;--muted:#748097;--rose:#5d69e8;--red:#5d69e8;
+}
+body:not(.dashboard-mode){background:var(--yk-bg)!important;color:var(--yk-text)!important;font-family:Inter,Manrope,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
+body:not(.dashboard-mode):before{background:#5d69e810!important;top:-300px!important}
+body:not(.dashboard-mode):after{background:#7d86ef0b!important}
+body:not(.dashboard-mode) .shell{width:min(100%,440px)!important}
+body:not(.dashboard-mode) .brand{gap:11px!important;margin-bottom:30px!important}
+body:not(.dashboard-mode) .mark{width:42px!important;height:42px!important;border-radius:13px!important;background:linear-gradient(145deg,#7c83ff,#4f5bd5)!important;border:0!important;color:#fff!important;font:900 20px Inter,system-ui,sans-serif!important;box-shadow:0 7px 18px #535cd645!important}
+body:not(.dashboard-mode) .brand-name{font:800 18px Inter,system-ui,sans-serif!important;letter-spacing:-.35px!important;color:#172238!important}
+body:not(.dashboard-mode) .brand-name span{color:#5d69e8!important;font-weight:800!important}
+body:not(.dashboard-mode) .eyebrow{color:#5d69e8!important;font-size:10px!important;letter-spacing:1.2px!important}
+body:not(.dashboard-mode) h1{font:780 26px/1.25 Inter,system-ui,sans-serif!important;letter-spacing:-.7px!important;color:#172238!important}
+body:not(.dashboard-mode) .intro{color:#748097!important;font-size:13px!important;line-height:1.7!important}
+body:not(.dashboard-mode) .card{background:#fff!important;border:1px solid #e7ebf2!important;border-radius:17px!important;padding:26px!important;box-shadow:0 7px 24px rgba(25,38,66,.055)!important}
+body:not(.dashboard-mode) label{font:750 11px Inter,system-ui,sans-serif!important;letter-spacing:0!important;text-transform:none!important;color:#536078!important;margin-bottom:6px!important}
+body:not(.dashboard-mode) input{height:42px!important;border-radius:10px!important;border:1px solid #dfe4ed!important;background:#fff!important;color:#172238!important;font:13px Inter,system-ui,sans-serif!important}
+body:not(.dashboard-mode) input:focus{border-color:#929aff!important;box-shadow:0 0 0 3px #e7e9ff!important}
+body:not(.dashboard-mode) input::placeholder{color:#8c96aa!important}
+body:not(.dashboard-mode) .toggle{color:#5d69e8!important}
+body:not(.dashboard-mode) .submit{height:43px!important;border:1px solid #5d69e8!important;border-radius:10px!important;background:#5d69e8!important;color:#fff!important;font:700 12px Inter,system-ui,sans-serif!important;letter-spacing:0!important;text-transform:none!important;box-shadow:0 5px 12px #5d69e82c!important}
+body:not(.dashboard-mode) .submit:hover{background:#4c57d8!important}
+body:not(.dashboard-mode) .notice{background:#edf0ff!important;border:1px solid #d7dcff!important;border-radius:12px!important;color:#3f4b64!important;font-size:12px!important}
+body:not(.dashboard-mode) .notice strong{color:#4d58c8!important}
+body:not(.dashboard-mode) .foot{color:#748097!important;letter-spacing:.5px!important}
+
+/* Persistent CRM shell: same fixed navy rail, active state and white sticky topbar. */
+body.dashboard-mode{font-family:Inter,Manrope,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;background:#f5f7fb!important;color:#172238!important}
+body.dashboard-mode #dashboard{background:#f5f7fb!important;color:#172238!important}
+#dashboard .app-shell{grid-template-columns:248px minmax(0,1fr)!important}
+#dashboard .app-sidebar{position:fixed!important;inset:0 auto 0 0!important;width:248px!important;height:100vh!important;min-height:100vh!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding:24px 14px 16px!important;background:#111c34!important;border:0!important;z-index:20!important}
+#dashboard .app-brand{gap:11px!important;padding:0 10px 25px!important;border:0!important}
+#dashboard .app-brand .mark{width:39px!important;height:39px!important;flex:0 0 39px!important;border:0!important;border-radius:13px!important;background:linear-gradient(145deg,#7c83ff,#4f5bd5)!important;color:#fff!important;font:900 20px Inter,system-ui,sans-serif!important;box-shadow:0 7px 18px #535cd645!important}
+#dashboard .app-brand-name{font:800 16px Inter,system-ui,sans-serif!important;letter-spacing:-.3px!important;color:#fff!important}
+#dashboard .app-brand-name span{color:#aeb5ff!important}
+#dashboard .app-brand-caption{margin-top:2px!important;color:#91a0be!important;font:650 10px Inter,system-ui,sans-serif!important;letter-spacing:.7px!important}
+#dashboard .app-nav{display:grid!important;gap:4px!important;padding-top:0!important}
+#dashboard .app-nav-label{padding:13px 13px 7px!important;color:#7182a4!important;font:800 10px Inter,system-ui,sans-serif!important;letter-spacing:1.2px!important}
+#dashboard .app-nav a,#dashboard .app-nav button{width:100%!important;min-height:39px!important;display:flex!important;align-items:center!important;gap:12px!important;padding:9px 12px!important;border:1px solid transparent!important;border-radius:10px!important;background:transparent!important;color:#aebad2!important;text-decoration:none!important;text-align:left!important;font:550 13px/1.3 Inter,system-ui,sans-serif!important;box-shadow:none!important;white-space:normal!important}
+#dashboard .app-nav a:hover,#dashboard .app-nav button:hover{background:#ffffff0d!important;border-color:transparent!important;color:#fff!important}
+#dashboard .app-nav a.active,#dashboard .app-nav button.active{background:#5d69e82e!important;border-color:transparent!important;color:#fff!important;box-shadow:inset 3px 0 #888fff!important}
+#dashboard .app-nav a:focus-visible,#dashboard .app-nav button:focus-visible{outline:2px solid #aab2ff!important;outline-offset:2px!important}
+#dashboard .app-nav svg{width:17px!important;height:17px!important;flex:0 0 17px!important;stroke:currentColor!important;fill:none!important;stroke-width:1.7!important}
+#dashboard .app-sidebar-foot{margin-top:auto!important;padding:12px 2px 0!important;border:0!important}
+#dashboard .app-session{display:block!important;padding:13px!important;border:1px solid #283858!important;border-radius:13px!important;background:#1a2845!important;color:#c3cfe6!important;font:650 11px/1.5 Inter,system-ui,sans-serif!important}
+#dashboard .app-session-dot{display:inline-block!important;margin-right:6px!important;width:7px!important;height:7px!important;background:#35ce91!important;box-shadow:none!important}
+#dashboard .app-main{grid-column:2!important;min-width:0!important;width:100%!important;max-width:none!important;background:transparent!important}
+#dashboard .app-topbar{height:80px!important;position:sticky!important;top:0!important;z-index:15!important;padding:0 clamp(22px,4vw,54px)!important;border-bottom:1px solid #e7ebf2!important;background:rgba(255,255,255,.88)!important;backdrop-filter:blur(15px)!important}
+#dashboard .app-breadcrumb{color:#748097!important;font:12px Inter,system-ui,sans-serif!important}
+#dashboard .app-breadcrumb strong{color:#172238!important;font-weight:800!important}
+#dashboard .app-top-user{padding-right:12px!important;color:#748097!important;font-size:10px!important}
+#dashboard .app-topbar .dash-btn{min-height:37px!important;padding:0 13px!important;border:1px solid #dbe1eb!important;border-radius:10px!important;background:#fff!important;color:#253149!important;font:650 12px Inter,system-ui,sans-serif!important;box-shadow:none!important}
+#dashboard .app-topbar .dash-btn:hover{border-color:#929aff!important;background:#f7f8ff!important}
+#dashboard .app-topbar #logoutButton{color:#b42336!important}
+#dashboard .app-content{width:min(1600px,100%)!important;max-width:1600px!important;min-width:0!important;margin:0 auto!important;padding:29px 34px 50px!important}
+#dashboard .app-page-heading{align-items:flex-start!important;gap:16px!important;margin-bottom:22px!important}
+#dashboard .app-eyebrow{margin:0 0 7px!important;color:#5d69e8!important;font-size:10px!important;font-weight:800!important;letter-spacing:1.2px!important}
+#dashboard .app-page-title{margin:0!important;color:#172238!important;font:780 24px/1.25 Inter,system-ui,sans-serif!important;letter-spacing:-.7px!important}
+#dashboard .app-page-subtitle{max-width:760px!important;margin:6px 0 0!important;color:#748097!important;font:13px/1.6 Inter,system-ui,sans-serif!important}
+#dashboard .app-live-chip{padding:6px 9px!important;border:1px solid #bfe8d6!important;border-radius:99px!important;background:#e8f8f1!important;color:#148260!important;font-size:10px!important;letter-spacing:0!important;text-transform:none!important}
+#dashboard .app-live-chip:before{background:#15966b!important}
+#dashboard .stats{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:16px!important;margin:0 0 18px!important}
+#dashboard .stat{min-width:0!important;min-height:127px!important;padding:18px 19px!important;border:1px solid #e7ebf2!important;border-radius:17px!important;background:#fff!important;box-shadow:0 7px 24px rgba(25,38,66,.045)!important}
+#dashboard .stat:after{display:none!important}
+#dashboard .stat-label{color:#748097!important;font:600 12px/1.4 Inter,system-ui,sans-serif!important;letter-spacing:0!important;text-transform:none!important}
+#dashboard .stat-value{margin:13px 0 3px!important;color:#172238!important;font:800 24px/1.2 Inter,system-ui,sans-serif!important;letter-spacing:-.03em!important}
+#dashboard .stat-note{color:#748097!important;font:11px/1.5 Inter,system-ui,sans-serif!important}
+#dashboard .app-section-head{gap:12px!important;margin:0 0 14px!important}
+#dashboard .dash-section-title{margin:0!important;color:#172238!important;font:800 15px/1.35 Inter,system-ui,sans-serif!important}
+#dashboard .app-section-caption{color:#748097!important;font-size:11px!important}
+#dashboard .module-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))!important;gap:16px!important}
+#dashboard .module{min-width:0!important;min-height:140px!important;padding:19px!important;border:1px solid #e7ebf2!important;border-radius:17px!important;background:#fff!important;box-shadow:0 7px 24px rgba(25,38,66,.04)!important;transition:transform .18s,border-color .18s,background .18s,box-shadow .18s!important}
+#dashboard .module[role="button"]:hover,#dashboard .module[role="button"]:focus{transform:translateY(-2px)!important;border-color:#c8ceff!important;background:#fafaff!important;box-shadow:0 12px 28px rgba(25,38,66,.08)!important;outline:none!important}
+#dashboard .module h3{margin:0 0 7px!important;color:#172238!important;font:800 13px/1.4 Inter,system-ui,sans-serif!important}
+#dashboard .module p{max-width:440px!important;margin:0!important;color:#748097!important;font:12px/1.65 Inter,system-ui,sans-serif!important}
+#dashboard .module-tag{display:inline-flex!important;align-items:center!important;gap:7px!important;margin-top:15px!important;color:#5d69e8!important;font:800 10px Inter,system-ui,sans-serif!important;letter-spacing:.2px!important}
+#dashboard .module-tag:before{background:#5d69e8!important}
+#dashboard .module.is-coming-soon{opacity:.72!important}
+#dashboard .dash-status{margin-top:20px!important;padding:13px 15px!important;border:1px solid #d7deea!important;border-radius:12px!important;background:#fff!important;color:#748097!important;font:12px/1.7 Inter,system-ui,sans-serif!important}
+
+/* Catalog and product manager: same white panels, controls, tables, and modal rhythm. */
+#dashboard #catalogView{background:#f5f7fb!important;color:#172238!important;padding:0 0 36px!important}
+#dashboard #catalogView .catalog-wrap{width:100%!important;max-width:none!important;margin:0!important}
+#dashboard #catalogView .catalog-head{align-items:flex-start!important;gap:16px!important;margin-bottom:22px!important}
+#dashboard #catalogView .dash-eyebrow{color:#5d69e8!important;font:800 10px Inter,system-ui,sans-serif!important;letter-spacing:1.2px!important}
+#dashboard #catalogView .catalog-title{margin:0 0 7px!important;color:#172238!important;font:780 24px/1.25 Inter,system-ui,sans-serif!important;letter-spacing:-.7px!important}
+#dashboard #catalogView .catalog-muted{color:#748097!important;font:13px/1.6 Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .catalog-tabs{display:flex!important;gap:6px!important;padding:4px!important;margin:0 0 18px!important;border:1px solid #e7ebf2!important;border-radius:12px!important;background:#eef1f7!important;width:max-content!important;max-width:100%!important}
+#dashboard #catalogView .catalog-tab{min-height:38px!important;padding:9px 14px!important;border:1px solid transparent!important;border-radius:9px!important;background:transparent!important;color:#536078!important;font:650 12px Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .catalog-tab.active{background:#fff!important;border-color:#e7ebf2!important;color:#5d69e8!important;box-shadow:0 2px 5px #1826420d!important}
+#dashboard #catalogView .catalog-panel{padding:21px!important;margin-bottom:17px!important;border:1px solid #e7ebf2!important;border-radius:17px!important;background:#fff!important;box-shadow:0 7px 24px rgba(25,38,66,.045)!important;color:#172238!important}
+#dashboard #catalogView .catalog-panel-head{align-items:center!important;margin-bottom:17px!important}
+#dashboard #catalogView .catalog-panel h2{margin:0!important;color:#172238!important;font:800 15px/1.4 Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .catalog-primary,#dashboard #catalogView .catalog-secondary{min-height:39px!important;padding:9px 13px!important;border:1px solid #dbe1eb!important;border-radius:10px!important;background:#fff!important;color:#253149!important;font:650 12px Inter,system-ui,sans-serif!important;letter-spacing:0!important}
+#dashboard #catalogView .catalog-primary{background:#5d69e8!important;border-color:#5d69e8!important;color:#fff!important;box-shadow:0 5px 12px #5d69e82c!important}
+#dashboard #catalogView .catalog-primary:hover{background:#4c57d8!important;border-color:#4c57d8!important}
+#dashboard #catalogView .catalog-secondary:hover{background:#f7f8ff!important;border-color:#b9c3d5!important}
+#dashboard #catalogView .catalog-modal-backdrop{background:#10182a80!important}
+#dashboard #catalogView .catalog-modal-card{width:min(800px,100%)!important;background:#fff!important;border:1px solid #e7ebf2!important;border-radius:19px!important;padding:24px!important;box-shadow:0 20px 80px #0e19394d!important;color:#172238!important}
+#dashboard #catalogView .catalog-modal-card h2{margin:0 0 18px!important;color:#172238!important;font:800 17px/1.4 Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .catalog-field{gap:6px!important}
+#dashboard #catalogView .catalog-field label{margin:0!important;color:#536078!important;font:750 11px/1.4 Inter,system-ui,sans-serif!important;letter-spacing:0!important;text-transform:none!important}
+#dashboard #catalogView .catalog-field input,#dashboard #catalogView .catalog-field textarea,#dashboard #catalogView .catalog-field select,
+#dashboard #catalogView .product-toolbar input,#dashboard #catalogView .product-toolbar select{width:100%!important;min-height:39px!important;height:auto!important;padding:10px 11px!important;border:1px solid #dfe4ed!important;border-radius:10px!important;background:#fff!important;color:#172238!important;font:12px/1.45 Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .catalog-field textarea{min-height:84px!important}
+#dashboard #catalogView .catalog-field input:focus,#dashboard #catalogView .catalog-field textarea:focus,#dashboard #catalogView .catalog-field select:focus,
+#dashboard #catalogView .product-toolbar input:focus,#dashboard #catalogView .product-toolbar select:focus{border-color:#929aff!important;outline:3px solid #e7e9ff!important;box-shadow:none!important}
+#dashboard #catalogView .catalog-row{padding:13px!important;border:1px solid #e7ebf2!important;border-radius:12px!important;background:#fff!important;color:#172238!important;box-shadow:none!important}
+#dashboard #catalogView .catalog-row:hover{border-color:#c8ceff!important;background:#fafaff!important}
+#dashboard #catalogView .catalog-row.category-selected{border-color:#929aff!important;background:#f6f7ff!important;box-shadow:0 0 0 2px #5d69e814!important}
+#dashboard #catalogView .catalog-position{border-color:#d7dcff!important;border-radius:99px!important;background:#edf0ff!important;color:#5d69e8!important}
+#dashboard #catalogView .catalog-row-name,#dashboard #catalogView .product-card-name{color:#172238!important}
+#dashboard #catalogView .catalog-row-meta,#dashboard #catalogView .catalog-upload-help,#dashboard #catalogView .product-card-category{color:#748097!important}
+#dashboard #catalogView .catalog-row-actions button,#dashboard #catalogView .product-card-actions button{min-height:34px!important;padding:7px 10px!important;border:1px solid #dbe1eb!important;border-radius:9px!important;background:#fff!important;color:#253149!important;font:650 11px Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .catalog-row-actions button.category-move,
+#dashboard #catalogView .product-card-actions button:first-child{color:#5d69e8!important;border-color:#d7dcff!important}
+#dashboard #catalogView .catalog-empty{border-color:#d7deea!important;border-radius:12px!important;background:#fafbfe!important;color:#748097!important}
+#dashboard #catalogView .catalog-message{padding:12px 14px!important;border:1px solid #d7dcff!important;border-radius:12px!important;background:#edf0ff!important;color:#3f4b64!important;font:12px/1.6 Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .catalog-message:empty{display:none!important}
+#dashboard #catalogView .product-toolbar{gap:10px!important}
+#dashboard #catalogView .view-switch{padding:4px!important;border:1px solid #e7ebf2!important;border-radius:11px!important;background:#f5f7fb!important}
+#dashboard #catalogView .view-switch button{border-radius:8px!important;color:#748097!important}
+#dashboard #catalogView .view-switch button.active{background:#fff!important;color:#5d69e8!important;box-shadow:0 2px 5px #1826420d!important}
+#dashboard #catalogView .product-card{background:#fff!important;border:1px solid #e7ebf2!important;border-radius:17px!important;box-shadow:0 7px 24px rgba(25,38,66,.045)!important}
+#dashboard #catalogView .product-card:hover{border-color:#c8ceff!important;box-shadow:0 12px 28px rgba(25,38,66,.08)!important}
+#dashboard #catalogView .product-card-image,#dashboard #catalogView .product-card-placeholder{background:#eef1f7!important}
+#dashboard #catalogView .product-card-price{color:#5d69e8!important;font:800 19px Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .product-card-actions button:first-child{border-color:#d7dcff!important;color:#5d69e8!important}
+#dashboard #catalogView .product-editor{padding:21px!important;border:1px solid #e7ebf2!important;border-radius:17px!important;background:#fff!important;box-shadow:0 7px 24px rgba(25,38,66,.045)!important}
+#dashboard #catalogView .product-editor-title{margin:0 0 17px!important;color:#172238!important;font:800 17px Inter,system-ui,sans-serif!important}
+#dashboard #catalogView .catalog-danger{background:#fff0f1!important;border-color:#f2c9ce!important;color:#c83e4d!important}
+#dashboard #catalogView .product-status{background:#e8f8f1!important;color:#148260!important}
+#dashboard #catalogView .product-status.paused{background:#eff1f5!important;color:#778096!important}
+#dashboard #catalogView :focus-visible{outline:3px solid #aab2ff!important;outline-offset:2px!important}
+
+@media(max-width:900px){
+  #dashboard .app-shell{grid-template-columns:220px minmax(0,1fr)!important}
+  #dashboard .app-sidebar{width:220px!important}
+  #dashboard .app-content{padding:28px 24px 40px!important}
+  #dashboard .module-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))!important}
+}
+@media(max-width:680px){
+  #dashboard .app-shell{display:block!important}
+  #dashboard .app-sidebar{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;min-height:0!important;padding:13px 14px 10px!important;overflow:visible!important;border-bottom:1px solid #283858!important}
+  #dashboard .app-brand{padding:0 3px 12px!important}
+  #dashboard .app-nav{display:flex!important;gap:6px!important;overflow-x:auto!important;padding:8px 0 2px!important;scrollbar-width:thin}
+  #dashboard .app-nav-label,#dashboard .app-sidebar-foot{display:none!important}
+  #dashboard .app-nav a,#dashboard .app-nav button{width:auto!important;min-height:36px!important;flex:0 0 auto!important;padding:8px 10px!important;font-size:11px!important;white-space:nowrap!important}
+  #dashboard .app-nav svg{width:14px!important;height:14px!important;flex-basis:14px!important}
+  #dashboard .app-main{width:100%!important;grid-column:auto!important}
+  #dashboard .app-topbar{height:59px!important;padding:0 16px!important}
+  #dashboard .app-top-user{display:none!important}
+  #dashboard .app-topbar .dash-btn{min-height:34px!important;padding:0 10px!important;font-size:10px!important}
+  #dashboard .app-content{width:100%!important;padding:22px 16px 34px!important;min-height:calc(100vh - 59px)!important}
+  #dashboard .app-page-heading{flex-direction:column!important;margin-bottom:22px!important}
+  #dashboard .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  #dashboard .stat{min-height:120px!important;padding:16px!important}
+  #dashboard .stat-value{font-size:24px!important}
+  #dashboard .module-grid{grid-template-columns:1fr!important}
+  #dashboard .module{min-height:unset!important;padding:16px!important}
+  #dashboard .app-live-chip{font-size:10px!important}
+  #dashboard #catalogView .catalog-head{flex-direction:column!important}
+  #dashboard #catalogView .catalog-tabs{width:100%!important}
+  #dashboard #catalogView .catalog-tab{flex:1 1 auto!important}
+  #dashboard #catalogView .catalog-panel{padding:15px!important}
+  #dashboard #catalogView .catalog-form{grid-template-columns:1fr!important}
+  #dashboard #catalogView .catalog-field.full,#dashboard #catalogView .catalog-form-actions{grid-column:1!important}
+  #dashboard #catalogView .catalog-row{align-items:flex-start!important;flex-direction:column!important}
+  #dashboard #catalogView .catalog-row-actions{width:100%!important;justify-content:flex-start!important}
+  #dashboard #catalogView .product-list.cards{grid-template-columns:1fr!important}
+}
+@media(max-width:390px){
+  #dashboard .stats{grid-template-columns:1fr!important}
+  #dashboard .app-top-actions{gap:5px!important}
+  #dashboard .app-topbar .dash-btn{padding:0 8px!important}
+}
