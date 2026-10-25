@@ -476,6 +476,10 @@
 </div>
 </div>
 
+<!-- CAMPAÑAS: publicadas desde el CRM por Supabase -->
+<section id="ykMarketingCampaigns" class="hidden rounded-xl bg-surface-container-low border border-primary-container/25 p-space-md shadow-lg mb-space-md" aria-labelledby="ykMarketingTitle">
+<div class="flex items-start justify-between gap-3 mb-space-md"><div class="min-w-0"><span class="font-label-sm text-label-sm uppercase tracking-widest text-primary block mb-1">Novedades</span><h3 id="ykMarketingTitle" class="font-headline-md text-headline-md text-on-surface">Novedades y promociones</h3><p class="font-body-sm text-body-sm text-tertiary mt-1">Información publicada por YanKun SushiLab.</p></div><span class="material-symbols-outlined text-primary-container text-2xl shrink-0" aria-hidden="true">campaign</span></div><div id="ykMarketingCampaignCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-sm"></div></section>
+
 <!-- AGENDA YANKUN: próximas salidas y fechas especiales -->
 <section id="agendaYanKun" class="rounded-xl bg-surface-container-low border border-surface-container-high/70 p-space-md shadow-lg" aria-labelledby="agendaYanKunTitle">
   <div class="flex items-start justify-between gap-3 mb-space-md">
@@ -1412,6 +1416,38 @@
     const date=agendaDateOnly(dateValue);if(!date)return '';
     return new Intl.DateTimeFormat('es-AR',{timeZone:'America/Argentina/Buenos_Aires',weekday:'short',day:'numeric',month:'short'}).format(date);
   }
+  async function loadPublicCampaigns() {
+    const panel = document.getElementById('ykMarketingCampaigns');
+    const container = document.getElementById('ykMarketingCampaignCards');
+    if (!panel || !container) return;
+    try {
+      const result = await db.from('marketing_campaigns')
+        .select('id,title,public_description,campaign_type,badge_text,starts_at,ends_at,priority')
+        .eq('show_on_site', true).in('status', ['active','scheduled'])
+        .order('priority', { ascending: false }).order('starts_at', { ascending: true }).limit(6);
+      if (result.error) throw result.error;
+      const now = Date.now();
+      const campaigns = (result.data || []).filter(c =>
+        (!c.starts_at || new Date(c.starts_at).getTime() <= now) &&
+        (!c.ends_at || new Date(c.ends_at).getTime() >= now)
+      ).slice(0,3);
+      if (!campaigns.length) { panel.classList.add('hidden'); container.innerHTML = ''; return; }
+      container.innerHTML = campaigns.map(c =>
+        '<article class="rounded-lg border border-primary-container/20 bg-surface-container-lowest p-space-sm flex flex-col gap-2">' +
+        (c.badge_text ? '<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary">' + esc(c.badge_text) + '</span>' : '') +
+        '<h4 class="font-headline-sm text-headline-sm text-on-surface">' + esc(c.title) + '</h4>' +
+        '<p class="font-body-sm text-body-sm text-tertiary">' + esc(c.public_description) + '</p></article>'
+      ).join('');
+      panel.classList.remove('hidden');
+    } catch (error) {
+      panel.classList.add('hidden'); container.innerHTML = '';
+      if (!window.yankunMarketingSchemaWarned) {
+        window.yankunMarketingSchemaWarned = true;
+        console.info('Marketing público aún no disponible; la carta sigue funcionando.', error && error.code ? error.code : '');
+      }
+    }
+  }
+
   async function loadPublicAgenda() {
     const panel=document.getElementById('agendaYanKun'),cardContainer=document.getElementById('agendaYanKunCards');
     if(!panel||!cardContainer)return;
@@ -1514,6 +1550,7 @@
     loadSchedule().catch(error=>{console.error(error);});
     loadPublicSettings().then(()=>{renderTimeSlots();return loadCatalog();}).catch(error=>{console.error(error);publicSettingsKnown=true;window.yankunPublicSettingsKnown=true;loadCatalog().catch(catalogError=>console.error(catalogError));});
      loadPublicAgenda().catch(error=>console.warn('No se pudo cargar Agenda YanKun.',error));
+    loadPublicCampaigns().catch(error=>console.info('Marketing público aún no disponible.',error));
     db.channel('public-catalog-live')
       .on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadCatalog())
       .on('postgres_changes',{event:'*',schema:'public',table:'categories'},()=>loadCatalog())
@@ -1523,8 +1560,9 @@
       .on('postgres_changes',{event:'*',schema:'public',table:'business_settings'},()=>loadPublicSettings().then(()=>{renderTimeSlots();return loadCatalog();}).catch(error=>console.warn(error)))
       .on('postgres_changes',{event:'*',schema:'public',table:'sales_locations'},()=>{loadPublicSettings();loadPublicAgenda();})
       .on('postgres_changes',{event:'*',schema:'public',table:'delivery_zones'},()=>loadPublicSettings())
+      .on('postgres_changes',{event:'*',schema:'public',table:'marketing_campaigns'},()=>loadPublicCampaigns())
       .subscribe();
-    window.setInterval(()=>{loadPublicSettings().then(()=>{renderTimeSlots();return loadCatalog();}).catch(()=>{});loadSchedule().catch(()=>{});loadPublicAgenda().catch(()=>{});},60000);
+    window.setInterval(()=>{loadPublicSettings().then(()=>{renderTimeSlots();return loadCatalog();}).catch(()=>{});loadSchedule().catch(()=>{});loadPublicAgenda().catch(()=>{});loadPublicCampaigns().catch(()=>{});},60000);
   });
 })();
 </script>
