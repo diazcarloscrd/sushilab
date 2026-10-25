@@ -207,7 +207,7 @@ CREATE POLICY "Public read marketing campaigns" ON public.marketing_campaigns
 DO $grants$
 DECLARE t text; seq_name text;
 BEGIN
- FOREACH t IN ARRAY ARRAY['customers','inventory_items','stock_movements','suppliers','purchase_orders','purchase_order_items','recipes','recipe_items','expenses','cash_sessions','cash_movements','crm_audit_log'] LOOP
+ FOREACH t IN ARRAY ARRAY['marketing_campaigns','customers','inventory_items','stock_movements','suppliers','purchase_orders','purchase_order_items','recipes','recipe_items','expenses','cash_sessions','cash_movements','crm_audit_log'] LOOP
    seq_name:=pg_get_serial_sequence('public.'||t,'id');
    IF seq_name IS NOT NULL THEN EXECUTE format('GRANT USAGE,SELECT ON SEQUENCE %s TO authenticated',seq_name); END IF;
  END LOOP;
