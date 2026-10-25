@@ -165,6 +165,9 @@
           <a href="reports.html" data-module="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15v-3m5 3V8m5 7v-5"/></svg>Reportes</a>
           <div class="app-nav-label">Operaciones</div>
           <a href="inventory.html" data-module="inventory"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v13H3zM7 7V4h10v3M3 12h18M9 12v3h6v-3"/></svg>Inventario</a>
+          <a href="recipes.html" data-module="recipes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4zM8 7h8M8 11h8M8 15h5"/></svg>Recetas y costos</a>
+          <a href="purchases.html" data-module="purchases"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16l-1.5 16h-13L4 4Z"/></svg>Proveedores y compras</a>
+          <a href="cash-management.html" data-module="cash-management"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg>Caja y gastos</a>
           
           <a href="business-hours.html" data-module="business-hours"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horarios y Agenda</a>
           <span class="is-disabled"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-8-8 18-2-8-8-2Z"/></svg>Marketing<small>Próximo</small></span>
@@ -196,7 +199,9 @@
             <article class="module" data-open-module="customers" role="button" tabindex="0" aria-label="Abrir clientes"><h3>Clientes</h3><p>Historial, recurrencia y fichas privadas.</p><span class="module-tag">Abrir clientes</span></article>
             <article class="module" data-open-module="reports" role="button" tabindex="0" aria-label="Abrir reportes"><h3>Reportes</h3><p>Ventas, pedidos, ticket promedio y exportación.</p><span class="module-tag">Abrir reportes</span></article>
             <article class="module" data-open-module="inventory" role="button" tabindex="0" aria-label="Abrir inventario"><h3>Inventario</h3><p>Existencias, movimientos y stock mínimo.</p><span class="module-tag">Abrir inventario</span></article>
-            <article class="module is-coming-soon"><h3>Recetas, compras y caja</h3><p>La estructura de datos queda versionada para la siguiente fase.</p><span class="module-tag">Siguiente fase</span></article>
+            <article class="module" data-open-module="recipes" role="button" tabindex="0" aria-label="Abrir recetas"><h3>Recetas y costos</h3><p>Vinculá productos con ingredientes y costo teórico.</p><span class="module-tag">Abrir recetas</span></article>
+            <article class="module" data-open-module="purchases" role="button" tabindex="0" aria-label="Abrir compras"><h3>Proveedores y compras</h3><p>Órdenes y recepción de insumos.</p><span class="module-tag">Abrir compras</span></article>
+            <article class="module" data-open-module="cash-management" role="button" tabindex="0" aria-label="Abrir caja"><h3>Caja y gastos</h3><p>Aperturas, cierres y gastos operativos.</p><span class="module-tag">Abrir caja</span></article>
           </div>
           <div class="dash-status" id="dashboardMessage" role="status">Consultando los datos de Supabase...</div>
           </div>
@@ -552,6 +557,9 @@
       customers: "Clientes",
       inventory: "Inventario",
       reports: "Reportes",
+      recipes: "Recetas y costos",
+      purchases: "Proveedores y compras",
+      "cash-management": "Caja y gastos",
       "sales-locations": "Puntos de venta",
       "business-hours": "Horarios y eventos",
       "public-settings": "Configuración pública"
