@@ -296,3 +296,92 @@ body.dashboard-mode #dashboard{background:#f5f7fb!important;color:#172238!import
   #dashboard .app-top-actions{gap:5px!important}
   #dashboard .app-topbar .dash-btn{padding:0 8px!important}
 }
+
+
+/* SUSHI THEME · palette-only overrides (layout and behavior are unchanged). */
+:root{
+ --yk-bg:#f6f0e5;--yk-surface:#fffaf1;--yk-surface-2:#fbf4e9;--yk-surface-3:#f0e5d4;
+ --yk-line:#e8dcc8;--yk-text:#202e46;--yk-muted:#7a7f8c;--yk-rose:#e88b7d;--yk-red:#e88b7d;
+ --yk-primary:#e88b7d;--bg:#f6f0e5;--panel:#fffaf1;--panel2:#fbf4e9;--line:#e8dcc8;--text:#202e46;--muted:#7a7f8c;--rose:#e88b7d;--red:#e88b7d;
+}
+body.dashboard-mode,#dashboard,body.dashboard-mode #dashboard,#moduleFrameWrap,#catalogView{background-color:#f6f0e5!important;color:#202e46!important}
+body.dashboard-mode #dashboard{background:radial-gradient(ellipse at 84% 2%,rgba(232,139,125,.075),transparent 34%),radial-gradient(ellipse at 5% 52%,rgba(17,28,52,.035),transparent 38%),#f6f0e5!important}
+#dashboard .app-sidebar{background:#111c34!important;border-color:#283858!important}
+#dashboard .app-brand .mark{background:linear-gradient(145deg,#f0a092,#dc786a)!important;border-color:#f0a092!important;color:#fff!important}
+#dashboard .app-brand-name span{color:#f0a092!important}
+#dashboard .app-nav a.active,#dashboard .app-nav button.active{background:rgba(232,139,125,.18)!important;border-color:transparent!important;color:#fff!important;box-shadow:inset 3px 0 #e88b7d!important}
+#dashboard .app-nav a:hover,#dashboard .app-nav button:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
+#dashboard .app-nav a:focus-visible,#dashboard .app-nav button:focus-visible{outline-color:#f0a092!important}
+#dashboard .app-topbar{background:rgba(255,250,241,.92)!important;border-bottom-color:#e8dcc8!important}
+#dashboard .app-breadcrumb{color:#7a7f8c!important}
+#dashboard .app-breadcrumb strong,#dashboard .app-page-title,#dashboard .dash-section-title,
+#dashboard .stat-value,#dashboard .module h3{color:#202e46!important}
+#dashboard .app-eyebrow,#dashboard .module-tag{color:#d9786b!important}
+#dashboard .app-topbar .dash-btn{background:#fffaf1!important;border-color:#e8dcc8!important;color:#263650!important}
+#dashboard .app-topbar .dash-btn:hover{border-color:#e88b7d!important;background:#fff3eb!important}
+#dashboard .app-topbar #logoutButton{color:#b9564e!important}
+#dashboard .app-page-subtitle,#dashboard .stat-label,#dashboard .stat-note,#dashboard .app-section-caption,#dashboard .module p{color:#7a7f8c!important}
+#dashboard .stat,#dashboard .module,#dashboard .dash-status{background:#fffaf1!important;border-color:#e8dcc8!important;color:#202e46!important;box-shadow:0 7px 24px rgba(72,52,31,.055)!important}
+#dashboard .stat:after{background:rgba(232,139,125,.09)!important}
+#dashboard .module[role="button"]:hover,#dashboard .module[role="button"]:focus{border-color:#efb3a7!important;background:#fff7ef!important;box-shadow:0 12px 28px rgba(72,52,31,.085)!important}
+#dashboard .module-tag:before{background:#e88b7d!important}
+#dashboard .app-live-chip{border-color:#bfe8d6!important;background:#e8f8f1!important;color:#148260!important}
+#dashboard .app-live-chip:before{background:#15966b!important}
+
+/* Catalog colors only. */
+#dashboard #catalogView{background:#f6f0e5!important;color:#202e46!important}
+#dashboard #catalogView .dash-eyebrow{color:#d9786b!important}
+#dashboard #catalogView .catalog-title,#dashboard #catalogView .catalog-panel h2,
+#dashboard #catalogView .catalog-row-name,#dashboard #catalogView .product-card-name,
+#dashboard #catalogView .product-editor-title{color:#202e46!important}
+#dashboard #catalogView .catalog-muted,#dashboard #catalogView .catalog-row-meta,
+#dashboard #catalogView .catalog-upload-help,#dashboard #catalogView .product-card-category{color:#7a7f8c!important}
+#dashboard #catalogView .catalog-tabs,#dashboard #catalogView .view-switch{background:#f0e5d4!important;border-color:#e8dcc8!important}
+#dashboard #catalogView .catalog-tab{color:#536078!important}
+#dashboard #catalogView .catalog-tab.active,#dashboard #catalogView .view-switch button.active{background:#fffaf1!important;border-color:#ead7c7!important;color:#c9675d!important;box-shadow:0 2px 5px rgba(72,52,31,.07)!important}
+#dashboard #catalogView .catalog-panel,#dashboard #catalogView .catalog-row,
+#dashboard #catalogView .product-card,#dashboard #catalogView .product-editor{background:#fffaf1!important;border-color:#e8dcc8!important;box-shadow:0 7px 24px rgba(72,52,31,.05)!important}
+#dashboard #catalogView .catalog-row:hover,#dashboard #catalogView .product-card:hover{background:#fff7ef!important;border-color:#efb3a7!important;box-shadow:0 12px 28px rgba(72,52,31,.08)!important}
+#dashboard #catalogView .catalog-row.category-selected{background:#fff0e9!important;border-color:#e88b7d!important;box-shadow:0 0 0 2px rgba(232,139,125,.14)!important}
+#dashboard #catalogView .catalog-position{background:#fff0e9!important;border-color:#f0c5b9!important;color:#c9675d!important}
+#dashboard #catalogView .catalog-primary{background:#e88b7d!important;border-color:#e88b7d!important;color:#fff!important;box-shadow:0 5px 12px rgba(210,105,91,.2)!important}
+#dashboard #catalogView .catalog-primary:hover{background:#d9786b!important;border-color:#d9786b!important}
+#dashboard #catalogView .catalog-secondary,#dashboard #catalogView .catalog-row-actions button,
+#dashboard #catalogView .product-card-actions button{background:#fffaf1!important;border-color:#e8dcc8!important;color:#263650!important}
+#dashboard #catalogView .catalog-secondary:hover,#dashboard #catalogView .catalog-row-actions button:hover,
+#dashboard #catalogView .product-card-actions button:hover{background:#fff3eb!important;border-color:#e8a093!important}
+#dashboard #catalogView .catalog-row-actions button.category-move,
+#dashboard #catalogView .product-card-actions button:first-child{color:#c9675d!important;border-color:#f0c5b9!important}
+#dashboard #catalogView .catalog-modal-card{background:#fffaf1!important;border-color:#e8dcc8!important;color:#202e46!important}
+#dashboard #catalogView .catalog-field label{color:#536078!important}
+#dashboard #catalogView .catalog-field input,#dashboard #catalogView .catalog-field textarea,
+#dashboard #catalogView .catalog-field select,#dashboard #catalogView .product-toolbar input,
+#dashboard #catalogView .product-toolbar select{background:#fffdf8!important;border-color:#e8dcc8!important;color:#202e46!important}
+#dashboard #catalogView .catalog-field input:focus,#dashboard #catalogView .catalog-field textarea:focus,
+#dashboard #catalogView .catalog-field select:focus,#dashboard #catalogView .product-toolbar input:focus,
+#dashboard #catalogView .product-toolbar select:focus{border-color:#e88b7d!important;outline-color:#fbe1d9!important}
+#dashboard #catalogView .catalog-empty{background:#fbf4e9!important;border-color:#e8dcc8!important;color:#7a7f8c!important}
+#dashboard #catalogView .catalog-message{background:#fff0e9!important;border-color:#f0c5b9!important;color:#754740!important}
+#dashboard #catalogView .product-card-price{color:#c9675d!important}
+#dashboard #catalogView .product-status{background:#e8f8f1!important;color:#148260!important}
+#dashboard #catalogView .product-status.paused{background:#f0e5d4!important;color:#7a7f8c!important}
+#dashboard #catalogView .catalog-danger{background:#fff0f1!important;border-color:#f2c9ce!important;color:#b42336!important}
+#dashboard #catalogView :focus-visible{outline-color:#e88b7d!important}
+body:not(.dashboard-mode){background:#f6f0e5!important;color:#202e46!important}
+body:not(.dashboard-mode):before{background:rgba(232,139,125,.12)!important}
+body:not(.dashboard-mode):after{background:rgba(17,28,52,.055)!important}
+body:not(.dashboard-mode) .mark{background:linear-gradient(145deg,#f0a092,#dc786a)!important;border-color:#f0a092!important;color:#fff!important}
+body:not(.dashboard-mode) .brand-name{color:#202e46!important}
+body:not(.dashboard-mode) .brand-name span,body:not(.dashboard-mode) .eyebrow{color:#d9786b!important}
+body:not(.dashboard-mode) h1{color:#202e46!important}
+body:not(.dashboard-mode) .intro,body:not(.dashboard-mode) .foot{color:#7a7f8c!important}
+body:not(.dashboard-mode) .card{background:#fffaf1!important;border-color:#e8dcc8!important;box-shadow:0 24px 80px rgba(72,52,31,.12)!important}
+body:not(.dashboard-mode) label{color:#536078!important}
+body:not(.dashboard-mode) input{background:#fffdf8!important;border-color:#e8dcc8!important;color:#202e46!important}
+body:not(.dashboard-mode) input:focus{border-color:#e88b7d!important;box-shadow:0 0 0 3px rgba(232,139,125,.18)!important}
+body:not(.dashboard-mode) input::placeholder{color:#9a968e!important}
+body:not(.dashboard-mode) .toggle{color:#c9675d!important}
+body:not(.dashboard-mode) .submit{background:#e88b7d!important;border-color:#e88b7d!important;box-shadow:0 5px 12px rgba(210,105,91,.2)!important}
+body:not(.dashboard-mode) .submit:hover{background:#d9786b!important}
+body:not(.dashboard-mode) .notice{background:#fff0e9!important;border-color:#f0c5b9!important;color:#754740!important}
+body:not(.dashboard-mode) .notice strong{color:#b9564e!important}
