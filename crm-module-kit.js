@@ -1,0 +1,13 @@
+(function(){'use strict';
+var URL='https://cdhnpsowlsesoobrytvh.supabase.co',KEY='sb_publishable_0_jxyIYpv3qAaw5bdlPLRw_AGneY0mP';
+function createClient(){return window.supabase.createClient(URL,KEY)}
+function money(v){return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:2}).format(Number(v)||0)}
+function number(v,d){return new Intl.NumberFormat('es-AR',{maximumFractionDigits:d===undefined?3:d}).format(Number(v)||0)}
+function esc(v){return String(v===null||v===undefined?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function byId(id){return document.getElementById(id)}
+function notify(message,tone){var el=byId('crmNotice');if(!el){window.alert(message);return}el.className='crm-notice show'+(tone?' '+tone:'');el.textContent=message;if(tone==='success')window.setTimeout(function(){el.classList.remove('show')},4500)}
+function uuid(){if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID();var a=new Uint8Array(16);window.crypto.getRandomValues(a);a[6]=(a[6]&15)|64;a[8]=(a[8]&63)|128;var h=Array.from(a,function(b){return b.toString(16).padStart(2,'0')}).join('');return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20)}
+async function requireAdmin(db){var sr=await db.auth.getSession();if(sr.error)throw sr.error;var session=sr.data&&sr.data.session;if(!session)return {ok:false,reason:'No hay sesión activa. Volvé al panel e ingresá con tu usuario administrador.'};var ar=await db.from('admin_users').select('user_id').eq('user_id',session.user.id).maybeSingle();if(ar.error)throw ar.error;if(!ar.data){await db.auth.signOut();return {ok:false,reason:'La cuenta no tiene permisos de administración.'} }if(typeof window.startYanKunIdleSession==='function'){var active=await window.startYanKunIdleSession(db,false);if(active===false)return {ok:false,reason:'La sesión venció por inactividad. Volvé a ingresar.'}}return {ok:true,user:session.user}}
+function exportCsv(filename,headers,rows){var lines=[headers].concat(rows).map(function(row){return row.map(function(c){return '"'+String(c===null||c===undefined?'':c).replace(/"/g,'""')+'"'}).join(';')});var blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'}),url=window.URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();window.setTimeout(function(){window.URL.revokeObjectURL(url)},1000)}
+window.YKCRM={createClient:createClient,money:money,number:number,esc:esc,byId:byId,notify:notify,uuid:uuid,requireAdmin:requireAdmin,exportCsv:exportCsv}
+})();
