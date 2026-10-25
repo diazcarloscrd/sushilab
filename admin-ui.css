@@ -385,3 +385,44 @@ body:not(.dashboard-mode) .submit{background:#e88b7d!important;border-color:#e88
 body:not(.dashboard-mode) .submit:hover{background:#d9786b!important}
 body:not(.dashboard-mode) .notice{background:#fff0e9!important;border-color:#f0c5b9!important;color:#754740!important}
 body:not(.dashboard-mode) .notice strong{color:#b9564e!important}
+
+
+/* SUSHI THEME refinement: replace all blue/violet accents with salmon/terracotta. */
+:root{
+ --yk-primary:#e88b7d;--yk-rose:#e88b7d;--yk-red:#e88b7d;
+ --yk-bg:#f6f0e5;--yk-surface:#fffaf1;--yk-surface-2:#fbf4e9;--yk-surface-3:#f0e5d4;
+ --yk-line:#e8dcc8;--yk-text:#202e46;--yk-muted:#7a7f8c;
+}
+#dashboard .app-sidebar{background:linear-gradient(180deg,#c87569 0%,#b96258 100%)!important;border-color:#d78c7e!important}
+#dashboard .app-brand .mark{background:linear-gradient(145deg,#ffe0d7,#efaa9e)!important;border-color:#f6b6a9!important;color:#a84f46!important}
+#dashboard .app-brand-name{color:#fffaf1!important}
+#dashboard .app-brand-name span{color:#ffe0d7!important}
+#dashboard .app-brand-caption{color:#ffe0d7!important}
+#dashboard .app-nav-label{color:#f8d4cb!important}
+#dashboard .app-nav a,#dashboard .app-nav button{color:#fff0ea!important}
+#dashboard .app-nav a:hover,#dashboard .app-nav button:hover{background:rgba(255,250,241,.13)!important;color:#fff!important}
+#dashboard .app-nav a.active,#dashboard .app-nav button.active{background:rgba(255,250,241,.2)!important;border-color:rgba(255,250,241,.12)!important;color:#fff!important;box-shadow:inset 3px 0 #fffaf1!important}
+#dashboard .app-nav a:focus-visible,#dashboard .app-nav button:focus-visible{outline-color:#fffaf1!important}
+#dashboard .app-session{background:rgba(102,44,42,.2)!important;border-color:rgba(255,250,241,.22)!important;color:#fff7f2!important}
+#dashboard .app-topbar .dash-btn:hover{border-color:#e88b7d!important;background:#fff3eb!important}
+#dashboard .app-eyebrow,#dashboard .module-tag{color:#c9675d!important}
+#dashboard .module-tag:before{background:#e88b7d!important}
+#dashboard .module[role="button"]:hover,#dashboard .module[role="button"]:focus{border-color:#efb3a7!important;background:#fff7ef!important}
+#dashboard #catalogView .dash-eyebrow{color:#c9675d!important}
+#dashboard #catalogView .catalog-tab.active,#dashboard #catalogView .view-switch button.active{color:#c9675d!important;border-color:#ead7c7!important}
+#dashboard #catalogView .catalog-row.category-selected{border-color:#e88b7d!important;box-shadow:0 0 0 2px rgba(232,139,125,.14)!important;background:#fff0e9!important}
+#dashboard #catalogView .catalog-position{background:#fff0e9!important;border-color:#f0c5b9!important;color:#c9675d!important}
+#dashboard #catalogView .catalog-primary{background:#e88b7d!important;border-color:#e88b7d!important;color:#fff!important}
+#dashboard #catalogView .catalog-primary:hover{background:#d9786b!important;border-color:#d9786b!important}
+#dashboard #catalogView .catalog-field input:focus,#dashboard #catalogView .catalog-field textarea:focus,
+#dashboard #catalogView .catalog-field select:focus,#dashboard #catalogView .product-toolbar input:focus,
+#dashboard #catalogView .product-toolbar select:focus{border-color:#e88b7d!important;outline-color:#fbe1d9!important}
+#dashboard #catalogView .catalog-row-actions button.category-move,
+#dashboard #catalogView .product-card-actions button:first-child{color:#c9675d!important;border-color:#f0c5b9!important}
+#dashboard #catalogView :focus-visible{outline-color:#e88b7d!important}
+body:not(.dashboard-mode) .mark{background:linear-gradient(145deg,#ffe0d7,#efaa9e)!important;border-color:#f6b6a9!important;color:#a84f46!important}
+body:not(.dashboard-mode) .brand-name span,body:not(.dashboard-mode) .eyebrow{color:#c9675d!important}
+body:not(.dashboard-mode) input:focus{border-color:#e88b7d!important;box-shadow:0 0 0 3px rgba(232,139,125,.18)!important}
+body:not(.dashboard-mode) .toggle{color:#c9675d!important}
+body:not(.dashboard-mode) .submit{background:#e88b7d!important;border-color:#e88b7d!important}
+body:not(.dashboard-mode) .submit:hover{background:#d9786b!important}

@@ -155,3 +155,17 @@ input[type=checkbox],input[type=radio]{accent-color:#e88b7d!important}
 .delivered,.badge.completed{background:#e8f8f1!important;color:#148260!important}
 .cancelled,.badge.closed,.badge.cancelled{background:#fff0f1!important;color:#c83e4d!important}
 .badge.off{background:#f0e5d4!important;color:#7a7f8c!important}
+
+
+/* SUSHI THEME refinement: salmon replaces blue/violet accents in legacy modules. */
+:root{--rose:#e88b7d!important;--red:#e88b7d!important;--panel:#fffaf1!important;--bg:#f6f0e5!important;--line:#e8dcc8!important}
+body>header a:hover{background:#fff3eb!important;border-color:#e88b7d!important}
+.head>div>p:first-child{color:#c9675d!important}
+.primary{background:#e88b7d!important;border-color:#e88b7d!important;color:#fff!important}
+.primary:hover{background:#d9786b!important;border-color:#d9786b!important}
+.tab[aria-selected=true],.tab.active{color:#c9675d!important}
+input:focus,select:focus,textarea:focus{border-color:#e88b7d!important;outline-color:#fbe1d9!important}
+input[type=checkbox],input[type=radio]{accent-color:#e88b7d!important}
+.day-chevron,.price,.total-row.final{color:#c9675d!important}
+.order.selected,.order:hover{background:#fff0e9!important;border-color:#e88b7d!important}
+.confirmed,.preparing,.tag.type,.badge.scheduled{background:#fff0e9!important;color:#a65d53!important}
