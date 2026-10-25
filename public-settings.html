@@ -130,4 +130,5 @@ el("refresh").addEventListener("click",async()=>{if(busy)return;try{await load()
  }catch(error){console.error(error);el("loading").textContent=error.message||"Error al iniciar el módulo.";note("No se pudo iniciar",error.message||"Revisá la sesión.",true)}
 })();
 </script>
+  <link rel="stylesheet" href="crm-finance-theme.css">
 </body></html>
