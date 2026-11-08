@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-secondary-fixed-variant": "#5b4314", "primary-container": "#c93b2b", "on-error": "#ffffff", "tertiary-fixed": "#c7ecca", "on-secondary-fixed": "#271900", "outline-variant": "#e2beb9", "on-surface-variant": "#5a413d", "background": "#fff8f6", "error": "#ba1a1a", "on-tertiary-fixed-variant": "#2e4e35", "on-secondary-container": "#785c2c", "tertiary": "#3d5d43", "inverse-surface": "#352f2e", "surface-container-high": "#f0e6e4", "surface-container-highest": "#eae0de", "on-surface": "#1f1b1a", "inverse-on-surface": "#f9eeec", "surface-bright": "#fff8f6", "primary-fixed-dim": "#ffb4a8", "on-tertiary-fixed": "#02210c", "surface-variant": "#eae0de", "surface-tint": "#b22a1d", "error-container": "#ffdad6", "on-primary-fixed": "#410000", "surface-container-lowest": "#ffffff", "tertiary-container": "#55765a", "secondary-fixed": "#ffdeaa", "primary-fixed": "#ffdad4", "on-background": "#1f1b1a", "surface-container": "#f6ecea", "outline": "#8e706b", "on-tertiary-container": "#d6fcd9", "surface": "#fff8f6", "secondary-container": "#fdd79c", "surface-dim": "#e2d8d6", "surface-container-low": "#fcf1ef", "tertiary-fixed-dim": "#abd0af", "inverse-primary": "#ffb4a8", "on-primary": "#ffffff", "on-secondary": "#ffffff", "on-error-container": "#93000a", "on-primary-container": "#ffefed", "secondary-fixed-dim": "#e5c187", "secondary": "#755a2a", "on-primary-fixed-variant": "#900e07", "primary": "#a62216", "on-tertiary": "#ffffff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter": "1rem", "space-xl": "2.5rem", "space-lg": "1.5rem", "space-md": "1rem", "margin": "1rem" }, fontFamily: { "label-md": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "body-md": ["DM Sans"], "label-sm": ["Plus Jakarta Sans"], "label-lg": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "display-mobile": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "display": ["Plus Jakarta Sans"], "body-sm": ["DM Sans"], "body-lg": ["DM Sans"] }, fontSize: { "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "600" }], "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }], "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "label-sm": ["10px", { "lineHeight": "14px", "fontWeight": "700" }], "label-lg": ["14px", { "lineHeight": "18px", "fontWeight": "600" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "display-mobile": ["30px", { "lineHeight": "38px", "fontWeight": "700" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }], "display": ["40px", { "lineHeight": "48px", "fontWeight": "700" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }] } } } };</script><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><img alt="Kanso Sushi Logo" class="h-8 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCC_JcfA82egmt59kdn5FCEivOlRveZG2pEVE0l-ZwIZTEzmG5CFwnDQcC0kUtMW91AqQv3f1-7Ifs7WtpqJ_nb_VCcM2NgD9yPnQhNAlLzPMGelrt8HOQJEA3zlRidWiusoLpF1ag3VoVu1SPy01JPA30J9rAin6D2ojkSGHkeZOH_0MF5klqCYB1F7hhmHfZ1QCl9Kc9qVwMxoMVgDFqf4XypiBn2yWMXpUQPI1o"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface truncate">Kanso</span><span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">館</span></div><button aria-label="Seleccionar dirección de entrega" class="flex items-center gap-space-xs text-left bg-surface-container-low px-space-sm py-0.5 rounded-full mt-0.5 hover:bg-surface-container max-w-[190px]"><span class="material-symbols-outlined text-primary text-[14px]">location_on</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">Palermo Soho, CABA</span><span class="material-symbols-outlined text-on-surface-variant text-[14px]">expand_more</span></button></div></div><div class="flex items-center gap-space-sm flex-shrink-0"><div class="text-right hidden xs:block"><span class="block font-label-sm text-label-sm text-on-surface-variant leading-none">Pantalla</span><span class="block font-headline-sm text-headline-sm text-on-surface leading-tight">Carrito</span></div><button aria-label="Perfil del Chef" class="w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-container active:scale-95 transition-transform"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNJJKZvfjNIRayI4a3eH1ed2YfThwLyJTaK8bCaW8X_98OXKjSF6kzZbtV074DyIJjlpio9PY9jUwdL7sbR6YsiH85tMNoFpjKa09fatf8Rmy_i9oBuFbdIIWBzIy6KoiWM4o27EATijzRJ25AttyXfiqVSKY465Tj27jmkxc74s4jmL2hhifZI7JWPwAwCe5-euvUq04TEhQoQi4YL9QQrwmMQ9Sbg8ZMVCb17xY"/></button></div></div></header><main class="flex flex-col relative w-full pt-20 pb-28 bg-surface min-h-screen"><div class="flex flex-col w-full">
+<div class="px-margin pt-space-sm pb-space-xs flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-[16px]">shopping_bag</span>
+</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Tu Pedido</h2>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-bold">4 ítems</span>
+</div>
+<button class="font-label-sm text-label-sm text-primary flex items-center gap-0.5 active:scale-95 transition-transform" id="clearCartBtn">
+<span class="material-symbols-outlined text-[14px]">delete_sweep</span>
+      Vaciar
+    </button>
+</div>
+<section class="px-margin mb-space-md">
+<div class="bg-surface-container-low rounded-xl p-1 flex relative">
+<div class="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-surface-container-lowest rounded-lg shadow-sm transition-all duration-300" id="toggleBg"></div>
+<button class="relative z-10 w-1/2 py-2.5 rounded-lg flex flex-col items-center justify-center transition-colors text-primary" id="deliveryTabBtn" onclick="setFulfillment('delivery')">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">moped</span>
+<span class="font-label-lg text-label-lg font-bold">A Domicilio</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">30 - 45 min</span>
+</button>
+<button class="relative z-10 w-1/2 py-2.5 rounded-lg flex flex-col items-center justify-center transition-colors text-on-surface-variant" id="takeawayTabBtn" onclick="setFulfillment('takeaway')">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">storefront</span>
+<span class="font-label-lg text-label-lg font-bold">Retiro en Local</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-[9px] px-1.5 py-0.2 rounded-full font-bold">15% OFF</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary font-medium">Listo en 20 min</span>
+</button>
+</div>
+<div class="mt-space-sm bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex items-center justify-between gap-space-sm" id="addressBanner">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">pin_drop</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md text-on-surface truncate">Av. Santa Fe 3420, 4to B</span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-[9px] px-1.5 py-0.2 rounded font-bold">Depto</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate block">Timbre 42 • Dejar en portería</span>
+</div>
+</div>
+<button class="font-label-sm text-label-sm text-primary font-bold px-2 py-1 bg-surface-container-low rounded-lg flex-shrink-0 active:scale-95 transition-transform">
+        Cambiar
+      </button>
+</div>
+</section>
+<section class="px-margin mb-space-md space-y-space-sm">
+<div class="bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex gap-space-sm items-center">
+<img class="w-20 h-20 rounded-lg object-cover flex-shrink-0" data-alt="Exquisite Japanese Omakase signature sushi roll cut into delicate pieces, torched fresh salmon, creamy avocado, nikiri glaze drizzle on dark artisan slate plate, warm amber restaurant lighting, clean aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmUhbeKavAaJQb6fATIcLV33I66gm3Mw7xPejvFcBRsuZ1OFWuZDOLbUuqlACLTqKVUY1QtR8dErq6rgnVuzte4xyJEESzO4TCFszbSh9AdqRm6k02rN5hKdS4ee86pzSKGMkpXBLXG0sFzDcYfcLjz3JO4DiYv8QMpr1BF_dYPaGafZHzJ5x8VNlOoLas5an0qBaIY5kN01G0VGuClkChqdbhsCGeIjLGIT8BQq8"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between gap-1">
+<h3 class="font-label-lg text-label-lg text-on-surface truncate font-bold">Omakase Signature Roll</h3>
+<span class="font-label-md text-label-md text-on-surface font-bold flex-shrink-0">$14.500</span>
+</div>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-secondary text-[13px]">chat_bubble</span>
+<span class="font-body-sm text-body-sm text-secondary truncate">"Sin sésamo por favor"</span>
+</div>
+<div class="flex items-center justify-between mt-2">
+<span class="font-label-sm text-label-sm text-tertiary bg-tertiary/10 px-1.5 py-0.5 rounded font-medium">Recomendación Shokunin</span>
+<div class="inline-flex items-center bg-surface-container-low rounded-full px-1 py-0.5">
+<button class="w-6 h-6 rounded-full bg-surface-container-lowest text-on-surface flex items-center justify-center active:scale-90 transition-transform shadow-xs" onclick="changeQty(this, -1)">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+<span class="font-label-md text-label-md text-on-surface px-2 item-count">1</span>
+<button class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" onclick="changeQty(this, 1)">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex gap-space-sm items-center">
+<img class="w-20 h-20 rounded-lg object-cover flex-shrink-0" data-alt="Nigiri Moriawase Deluxe platter with 8 perfect pieces of bluefin tuna akami, otoro, salmon, and sea bass placed delicately on handcrafted ceramic ware, fine wasabi root on the side, soft warm lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAv3cUVgY8KD_4a6aUlAAKffui1E5rPE0gR2JUrRsL5nQPKg-q7NkVJhJeZfKNiurk5w3OpRMzC2gMSHkah_Lu046CnFnxwetEOsiiTTGBYZekeW2F3MEgDF93Vb0_FYg2GHGSbWnJSEEjA0OhAozDa0VR2Ocz1BBYCWWqKn8T77BmtjsEZJi8oqiz7kaucLFRKUWczO0M83Q6RI_e2FRJk6Lo7t-WdV4x9D14y3A"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between gap-1">
+<h3 class="font-label-lg text-label-lg text-on-surface truncate font-bold">Nigiri Moriawase Deluxe</h3>
+<span class="font-label-md text-label-md text-on-surface font-bold flex-shrink-0">$12.800</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate block">8 piezas selectas de pesca fresca</span>
+<div class="flex items-center justify-between mt-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Arroz koshihikari</span>
+<div class="inline-flex items-center bg-surface-container-low rounded-full px-1 py-0.5">
+<button class="w-6 h-6 rounded-full bg-surface-container-lowest text-on-surface flex items-center justify-center active:scale-90 transition-transform shadow-xs" onclick="changeQty(this, -1)">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+<span class="font-label-md text-label-md text-on-surface px-2 item-count">1</span>
+<button class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" onclick="changeQty(this, 1)">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex gap-space-sm items-center">
+<img class="w-20 h-20 rounded-lg object-cover flex-shrink-0" data-alt="Chilled bottle of Asahi Super Dry Japanese beer with condensation drops, frosted glass, modern minimal Japanese izakaya mood, warm cedar wood table surface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8nfjPUeCGM29J_M8Vz2JIXBaBDieH3_gUlawGy8k898zfRto4annICWGtmshXf2jb5u3ClLubtHdH_9HUnuDLblai4GpsdgGbz_RJAmyPrWRlsYvIHttlvk0QUuLEk1MuWdwyXJDV4qYnR0jUlvjhUG-hnnM9RelXDvQnkZfB0LZx4uUu5h0ErluL4yuqmER4u6SC_yog9Xba9AaMsP9gLD6XRz9F4pS6h1YgvgA"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-start justify-between gap-1">
+<h3 class="font-label-lg text-label-lg text-on-surface truncate font-bold">Asahi Super Dry 330ml</h3>
+<span class="font-label-md text-label-md text-on-surface font-bold flex-shrink-0">$7.000</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate block">Cerveza japonesa importada • Fría</span>
+<div class="flex items-center justify-between mt-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">$3.500 c/u</span>
+<div class="inline-flex items-center bg-surface-container-low rounded-full px-1 py-0.5">
+<button class="w-6 h-6 rounded-full bg-surface-container-lowest text-on-surface flex items-center justify-center active:scale-90 transition-transform shadow-xs" onclick="changeQty(this, -1)">
+<span class="material-symbols-outlined text-[14px]">remove</span>
+</button>
+<span class="font-label-md text-label-md text-on-surface px-2 item-count">2</span>
+<button class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center active:scale-90 transition-transform shadow-xs" onclick="changeQty(this, 1)">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-space-md">
+<div class="px-margin flex items-center justify-between mb-space-xs">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">add_circle</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface text-[16px]">¿Sumamos algo más?</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Extras shokunin</span>
+</div>
+<div class="flex overflow-x-auto gap-space-sm px-margin pb-1 scrollbar-none snap-x">
+<div class="flex-shrink-0 w-36 bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex flex-col justify-between snap-start">
+<div class="flex items-center justify-between">
+<span class="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface text-[14px]">🥢</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">Sin costo</span>
+</div>
+<div class="my-2">
+<p class="font-label-md text-label-md text-on-surface font-bold leading-tight">Palitos Extra</p>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">Bambú pulido</span>
+</div>
+<button class="w-full py-1.5 bg-surface-container-low hover:bg-primary hover:text-on-primary rounded-lg font-label-sm text-label-sm text-on-surface font-bold transition-colors active:scale-95" onclick="toggleAddon(this)">
+          + Agregar
+        </button>
+</div>
+<div class="flex-shrink-0 w-36 bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex flex-col justify-between snap-start">
+<div class="flex items-center justify-between">
+<span class="w-7 h-7 rounded-full bg-tertiary-fixed/40 flex items-center justify-center text-[14px]">🌿</span>
+<span class="font-label-sm text-label-sm text-on-surface font-bold">$950</span>
+</div>
+<div class="my-2">
+<p class="font-label-md text-label-md text-on-surface font-bold leading-tight">Wasabi Real</p>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">Raíz fresca rallada</span>
+</div>
+<button class="w-full py-1.5 bg-surface-container-low hover:bg-primary hover:text-on-primary rounded-lg font-label-sm text-label-sm text-on-surface font-bold transition-colors active:scale-95" onclick="toggleAddon(this)">
+          + Agregar
+        </button>
+</div>
+<div class="flex-shrink-0 w-36 bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex flex-col justify-between snap-start">
+<div class="flex items-center justify-between">
+<span class="w-7 h-7 rounded-full bg-secondary-fixed/40 flex items-center justify-center text-[14px]">🍯</span>
+<span class="font-label-sm text-label-sm text-on-surface font-bold">$1.200</span>
+</div>
+<div class="my-2">
+<p class="font-label-md text-label-md text-on-surface font-bold leading-tight">Salsa Teriyaki</p>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">Receta de la casa</span>
+</div>
+<button class="w-full py-1.5 bg-surface-container-low hover:bg-primary hover:text-on-primary rounded-lg font-label-sm text-label-sm text-on-surface font-bold transition-colors active:scale-95" onclick="toggleAddon(this)">
+          + Agregar
+        </button>
+</div>
+<div class="flex-shrink-0 w-36 bg-surface-container-lowest rounded-xl p-space-sm shadow-sm flex flex-col justify-between snap-start">
+<div class="flex items-center justify-between">
+<span class="w-7 h-7 rounded-full bg-error-container/30 flex items-center justify-center text-[14px]">🌸</span>
+<span class="font-label-sm text-label-sm text-on-surface font-bold">$700</span>
+</div>
+<div class="my-2">
+<p class="font-label-md text-label-md text-on-surface font-bold leading-tight">Gari Encurtido</p>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">Jengibre artesanal</span>
+</div>
+<button class="w-full py-1.5 bg-surface-container-low hover:bg-primary hover:text-on-primary rounded-lg font-label-sm text-label-sm text-on-surface font-bold transition-colors active:scale-95" onclick="toggleAddon(this)">
+          + Agregar
+        </button>
+</div>
+</div>
+</section>
+<section class="px-margin mb-space-md">
+<div class="flex items-center justify-between mb-space-xs">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">credit_card</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface text-[16px]">Método de Pago</h3>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">lock</span> Encriptado
+      </span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-xs shadow-sm space-y-1">
+<label class="payment-method-option flex items-center justify-between p-space-sm rounded-lg cursor-pointer transition-all bg-surface-container-low">
+<div class="flex items-center gap-space-sm">
+<input checked="" class="accent-primary w-4 h-4 cursor-pointer" name="payment" onchange="selectPayment(this)" type="radio" value="mercadopago"/>
+<div class="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center text-[#009EE3] font-bold text-xs">
+            MP
+          </div>
+<div>
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md text-on-surface font-bold">Mercado Pago</span>
+<span class="bg-sky-100 text-[#007EB5] font-label-sm text-[9px] px-1.5 py-0.2 rounded font-bold">1-Tap</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Dinero en cuenta, débito o cuotas</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+</label>
+<label class="payment-method-option flex items-center justify-between p-space-sm rounded-lg cursor-pointer transition-all hover:bg-surface-container-low">
+<div class="flex items-center gap-space-sm">
+<input class="accent-primary w-4 h-4 cursor-pointer" name="payment" onchange="selectPayment(this)" type="radio" value="card"/>
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[18px]">credit_card</span>
+</div>
+<div>
+<div class="flex items-center gap-1">
+<span class="font-label-md text-label-md text-on-surface font-bold">Tarjeta de Crédito / Débito</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Visa terminada en •••• 8824</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-bold">Cambiar</span>
+</label>
+<label class="payment-method-option flex items-center justify-between p-space-sm rounded-lg cursor-pointer transition-all hover:bg-surface-container-low">
+<div class="flex items-center gap-space-sm">
+<input class="accent-primary w-4 h-4 cursor-pointer" name="payment" onchange="selectPayment(this)" type="radio" value="wallet"/>
+<div class="w-8 h-8 rounded-full bg-inverse-surface text-inverse-on-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">contactless</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-bold">Apple Pay / Google Pay</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">Pago biométrico instantáneo</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">navigate_next</span>
+</label>
+<label class="payment-method-option flex items-center justify-between p-space-sm rounded-lg cursor-pointer transition-all hover:bg-surface-container-low">
+<div class="flex items-center gap-space-sm">
+<input class="accent-primary w-4 h-4 cursor-pointer" name="payment" onchange="selectPayment(this)" type="radio" value="cash"/>
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface font-bold">Efectivo contra entrega</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant block">Abona al repartidor en tu puerta</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">navigate_next</span>
+</label>
+</div>
+</section>
+<section class="px-margin mb-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-2">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-body-md text-body-md">Subtotal productos</span>
+<span class="font-label-md text-label-md text-on-surface">$34.300</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="font-body-md text-body-md">Envío a domicilio</span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-[9px] px-1 py-0.2 rounded font-bold">PROMO</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="line-through font-body-sm text-body-sm text-on-surface-variant/60">$1.800</span>
+<span class="font-label-md text-label-md text-tertiary font-bold">Gratis</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-tertiary">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">sell</span>
+<span class="font-body-md text-body-md font-medium">Cupón "KANSO10" (-10%)</span>
+</div>
+<span class="font-label-md text-label-md font-bold">-$3.430</span>
+</div>
+<div class="pt-2 border-t-0 flex items-center justify-between bg-surface-container-low -mx-space-md -mb-space-md p-space-md rounded-b-xl mt-3">
+<div>
+<span class="block font-headline-sm text-headline-sm text-on-surface leading-tight font-bold">Total a Pagar</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Impuestos y propina incluidos</span>
+</div>
+<div class="text-right">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold block" id="finalTotal">$30.870</span>
+<span class="font-label-sm text-label-sm text-tertiary font-bold">Ahorrás $5.230</span>
+</div>
+</div>
+</div>
+</section>
+<div class="px-margin mb-space-sm">
+<div class="bg-surface-container-low rounded-xl p-space-sm flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</div>
+<div class="flex-1 min-w-0">
+<span class="font-label-md text-label-md text-on-surface block font-bold">Notificación por WhatsApp</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate block">Seguimiento en vivo al +54 9 11 4059-9921</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tertiary"></div>
+</label>
+</div>
+</div>
+<div class="px-margin pb-space-sm">
+<button class="w-full py-3.5 px-space-md bg-primary text-on-primary rounded-xl font-headline-sm text-headline-sm flex items-center justify-between shadow-lg shadow-primary/25 active:scale-[0.98] transition-all" id="checkoutButton" onclick="handlePay(this)">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+<span>Confirmar y Pagar</span>
+</div>
+<span class="font-bold tracking-tight">$30.870</span>
+</button>
+<div class="flex items-center justify-center gap-1.5 mt-space-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-tertiary">verified_user</span>
+<span class="font-label-sm text-label-sm">Pago 100% Protegido por SSL de 256 bits</span>
+</div>
+</div>
+<div class="fixed top-24 left-4 right-4 z-50 transform -translate-y-20 opacity-0 pointer-events-none transition-all duration-300 bg-inverse-surface text-inverse-on-surface p-space-md rounded-xl shadow-2xl flex items-center gap-space-sm" id="toastSuccess">
+<div class="w-8 h-8 rounded-full bg-tertiary flex items-center justify-center text-on-tertiary flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">done_all</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md font-bold">¡Pedido Enviado a la Barra de Sushi!</p>
+<p class="font-body-sm text-body-sm text-inverse-on-surface/80">Recibirás confirmación por WhatsApp en unos segundos.</p>
+</div>
+</div>
+</div>
+<script>
+  function setFulfillment(type) {
+    const toggleBg = document.getElementById('toggleBg');
+    const delBtn = document.getElementById('deliveryTabBtn');
+    const takeBtn = document.getElementById('takeawayTabBtn');
+    const addressBanner = document.getElementById('addressBanner');
+    const finalTotal = document.getElementById('finalTotal');
+    const checkoutBtn = document.getElementById('checkoutButton');
+
+    if (type === 'delivery') {
+      toggleBg.style.left = '4px';
+      delBtn.classList.add('text-primary');
+      delBtn.classList.remove('text-on-surface-variant');
+      takeBtn.classList.remove('text-primary');
+      takeBtn.classList.add('text-on-surface-variant');
+      addressBanner.style.display = 'flex';
+      finalTotal.innerText = '$30.870';
+      checkoutBtn.querySelector('span:last-child').innerText = '$30.870';
+    } else {
+      toggleBg.style.left = 'calc(50%)';
+      takeBtn.classList.add('text-primary');
+      takeBtn.classList.remove('text-on-surface-variant');
+      delBtn.classList.remove('text-primary');
+      delBtn.classList.add('text-on-surface-variant');
+      addressBanner.style.display = 'none';
+      finalTotal.innerText = '$25.725';
+      checkoutBtn.querySelector('span:last-child').innerText = '$25.725';
+    }
+  }
+
+  function changeQty(btn, delta) {
+    const parent = btn.closest('div');
+    const countEl = parent.querySelector('.item-count');
+    let val = parseInt(countEl.innerText) + delta;
+    if (val < 1) val = 1;
+    countEl.innerText = val;
+  }
+
+  function toggleAddon(btn) {
+    if (btn.innerText.includes('Agregar')) {
+      btn.innerText = '✓ Agregado';
+      btn.classList.remove('bg-surface-container-low', 'text-on-surface');
+      btn.classList.add('bg-tertiary', 'text-on-tertiary');
+    } else {
+      btn.innerText = '+ Agregar';
+      btn.classList.add('bg-surface-container-low', 'text-on-surface');
+      btn.classList.remove('bg-tertiary', 'text-on-tertiary');
+    }
+  }
+
+  function selectPayment(radio) {
+    document.querySelectorAll('.payment-method-option').forEach(el => {
+      el.classList.remove('bg-surface-container-low');
+    });
+    radio.closest('.payment-method-option').classList.add('bg-surface-container-low');
+  }
+
+  function handlePay(btn) {
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span><span>Procesando pedido...</span>`;
+    
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      const toast = document.getElementById('toastSuccess');
+      toast.classList.remove('-translate-y-20', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      setTimeout(() => {
+        toast.classList.add('-translate-y-20', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 4000);
+    }, 1200);
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe pointer-events-none" data-active-classes="text-primary font-bold"><div class="px-margin pb-space-sm pointer-events-auto"><div class="bg-surface/90 backdrop-blur-xl rounded-full shadow-[0_12px_32px_-6px_rgba(43,38,37,0.18)] px-space-sm py-space-xs flex items-center justify-around"><a aria-label="Inicio" class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 text-on-surface-variant hover:text-on-surface active:scale-95 transition-all" data-path="inicio" href="#"><span class="material-symbols-outlined text-[24px]">roofing</span><span class="font-label-sm text-label-sm mt-0.5">Inicio</span></a><a aria-label="Menú" class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 text-on-surface-variant hover:text-on-surface active:scale-95 transition-all" data-path="menu" href="#"><span class="material-symbols-outlined text-[24px]">set_meal</span><span class="font-label-sm text-label-sm mt-0.5">Menú</span></a><a aria-label="Favoritos" class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 text-on-surface-variant hover:text-on-surface active:scale-95 transition-all" data-path="favoritos" href="#"><span class="material-symbols-outlined text-[24px]">favorite</span><span class="font-label-sm text-label-sm mt-0.5">Favoritos</span></a><a aria-current="page" aria-label="Carrito de pedidos" class="relative flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 active:scale-95 transition-all text-primary font-bold" data-path="carrito" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[24px]">shopping_bag</span><span class="absolute -top-1 -right-2 bg-primary text-on-primary font-label-sm text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">3</span></div><span class="font-label-sm text-label-sm mt-0.5">Carrito</span></a></div></div></nav></body></html>

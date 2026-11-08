@@ -1,0 +1,21 @@
+{
+  "name": "Yankun Sushi Lab",
+  "short_name": "Yankun Sushi",
+  "description": "Sushi de Autor y Experiencia Shokunin Tradicional",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff8f6",
+  "theme_color": "#a62216",
+  "icons": [
+    {
+      "src": "https://lh3.googleusercontent.com/aida-public/AB6AXuCC_JcfA82egmt59kdn5FCEivOlRveZG2pEVE0l-ZwIZTEzmG5CFwnDQcC0kUtMW91AqQv3f1-7Ifs7WtpqJ_nb_VCcM2NgD9yPnQhNAlLzPMGelrt8HOQJEA3zlRidWiusoLpF1ag3VoVu1SPy01JPA30J9rAin6D2ojkSGHkeZOH_0MF5klqCYB1F7hhmHfZ1QCl9Kc9qVwMxoMVgDFqf4XypiBn2yWMXpUQPI1o",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/aida-public/AB6AXuCC_JcfA82egmt59kdn5FCEivOlRveZG2pEVE0l-ZwIZTEzmG5CFwnDQcC0kUtMW91AqQv3f1-7Ifs7WtpqJ_nb_VCcM2NgD9yPnQhNAlLzPMGelrt8HOQJEA3zlRidWiusoLpF1ag3VoVu1SPy01JPA30J9rAin6D2ojkSGHkeZOH_0MF5klqCYB1F7hhmHfZ1QCl9Kc9qVwMxoMVgDFqf4XypiBn2yWMXpUQPI1o",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

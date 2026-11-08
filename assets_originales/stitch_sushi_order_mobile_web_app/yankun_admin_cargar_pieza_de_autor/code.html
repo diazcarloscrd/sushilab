@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&amp;family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "inverse-on-surface": "#f9eeec", "on-secondary-fixed": "#271900", "on-primary": "#ffffff", "on-tertiary-fixed": "#02210c", "surface-dim": "#e2d8d6", "primary-fixed": "#ffdad4", "on-tertiary": "#ffffff", "secondary-fixed": "#ffdeaa", "on-secondary-container": "#785c2c", "tertiary-container": "#55765a", "secondary": "#755a2a", "on-surface-variant": "#5a413d", "outline": "#8e706b", "on-primary-container": "#ffefed", "error-container": "#ffdad6", "surface-container-low": "#fcf1ef", "surface-container-high": "#f0e6e4", "on-primary-fixed-variant": "#900e07", "primary-container": "#c93b2b", "surface-variant": "#eae0de", "secondary-container": "#fdd79c", "surface-container-lowest": "#ffffff", "surface-tint": "#b22a1d", "surface-bright": "#fff8f6", "inverse-primary": "#ffb4a8", "primary-fixed-dim": "#ffb4a8", "surface-container-highest": "#eae0de", "error": "#ba1a1a", "on-secondary": "#ffffff", "primary": "#a62216", "secondary-fixed-dim": "#e5c187", "on-error-container": "#93000a", "on-secondary-fixed-variant": "#5b4314", "outline-variant": "#e2beb9", "surface": "#fff8f6", "tertiary-fixed-dim": "#abd0af", "on-tertiary-fixed-variant": "#2e4e35", "on-tertiary-container": "#d6fcd9", "on-error": "#ffffff", "on-surface": "#1f1b1a", "on-primary-fixed": "#410000", "tertiary": "#3d5d43", "on-background": "#1f1b1a", "surface-container": "#f6ecea", "inverse-surface": "#352f2e", "tertiary-fixed": "#c7ecca", "background": "#fff8f6" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-md": "1rem", "space-lg": "1.5rem", "margin": "1rem", "space-xl": "2.5rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter": "1rem" }, fontFamily: { "body-lg": ["DM Sans"], "headline-md": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "label-lg": ["Plus Jakarta Sans"], "body-sm": ["DM Sans"], "headline-sm": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "display": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "display-mobile": ["Plus Jakarta Sans"], "body-md": ["DM Sans"] }, fontSize: { "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "600" }], "label-lg": ["14px", { "lineHeight": "18px", "fontWeight": "600" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }], "label-sm": ["10px", { "lineHeight": "14px", "fontWeight": "700" }], "display": ["40px", { "lineHeight": "48px", "fontWeight": "700" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }], "display-mobile": ["30px", { "lineHeight": "38px", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-16 px-space-sm flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-xs min-w-0"><button aria-label="Volver" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors flex-shrink-0" onclick="history.back()"><span class="material-symbols-outlined text-[24px]">arrow_back</span></button><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-primary uppercase tracking-wider truncate">SushiLab Admin</span><h1 class="font-headline-sm text-headline-sm text-on-surface truncate">Editor Producto Omakase</h1></div></div><div class="flex items-center gap-space-xs flex-shrink-0"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full px-margin pt-16 pb-safe bg-surface min-h-screen"><div class="flex flex-col w-full pb-space-xl">
+<!-- Top Action Bar -->
+<div class="flex items-center justify-between py-space-sm gap-space-sm">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">stars</span> Omakase Atelier
+      </span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Ficha de Autor</h2>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="h-10 px-space-md rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md transition-colors hover:bg-surface-variant active:scale-95" type="button">
+        Cancelar
+      </button>
+<button class="h-10 px-space-md rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-md flex items-center gap-1.5 transition-all hover:bg-primary-container active:scale-95" id="save-publish-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">publish</span>
+<span>Publicar</span>
+</button>
+</div>
+</div>
+<!-- Main Form Content -->
+<form class="flex flex-col gap-space-md mt-space-xs" id="author-dish-form" onsubmit="event.preventDefault();">
+<!-- 1. Carga de Fotografía -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<label class="font-label-lg text-label-lg text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">add_a_photo</span>
+          Fotografía de Alta Resolución
+        </label>
+<span class="font-label-sm text-label-sm text-outline">Formato 4:3 recomendado</span>
+</div>
+<div class="relative w-full h-56 rounded-lg overflow-hidden bg-surface-container flex flex-col items-center justify-center group cursor-pointer">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Exquisite close-up of a gourmet flame-seared sushi roll on an authentic dark slate plate, drizzled with glossy black truffle oil, topped with gold leaf flakes and microgreens, dramatic ambient warm lantern lighting, high gastronomy photography style." id="photo-preview" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDzPkqLzRizucWD0oIdwsomOSFgqTk8lwx1WskXqgyWfWXOEhtUYfuBP7geHeEjyH7SLwjr6S-PsITIDB8L-S81nBRCo7-_97uoRG1gbnRqNOOwUJCgo6mwi2xDwm9Q51oqgrOgJwjUJhd4etjP5OM19Ag7OZkgW1lkU4hxxISpsxeKlF2nWhgyxVL5AoxHjZT7stjZMr2dNiwbpDj3ngClAnWbQAZKBT_Rf9Q-oQ"/>
+<div class="absolute inset-0 bg-inverse-surface/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-inverse-on-surface p-space-md text-center">
+<span class="material-symbols-outlined text-[32px] text-primary-fixed">photo_camera</span>
+<span class="font-label-md text-label-md mt-1">Haga clic o arrastre para reemplazar la toma</span>
+<span class="font-body-sm text-body-sm opacity-80">RAW / PNG / JPG hasta 20MB</span>
+</div>
+<div class="absolute bottom-3 right-3 bg-inverse-surface/75 text-inverse-on-surface px-2.5 py-1 rounded-full font-label-sm text-label-sm flex items-center gap-1 backdrop-blur-sm">
+<span class="material-symbols-outlined text-[14px] text-tertiary-fixed">check_circle</span> Preview Activo
+        </div>
+</div>
+<div class="flex items-center justify-between px-space-xs">
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary">flare</span> Estilismo YanKun Shokunin aplicado
+        </span>
+<button class="font-label-sm text-label-sm text-primary flex items-center gap-1 hover:underline" type="button">
+<span class="material-symbols-outlined text-[16px]">crop</span> Ajustar Encuadre
+        </button>
+</div>
+</section>
+<!-- 2 & 3. Nombre & Categoría -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg text-on-surface" for="dish-name">
+          Nombre de la Creación de Autor
+        </label>
+<div class="relative">
+<input class="w-full bg-surface-container rounded-lg px-space-md py-3 text-on-surface font-body-md text-body-md focus:bg-surface-container-low focus:outline-none focus:ring-0 transition-colors" id="dish-name" placeholder="ej. Roll Black Truffle Omakase" type="text" value="Roll Black Truffle Omakase Especial"/>
+<span class="absolute right-3 top-3 text-on-surface-variant material-symbols-outlined text-[20px]">edit</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-lg text-label-lg text-on-surface" for="dish-category">
+          Categoría en Menú Exclusivo
+        </label>
+<div class="relative">
+<select class="w-full bg-surface-container rounded-lg px-space-md py-3 text-on-surface font-body-md text-body-md appearance-none focus:bg-surface-container-low focus:outline-none focus:ring-0 transition-colors pr-10" id="dish-category">
+<option selected="" value="omakase">Omakase Signature</option>
+<option value="nigiris">Nigiris Especiales</option>
+<option value="combos">Combos Shokunin</option>
+<option value="entradas">Entradas Calientes</option>
+</select>
+<span class="absolute right-3 top-3 pointer-events-none text-on-surface-variant material-symbols-outlined text-[20px]">expand_more</span>
+</div>
+</div>
+</section>
+<!-- 4. Descripción Sensorial & Storytelling -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<label class="font-label-lg text-label-lg text-on-surface flex items-center gap-1.5" for="dish-story">
+<span class="material-symbols-outlined text-primary text-[20px]">menu_book</span>
+          Descripción Sensorial &amp; Storytelling
+        </label>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">Técnica y Maridaje</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        Detalle las notas olfativas, paladar, temperatura del bocado y origen de materias primas para la experiencia del comensal.
+      </p>
+<textarea class="w-full bg-surface-container rounded-lg p-space-md text-on-surface font-body-md text-body-md focus:bg-surface-container-low focus:outline-none transition-colors" id="dish-story" placeholder="Salmón flameado a la brasa con aceite de trufa blanca pura de Alba, ciboulette fino recién cortado, escamas de sal Maldon y un crocante ligero de panko bañado en shoyu añejado..." rows="4">Salmón flameado a la brasa de carbón Binchotan con aceite de trufa blanca de Piamonte, ciboulette fresco orgánico y crocante sutil de panko dorado sobre emulsión ligera de yuzu kosho.</textarea>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-outline">184 caracteres</span>
+<button class="font-label-sm text-label-sm text-primary flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full hover:bg-surface-variant" type="button">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span> Sugerir con IA Shokunin
+        </button>
+</div>
+</section>
+<!-- 5. Estructura de Precios & Costeo -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<label class="font-label-lg text-label-lg text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">payments</span>
+          Estructura de Precios &amp; Costeo
+        </label>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container">Calculadora en vivo</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm">
+<div class="flex flex-col gap-1.5">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Precio al Público ($)</span>
+<div class="relative">
+<span class="absolute left-3 top-3 font-headline-sm text-headline-sm text-on-surface-variant">$</span>
+<input class="w-full bg-surface-container rounded-lg pl-8 pr-3 py-2.5 text-on-surface font-headline-sm text-headline-sm focus:bg-surface-container-low focus:outline-none" id="price-sale" step="100" type="number" value="18500"/>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Costo Materia Prima ($)</span>
+<div class="relative">
+<span class="absolute left-3 top-3 font-headline-sm text-headline-sm text-on-surface-variant">$</span>
+<input class="w-full bg-surface-container rounded-lg pl-8 pr-3 py-2.5 text-on-surface font-headline-sm text-headline-sm focus:bg-surface-container-low focus:outline-none" id="price-cost" step="100" type="number" value="5180"/>
+</div>
+</div>
+</div>
+<!-- Live Margin Card -->
+<div class="bg-surface-container rounded-lg p-space-md flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Margen Bruto Calculado</span>
+<span class="font-headline-sm text-headline-sm text-tertiary" id="margin-amount">+$13,320 por pieza</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-12 h-12 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary-container">
+<span class="font-headline-sm text-headline-sm" id="margin-percentage">72%</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 6. Configurador de Personalización -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<label class="font-label-lg text-label-lg text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">tune</span>
+          Configurador de Personalización
+        </label>
+<span class="font-label-sm text-label-sm text-outline">Opciones del Cliente</span>
+</div>
+<!-- Arroz Selector -->
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md text-on-surface-variant">Base de Shari (Arroz) Permitida</span>
+<div class="grid grid-cols-2 gap-space-sm" id="rice-options">
+<button class="rice-btn flex flex-col p-space-sm rounded-lg bg-inverse-surface text-inverse-on-surface text-left transition-all" data-selected="true" type="button">
+<div class="flex items-center justify-between w-full">
+<span class="font-label-md text-label-md font-semibold">Akazu Rojo</span>
+<span class="material-symbols-outlined text-[16px] text-tertiary-fixed">check_circle</span>
+</div>
+<span class="font-body-sm text-body-sm opacity-80 mt-1">Fermentación tradicional de vinagre rojo</span>
+</button>
+<button class="rice-btn flex flex-col p-space-sm rounded-lg bg-surface-container text-on-surface text-left transition-all" data-selected="true" type="button">
+<div class="flex items-center justify-between w-full">
+<span class="font-label-md text-label-md font-semibold">Blanco Clásico</span>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">check_box</span>
+</div>
+<span class="font-body-sm text-body-sm opacity-70 mt-1">Shari purista con vinagre de arroz suave</span>
+</button>
+</div>
+</div>
+<!-- Alérgenos y Dietas -->
+<div class="flex flex-col gap-2">
+<span class="font-label-md text-label-md text-on-surface-variant">Alérgenos &amp; Filtros Dietéticos</span>
+<div class="flex flex-wrap gap-2">
+<button class="tag-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tertiary/15 text-tertiary font-label-md text-label-md active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">verified</span> Sin TACC
+          </button>
+<button class="tag-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">water_drop</span> Libre de Lactosa
+          </button>
+<button class="tag-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary font-label-md text-label-md active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">local_fire_department</span> Picor Medio
+          </button>
+<button class="tag-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">eco</span> Apto Pescatariano
+          </button>
+</div>
+</div>
+</section>
+<!-- 7. Etiquetado para CRM -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<label class="font-label-lg text-label-lg text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">hub</span>
+          Etiquetado para CRM YanKun
+        </label>
+<span class="font-label-sm text-label-sm text-outline">Segmentación VIP</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        Asigna el comportamiento de consumo para promociones dirigidas en la app del cliente.
+      </p>
+<div class="flex flex-wrap gap-2 pt-1" id="crm-tags-container">
+<span class="inline-flex items-center gap-1 bg-surface-container-high text-on-surface px-3 py-1 rounded-full font-label-sm text-label-sm">
+<span>Amantes de Trufa</span>
+<button class="hover:text-primary leading-none" onclick="this.parentElement.remove()" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1 bg-surface-container-high text-on-surface px-3 py-1 rounded-full font-label-sm text-label-sm">
+<span>Ticket Alto</span>
+<button class="hover:text-primary leading-none" onclick="this.parentElement.remove()" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+<span class="inline-flex items-center gap-1 bg-surface-container-high text-on-surface px-3 py-1 rounded-full font-label-sm text-label-sm">
+<span>Maridaje Vino Blanco</span>
+<button class="hover:text-primary leading-none" onclick="this.parentElement.remove()" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</span>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<input class="flex-1 bg-surface-container rounded-lg px-space-md py-2 text-on-surface font-body-sm text-body-sm focus:bg-surface-container-low focus:outline-none" id="new-tag-input" placeholder="Agregar etiqueta CRM..." type="text"/>
+<button class="h-9 px-space-md bg-secondary text-on-secondary rounded-lg font-label-sm text-label-sm hover:opacity-90 active:scale-95 transition-all" id="add-tag-btn" type="button">
+          Añadir
+        </button>
+</div>
+</section>
+<!-- 8. Switches de Activación & Cocina -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Activar inmediatamente en la App</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Visible de inmediato en el menú de clientes comensales.</span>
+</div>
+<button aria-checked="true" class="w-12 h-7 bg-primary rounded-full relative p-0.5 transition-colors focus:outline-none flex-shrink-0" id="switch-app" role="switch" type="button">
+<span class="block w-6 h-6 bg-on-primary rounded-full transition-transform translate-x-5 shadow-sm"></span>
+</button>
+</div>
+<div class="h-px bg-surface-container"></div>
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Sincronizar KDS Cocina en Tiempo Real</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Actualiza la tablet del Shokunin e inventario de estación fría.</span>
+</div>
+<button aria-checked="true" class="w-12 h-7 bg-primary rounded-full relative p-0.5 transition-colors focus:outline-none flex-shrink-0" id="switch-kds" role="switch" type="button">
+<span class="block w-6 h-6 bg-on-primary rounded-full transition-transform translate-x-5 shadow-sm"></span>
+</button>
+</div>
+</section>
+<!-- Bottom Submission Bar -->
+<div class="sticky bottom-2 z-40 bg-surface/95 backdrop-blur-md p-space-sm rounded-xl shadow-xl flex items-center justify-between gap-space-sm mt-space-sm">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-tertiary animate-pulse"></div>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Listo para Producción</span>
+</div>
+<button class="flex-1 max-w-[200px] h-12 bg-primary text-on-primary rounded-full font-label-md text-label-md flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all" id="btn-bottom-publish" type="button">
+<span class="material-symbols-outlined text-[20px]">restaurant_menu</span>
+<span>Guardar Creación</span>
+</button>
+</div>
+</form>
+<!-- Toast Notification Modal (Hidden initially) -->
+<div class="fixed bottom-20 left-4 right-4 z-50 pointer-events-none transform translate-y-10 opacity-0 transition-all duration-300 flex items-center justify-center" id="toast-success">
+<div class="bg-inverse-surface text-inverse-on-surface px- space-md py-3 rounded-xl shadow-xl flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary-fixed text-[24px]">check_circle</span>
+<span class="font-label-md text-label-md">Pieza de autor publicada y sincronizada con cocina</span>
+</div>
+</div>
+</div>
+<script>
+  // Dynamic Margins Calculation
+  const saleInput = document.getElementById('price-sale');
+  const costInput = document.getElementById('price-cost');
+  const marginAmt = document.getElementById('margin-amount');
+  const marginPct = document.getElementById('margin-percentage');
+
+  function calculateMargin() {
+    const sale = parseFloat(saleInput.value) || 0;
+    const cost = parseFloat(costInput.value) || 0;
+    const diff = sale - cost;
+    const pct = sale > 0 ? Math.round((diff / sale) * 100) : 0;
+    
+    marginAmt.textContent = (diff >= 0 ? '+$' : '-$') + Math.abs(diff).toLocaleString('es-AR') + ' por pieza';
+    marginPct.textContent = pct + '%';
+  }
+
+  saleInput.addEventListener('input', calculateMargin);
+  costInput.addEventListener('input', calculateMargin);
+
+  // Toggle Switches Logic
+  function setupSwitch(id) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const active = btn.getAttribute('aria-checked') === 'true';
+      const newState = !active;
+      btn.setAttribute('aria-checked', newState);
+      const knob = btn.firstElementChild;
+      if (newState) {
+        btn.classList.remove('bg-surface-container-highest');
+        btn.classList.add('bg-primary');
+        knob.classList.remove('translate-x-0');
+        knob.classList.add('translate-x-5');
+      } else {
+        btn.classList.remove('bg-primary');
+        btn.classList.add('bg-surface-container-highest');
+        knob.classList.remove('translate-x-5');
+        knob.classList.add('translate-x-0');
+      }
+    });
+  }
+  setupSwitch('switch-app');
+  setupSwitch('switch-kds');
+
+  // Diet Tag Toggles
+  document.querySelectorAll('.tag-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('bg-tertiary/15');
+      btn.classList.toggle('text-tertiary');
+      btn.classList.toggle('bg-surface-container');
+      btn.classList.toggle('text-on-surface-variant');
+    });
+  });
+
+  // Rice Selector Toggle
+  document.querySelectorAll('.rice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isSelected = btn.getAttribute('data-selected') === 'true';
+      btn.setAttribute('data-selected', !isSelected);
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (!isSelected) {
+        btn.classList.add('bg-inverse-surface', 'text-inverse-on-surface');
+        btn.classList.remove('bg-surface-container', 'text-on-surface');
+        if (icon) {
+          icon.textContent = 'check_circle';
+          icon.classList.add('text-tertiary-fixed');
+          icon.classList.remove('text-on-surface-variant');
+        }
+      } else {
+        btn.classList.remove('bg-inverse-surface', 'text-inverse-on-surface');
+        btn.classList.add('bg-surface-container', 'text-on-surface');
+        if (icon) {
+          icon.textContent = 'check_box_outline_blank';
+          icon.classList.remove('text-tertiary-fixed');
+          icon.classList.add('text-on-surface-variant');
+        }
+      }
+    });
+  });
+
+  // Add CRM Tag
+  const tagInput = document.getElementById('new-tag-input');
+  const addTagBtn = document.getElementById('add-tag-btn');
+  const tagsContainer = document.getElementById('crm-tags-container');
+
+  function addTag() {
+    const val = tagInput.value.trim();
+    if (!val) return;
+    const span = document.createElement('span');
+    span.className = 'inline-flex items-center gap-1 bg-surface-container-high text-on-surface px-3 py-1 rounded-full font-label-sm text-label-sm';
+    span.innerHTML = `<span>${val}</span><button type="button" class="hover:text-primary leading-none" onclick="this.parentElement.remove()"><span class="material-symbols-outlined text-[14px]">close</span></button>`;
+    tagsContainer.appendChild(span);
+    tagInput.value = '';
+  }
+
+  addTagBtn.addEventListener('click', addTag);
+  tagInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
+  });
+
+  // Success Notification on Publish
+  function showPublishToast() {
+    const toast = document.getElementById('toast-success');
+    if (!toast) return;
+    toast.classList.remove('opacity-0', 'translate-y-10');
+    toast.classList.add('opacity-100', 'translate-y-0');
+    setTimeout(() => {
+      toast.classList.remove('opacity-100', 'translate-y-0');
+      toast.classList.add('opacity-0', 'translate-y-10');
+    }, 2800);
+  }
+
+  document.getElementById('save-publish-btn')?.addEventListener('click', showPublishToast);
+  document.getElementById('btn-bottom-publish')?.addEventListener('click', showPublishToast);
+</script></main></body></html>

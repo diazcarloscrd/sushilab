@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&amp;family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "inverse-on-surface": "#f9eeec", "on-secondary-fixed": "#271900", "on-primary": "#ffffff", "on-tertiary-fixed": "#02210c", "surface-dim": "#e2d8d6", "primary-fixed": "#ffdad4", "on-tertiary": "#ffffff", "secondary-fixed": "#ffdeaa", "on-secondary-container": "#785c2c", "tertiary-container": "#55765a", "secondary": "#755a2a", "on-surface-variant": "#5a413d", "outline": "#8e706b", "on-primary-container": "#ffefed", "error-container": "#ffdad6", "surface-container-low": "#fcf1ef", "surface-container-high": "#f0e6e4", "on-primary-fixed-variant": "#900e07", "primary-container": "#c93b2b", "surface-variant": "#eae0de", "secondary-container": "#fdd79c", "surface-container-lowest": "#ffffff", "surface-tint": "#b22a1d", "surface-bright": "#fff8f6", "inverse-primary": "#ffb4a8", "primary-fixed-dim": "#ffb4a8", "surface-container-highest": "#eae0de", "error": "#ba1a1a", "on-secondary": "#ffffff", "primary": "#a62216", "secondary-fixed-dim": "#e5c187", "on-error-container": "#93000a", "on-secondary-fixed-variant": "#5b4314", "outline-variant": "#e2beb9", "surface": "#fff8f6", "tertiary-fixed-dim": "#abd0af", "on-tertiary-fixed-variant": "#2e4e35", "on-tertiary-container": "#d6fcd9", "on-error": "#ffffff", "on-surface": "#1f1b1a", "on-primary-fixed": "#410000", "tertiary": "#3d5d43", "on-background": "#1f1b1a", "surface-container": "#f6ecea", "inverse-surface": "#352f2e", "tertiary-fixed": "#c7ecca", "background": "#fff8f6" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-md": "1rem", "space-lg": "1.5rem", "margin": "1rem", "space-xl": "2.5rem", "space-sm": "0.5rem", "space-xs": "0.25rem", "gutter": "1rem" }, fontFamily: { "body-lg": ["DM Sans"], "headline-md": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "label-lg": ["Plus Jakarta Sans"], "body-sm": ["DM Sans"], "headline-sm": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "display": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "display-mobile": ["Plus Jakarta Sans"], "body-md": ["DM Sans"] }, fontSize: { "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }], "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "600" }], "label-lg": ["14px", { "lineHeight": "18px", "fontWeight": "600" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }], "label-sm": ["10px", { "lineHeight": "14px", "fontWeight": "700" }], "display": ["40px", { "lineHeight": "48px", "fontWeight": "700" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }], "display-mobile": ["30px", { "lineHeight": "38px", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-20 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><div class="w-11 h-11 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary flex-shrink-0"><span class="material-symbols-outlined text-[24px]">set_meal</span></div><div class="flex flex-col min-w-0"><div class="flex items-center gap-space-xs"><span class="font-label-sm text-label-sm text-primary uppercase tracking-wider truncate">YanKun SushiLab</span><span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-[9px] flex-shrink-0"><span class="material-symbols-outlined text-[10px]">verified_user</span>PIN</span></div><h1 class="font-headline-sm text-headline-sm text-on-surface truncate leading-tight">Dashboard Crm</h1></div></div><div class="flex items-center gap-space-xs flex-shrink-0"><button aria-label="Alertas y Notificaciones" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full px-margin pt-20 pb-28 bg-surface min-h-screen"><div class="flex flex-col w-full gap-space-lg">
+<!-- Saludo Itamae & Estado General -->
+<section class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-label-md text-label-md text-tertiary uppercase tracking-wider">Servicio de Noche Activo</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Turno 20:00 - 23:30 hs</span>
+</div>
+<div class="flex items-baseline justify-between">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight">Konnichiwa, Chef Yan</h2>
+<button class="flex items-center gap-1 px-space-sm py-1 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-transform active:scale-95 shadow-sm" id="refresh-pulse-btn">
+<span class="material-symbols-outlined text-[16px] text-primary transition-transform" id="sync-icon">sync</span>
+<span class="font-label-sm text-label-sm">En vivo</span>
+</button>
+</div>
+</section>
+<!-- Top Stats Bento Grid -->
+<section class="grid grid-cols-2 gap-space-sm">
+<!-- Ventas del Día (Destacado Bento) -->
+<div class="col-span-2 bg-gradient-to-br from-primary-container to-primary rounded-xl p-space-md text-on-primary shadow-md relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-on-primary/10 blur-xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary-fixed">payments</span>
+<span class="font-label-sm text-label-sm text-primary-fixed uppercase tracking-wider">Ventas del Día</span>
+</div>
+<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-on-primary/15 text-on-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[12px]">trending_up</span>+18%
+          </span>
+</div>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-display-mobile text-display-mobile tracking-tight">$284.500</span>
+<span class="font-body-sm text-body-sm text-primary-fixed">vs semana pasada</span>
+</div>
+<!-- Mini Sparkline inline SVG -->
+<div class="w-full h-8 pt-1">
+<svg class="w-full h-full stroke-on-primary fill-none" preserveaspectratio="none" viewbox="0 0 100 24">
+<path d="M0,18 Q15,16 28,19 T55,8 T80,10 T100,3" stroke-linecap="round" stroke-width="2.5"></path>
+<path class="fill-on-primary/10" d="M0,18 Q15,16 28,19 T55,8 T80,10 T100,3 L100,24 L0,24 Z" stroke-width="0"></path>
+</svg>
+</div>
+</div>
+</div>
+<!-- Órdenes Activas -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Órdenes</span>
+<div class="w-7 h-7 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[16px]">soup_kitchen</span>
+</div>
+</div>
+<div class="mt-2">
+<div class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">7</div>
+<div class="flex flex-col gap-0.5 mt-1 font-body-sm text-body-sm text-on-surface-variant">
+<span class="flex items-center gap-1 text-primary font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> 3 en Itamae
+          </span>
+<span class="flex items-center gap-1 font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> 4 en camino
+          </span>
+</div>
+</div>
+</div>
+<!-- Ticket Promedio -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Ticket Prom.</span>
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[16px]">receipt</span>
+</div>
+</div>
+<div class="mt-2">
+<div class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">$22.400</div>
+<span class="inline-flex items-center gap-0.5 mt-1 text-tertiary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +6.2% Omakase
+        </span>
+</div>
+</div>
+<!-- Clientes Fidelizados (CRM) Full Width Bento -->
+<div class="col-span-2 bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-11 h-11 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">loyalty</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase truncate">Clientes Fidelizados (CRM)</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">428 perfiles activos</span>
+</div>
+</div>
+<span class="px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm flex-shrink-0">
+        84% LTV
+      </span>
+</div>
+</section>
+<!-- Módulo Destacado: Conexión CRM en Vivo -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex items-center gap-space-xs">
+<div class="w-2.5 h-2.5 rounded-full bg-tertiary animate-ping"></div>
+<span class="font-label-sm text-label-sm text-tertiary uppercase tracking-wider font-bold">Conexión CRM Activa</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">HubSpot &amp; WhatsApp Cloud API</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Webhooks sincronizando pedidos en tiempo real con perfiles de comensales.</p>
+</div>
+<div class="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm shadow-sm">
+<span class="material-symbols-outlined text-[12px] text-tertiary">check_circle</span>
+<span>Hace 2 min</span>
+</div>
+</div>
+<!-- Integraciones Activas Pills -->
+<div class="flex items-center gap-space-xs overflow-x-auto pb-1">
+<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface font-label-sm text-label-sm flex-shrink-0">
+<span class="material-symbols-outlined text-[16px] text-primary">hub</span>
+<span>HubSpot Enterprise</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface font-label-sm text-label-sm flex-shrink-0">
+<span class="material-symbols-outlined text-[16px] text-tertiary">chat</span>
+<span>WhatsApp API</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container text-on-surface font-label-sm text-label-sm flex-shrink-0">
+<span class="material-symbols-outlined text-[16px] text-secondary">webhook</span>
+<span>MP Webhook</span>
+</div>
+</div>
+</section>
+<!-- Segmentos de Clientes VIP / Frecuentes -->
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-secondary">group</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Segmentos Estratégicos</h3>
+</div>
+<span class="font-label-sm text-label-sm text-primary">3 Segmentos</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<!-- Card Segmento 1: Amantes del Omakase -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">stars</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1">
+<span class="font-label-lg text-label-lg text-on-surface truncate">Amantes del Omakase</span>
+<span class="px-1.5 py-0.2 rounded bg-primary text-on-primary font-label-sm text-[9px] uppercase">VIP</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">74 clientes • Frecuencia: 3 pedidos/mes</span>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0">
+<span class="font-label-md text-label-md text-primary">$34.800</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">ticket prom.</span>
+</div>
+</div>
+<!-- Card Segmento 2: Clientes Corporativos -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">corporate_fare</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface truncate">Clientes Corporativos</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">31 empresas • Factura A • Bento Boxes</span>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0">
+<span class="font-label-md text-label-md text-on-surface">$58.200</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">ticket prom.</span>
+</div>
+</div>
+<!-- Card Segmento 3: Alérgicos / Sin TACC etiquetados -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-tertiary-container/30 flex items-center justify-center text-tertiary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">spa</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-lg text-label-lg text-on-surface truncate">Sin TACC &amp; Alérgenos</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">62 perfiles • Tamari sin gluten / Sin sésamo</span>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0">
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">
+            Control Itamae
+          </span>
+</div>
+</div>
+</div>
+</section>
+<!-- Acciones Rápidas CRM -->
+<section class="flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Acciones Rápidas</h3>
+<div class="grid grid-cols-1 gap-space-xs">
+<!-- Enviar Campaña WhatsApp a VIPs (Primary conversion) -->
+<button class="w-full flex items-center justify-between p-space-md rounded-xl bg-primary text-on-primary shadow-sm hover:opacity-95 active:scale-[0.99] transition-transform">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-on-primary/15 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">mark_chat_unread</span>
+</div>
+<div class="flex flex-col text-left min-w-0">
+<span class="font-label-lg text-label-lg truncate">Enviar Campaña WhatsApp a VIPs</span>
+<span class="font-body-sm text-body-sm text-primary-fixed truncate">Oferta Omakase Especial de Primavera</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] flex-shrink-0">arrow_forward</span>
+</button>
+<!-- Sincronizar Contactos CRM -->
+<button class="w-full flex items-center justify-between p-space-md rounded-xl bg-surface-container-lowest text-on-surface shadow-sm hover:bg-surface-container-low active:scale-[0.99] transition-all" id="sync-crm-btn">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</div>
+<div class="flex flex-col text-left min-w-0">
+<span class="font-label-lg text-label-lg truncate">Sincronizar Contactos CRM</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">Actualiza etiquetas de HubSpot y canales</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0">refresh</span>
+</button>
+<!-- Exportar Métricas a Excel/CSV -->
+<button class="w-full flex items-center justify-between p-space-md rounded-xl bg-surface-container-lowest text-on-surface shadow-sm hover:bg-surface-container-low active:scale-[0.99] transition-all">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">table_view</span>
+</div>
+<div class="flex flex-col text-left min-w-0">
+<span class="font-label-lg text-label-lg truncate">Exportar Métricas a Excel / CSV</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">Reporte financiero y cohortes de fidelidad</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0">download</span>
+</button>
+</div>
+</section>
+<!-- Lista de Últimas Actividades del CRM -->
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Actividad del CRM en Directo</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Hoy</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<!-- Actividad 1: Nuevo cliente VIP vía MP -->
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">how_to_reg</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-baseline justify-between gap-1">
+<span class="font-label-md text-label-md text-on-surface truncate">Nuevo cliente VIP registrado</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex-shrink-0">19:42</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Agustín M. ($68.000 abonado vía Mercado Pago). Tag asignado: <span class="font-label-sm text-label-sm text-primary">#OmakaseLover</span>.</p>
+</div>
+</div>
+<!-- Divider visual suave sin borde -->
+<div class="w-full h-px bg-surface-container"></div>
+<!-- Actividad 2: Recordatorio de Cumpleaños -->
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">cake</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-baseline justify-between gap-1">
+<span class="font-label-md text-label-md text-on-surface truncate">Recordatorio de cumpleaños enviado</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex-shrink-0">18:15</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Disparo automático WhatsApp a Sofia V.: Cupón <span class="font-label-sm text-label-sm text-on-surface">KURA-BDAY-20</span> (Postre Matcha de cortesía).</p>
+</div>
+</div>
+<!-- Divider visual suave sin borde -->
+<div class="w-full h-px bg-surface-container"></div>
+<!-- Actividad 3: Actualización de Alergia -->
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">priority_high</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-baseline justify-between gap-1">
+<span class="font-label-md text-label-md text-on-surface truncate">Perfil médico actualizado</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex-shrink-0">17:03</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Cliente #1092 añadió nota de alergia a mariscos crudos. Sincronizado con la pantalla de cocina del Itamae.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Tarjeta de Feedback / Delight Itamae -->
+<section class="bg-surface-container rounded-xl p-space-md flex items-center gap-space-sm">
+<div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Plato de autor de sushi estilo Omakase servido en vajilla de cerámica negra tradicional japonesa con detalles en salsa de soja reducida y brotes frescos de shiso, iluminación cálida de restaurante gourmet" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVhogxHqzpEJgnRA2_ct70f7IDJO_zqii30MkULRbODAVr7RygE-g0z1dZWxV89BmKgPXeiL3DutVWBNlR_mpcqQGgwuFANRmB6hgQ2yY3JELv6oGxDx_L58EP33WiWjhHuP8HO_EYjIdZm4KRxjctgNsavcsP3NjSOzdQEEhwLV-C6RU2e9NMX_uExoknKvpvXf2QY4xCEhzJN379Rr_usWTSZvwjzSIEfQ7y-_E"/>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<span class="font-label-sm text-label-sm text-primary uppercase">Sushi de Autor • YanKun</span>
+<span class="font-label-md text-label-md text-on-surface truncate">Omakase 18 Piezas lidera la noche</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">42 cajas reservadas para el bloque de las 21:00 hs.</span>
+</div>
+</section>
+</div>
+<script>
+  // Microinteracción para refresco de métricas en vivo
+  const refreshBtn = document.getElementById('refresh-pulse-btn');
+  const syncCrmBtn = document.getElementById('sync-crm-btn');
+  const syncIcon = document.getElementById('sync-icon');
+
+  function triggerSyncAnimation() {
+    if (!syncIcon) return;
+    syncIcon.classList.add('rotate-180');
+    setTimeout(() => {
+      syncIcon.classList.remove('rotate-180');
+    }, 600);
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', triggerSyncAnimation);
+  }
+
+  if (syncCrmBtn) {
+    syncCrmBtn.addEventListener('click', () => {
+      triggerSyncAnimation();
+      const originalText = syncCrmBtn.querySelector('.text-label-lg').textContent;
+      syncCrmBtn.querySelector('.text-label-lg').textContent = 'Sincronizando 428 contactos...';
+      setTimeout(() => {
+        syncCrmBtn.querySelector('.text-label-lg').textContent = '¡Sincronización Exitosa!';
+        setTimeout(() => {
+          syncCrmBtn.querySelector('.text-label-lg').textContent = originalText;
+        }, 1800);
+      }, 900);
+    });
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.06)]" data-active-classes="text-primary font-label-md"><div class="flex justify-around items-center h-16 px-space-xs"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-0.5 transition-all text-primary font-label-md" data-path="dashboard-crm" href="#"><span class="material-symbols-outlined text-[22px]">insights</span><span class="font-label-sm text-label-sm text-center">Dashboard</span></a><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-0.5 text-on-surface-variant hover:text-on-surface transition-all" data-path="gestion-productos" href="#"><span class="material-symbols-outlined text-[22px]">restaurant_menu</span><span class="font-label-sm text-label-sm text-center">Productos</span></a><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-0.5 text-on-surface-variant hover:text-on-surface transition-all" data-path="ordenes" href="#"><span class="material-symbols-outlined text-[22px]">receipt_long</span><span class="font-label-sm text-label-sm text-center">Órdenes</span></a><a class="flex flex-col items-center justify-center min-w-[64px] min-h-[44px] gap-0.5 text-on-surface-variant hover:text-on-surface transition-all" data-path="ajustes-sync" href="#"><span class="material-symbols-outlined text-[22px]">sync_saved_locally</span><span class="font-label-sm text-label-sm text-center">Ajustes</span></a></div></nav></body></html>

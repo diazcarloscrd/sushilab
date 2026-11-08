@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN_LOCAL
+  COCINERO
+  REPARTIDOR
+}
+
+enum DeliveryType {
+  DELIVERY
+  TAKE_AWAY
+}
+
+enum OrderStatus {
+  CREADO
+  EN_COCINA
+  EN_CAMINO
+  ENTREGADO
+  CANCELADO
+}
+
+enum PaymentMethod {
+  MERCADO_PAGO
+  TRANSFERENCIA
+  EFECTIVO
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
+enum ChatChannel {
+  WHATSAPP
+  INSTAGRAM
+  WEB
+}
+
+enum MessageSender {
+  CUSTOMER
+  BOT
+  AGENT
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(ADMIN_LOCAL)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+  phone           String   @unique
+  name            String
+  email           String?
+  deliveryAddress String?
+  notes           String?
+  ordersCount     Int      @default(0)
+  totalSpent      Float    @default(0.0)
+  orders          Order[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  order     Int       @default(0)
+  active    Boolean   @default(true)
+  imageUrl  String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id              String      @id @default(uuid())
+  name            String
+  slug            String      @unique
+  description     String
+  price           Float
+  costPrice       Float       @default(0.0) // Costo de materia prima (escandallo)
+  piecesCount     Int?        @default(1)
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id])
+  isChefSelection Boolean     @default(false)
+  isBestSeller    Boolean     @default(false)
+  image           String
+  active          Boolean     @default(true)
+  modifiersJson   String?     // Opciones configurables (arroz, salsas, extras)
+  dietaryTags     String[]    @default([]) // ["GF", "OMAKASE", "VEGGIE"]
+  orderItems      OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model DeliveryZone {
+  id             String   @id @default(uuid())
+  name           String
+  polygonGeoJson String   // Coordenadas en formato JSON [{lat, lng}, ...]
+  deliveryFee    Float    @default(0.0)
+  minOrder       Float    @default(0.0)
+  estimatedMin   Int      @default(25)
+  estimatedMax   Int      @default(45)
+  active         Boolean  @default(true)
+  orders         Order[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Order {
+  id               String        @id @default(uuid())
+  orderNumber      Int           @unique @default(autoincrement())
+  customerId       String?
+  customer         Customer?     @relation(fields: [customerId], references: [id])
+  customerName     String
+  customerPhone    String
+  deliveryType     DeliveryType  @default(DELIVERY)
+  deliveryAddress  String?
+  deliveryZoneId   String?
+  deliveryZone     DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
+  deliveryFee      Float         @default(0.0)
+  subtotal         Float
+  discount         Float         @default(0.0)
+  total            Float
+  status           OrderStatus   @default(CREADO)
+  paymentMethod    PaymentMethod @default(EFECTIVO)
+  paymentStatus    PaymentStatus @default(PENDIENTE)
+  paymentProofUrl  String?
+  notes            String?
+  estimatedMinutes Int           @default(35)
+  items            OrderItem[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id])
+  name       String
+  price      Float
+  quantity   Int      @default(1)
+  baseRice   String?  // Akazu rojo vs Blanco tradicional
+  saucesJson String?  // JSON con salsas seleccionadas
+  extrasJson String?  // JSON con extras (Caviar, Wasabi fresco, etc.)
+  notes      String?
+}
+
+model ChatMessage {
+  id            String        @id @default(uuid())
+  channel       ChatChannel   @default(WHATSAPP)
+  senderType    MessageSender @default(CUSTOMER)
+  text          String
+  customerPhone String
+  customerName  String?
+  status        String        @default("DELIVERED")
+  createdAt     DateTime      @default(now())
+}
+
+model BotRule {
+  id             String   @id @default(uuid())
+  triggerKeyword String   @unique // Ej. "/alergias", "/zonas", "/horarios"
+  responseText   String
+  isAiHandled    Boolean  @default(false)
+  escalateToHuman Boolean @default(false)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model StoreSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
