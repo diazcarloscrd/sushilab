@@ -1,64 +1,128 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabaseServer';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
-// GET: Verificación de Webhook de Meta Cloud API
+// GET: Verificación del Webhook por Meta Cloud API
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get('hub.mode');
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || 'yankun_secure_token';
+  const configuredToken = process.env.WHATSAPP_VERIFY_TOKEN || 'yankun_secure_token';
 
-  if (mode === 'subscribe' && token === verifyToken) {
-    console.log('WhatsApp Webhook verificado correctamente');
+  if (mode === 'subscribe' && token === configuredToken) {
+    console.log('✅ Webhook de WhatsApp verificado correctamente con Meta');
     return new Response(challenge, { status: 200 });
   }
 
   return new Response('Forbidden', { status: 403 });
 }
 
-// POST: Procesamiento de mensajes entrantes
+// POST: Procesamiento seguro de mensajes entrantes (C7 Solución Definitiva)
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    const signature = req.headers.get('x-hub-signature-256');
+    const appSecret = process.env.META_APP_SECRET;
 
-    // Responder 200 OK de forma inmediata según convención de ingeniería
-    const entries = body.entry;
-    if (entries && entries.length > 0) {
-      for (const entry of entries) {
-        const changes = entry.changes;
-        if (changes) {
-          for (const change of changes) {
-            const value = change.value;
-            const messages = value?.messages;
-            if (messages && messages.length > 0) {
-              const msg = messages[0];
-              const fromPhone = msg.from;
-              const text = msg.text?.body || '';
+    // Validación Criptográfica HMAC-SHA256 si META_APP_SECRET está configurado
+    if (appSecret && appSecret.trim() !== '') {
+      if (!signature) {
+        return NextResponse.json({ error: 'Firma de seguridad ausente' }, { status: 401 });
+      }
 
-              // Guardar mensaje en base de datos asíncronamente
-              await supabase.from('ChatMessage').insert({
-                channel: 'WHATSAPP',
-                senderType: 'CUSTOMER',
-                text,
-                customerPhone: fromPhone,
-                status: 'RECEIVED',
-              });
+      const expectedSignature = `sha256=${crypto
+        .createHmac('sha256', appSecret)
+        .update(rawBody)
+        .digest('hex')}`;
 
-              console.log(`WhatsApp recibido de ${fromPhone}: "${text}"`);
-            }
+      if (signature !== expectedSignature) {
+        console.warn('⚠️ Webhook de WhatsApp rechazado: firma HMAC inválida');
+        return NextResponse.json({ error: 'Firma no válida' }, { status: 401 });
+      }
+    }
+
+    const body = JSON.parse(rawBody);
+    const entries = body.entry || [];
+
+    for (const entry of entries) {
+      const changes = entry.changes || [];
+      for (const change of changes) {
+        const value = change.value;
+        const messages = value?.messages || [];
+        const contact = value?.contacts?.[0];
+        const contactName = contact?.profile?.name || null;
+
+        for (const msg of messages) {
+          const fromPhone = msg.from;
+          const msgId = msg.id;
+          const text = msg.text?.body || (msg.type === 'button' ? msg.button?.text : '') || '';
+
+          if (!fromPhone || !text) continue;
+
+          // 1. Deduplicación por message ID de Meta
+          const { data: existingMsg } = await supabaseServer
+            .from('ChatMessage')
+            .select('id')
+            .eq('id', msgId)
+            .maybeSingle();
+
+          if (existingMsg) {
+            continue; // Mensaje ya procesado
           }
+
+          // 2. Guardar mensaje en ChatMessage
+          await supabaseServer.from('ChatMessage').insert({
+            id: msgId,
+            channel: 'WHATSAPP',
+            senderType: 'CUSTOMER',
+            text,
+            customerPhone: fromPhone,
+            customerName: contactName,
+            status: 'RECEIVED',
+          });
+
+          // 3. Crear o actualizar la conversación en Conversation
+          const { data: conv } = await supabaseServer
+            .from('Conversation')
+            .select('id, unreadCount, botActive')
+            .eq('customerPhone', fromPhone)
+            .maybeSingle();
+
+          if (conv) {
+            await supabaseServer
+              .from('Conversation')
+              .update({
+                customerName: contactName || undefined,
+                lastMessageText: text,
+                lastMessageAt: new Date().toISOString(),
+                unreadCount: (conv.unreadCount || 0) + 1,
+                updatedAt: new Date().toISOString(),
+              })
+              .eq('id', conv.id);
+          } else {
+            await supabaseServer.from('Conversation').insert({
+              customerPhone: fromPhone,
+              customerName: contactName,
+              channel: 'WHATSAPP',
+              botActive: true,
+              unreadCount: 1,
+              lastMessageText: text,
+              lastMessageAt: new Date().toISOString(),
+            });
+          }
+
+          console.log(`📩 Mensaje procesado de WhatsApp [${fromPhone}]: "${text}"`);
         }
       }
     }
 
     return NextResponse.json({ status: 'ok' }, { status: 200 });
   } catch (err: any) {
-    console.error('Error procesando webhook WhatsApp:', err);
-    // Siempre retornar 200 a Meta para evitar retries descontrolados
-    return NextResponse.json({ status: 'error_logged' }, { status: 200 });
+    console.error('Error procesando webhook de WhatsApp:', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

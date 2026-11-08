@@ -34,7 +34,7 @@ export default function MapPolygonDrawer({
   selectedZone,
   onPolygonComplete,
   onPolygonUpdate,
-  centerDefault = { lat: -34.5885, lng: -58.4305 } // Coordenada base (ej. Palermo, CABA)
+  centerDefault = { lat: -38.7183, lng: -62.2663 } // Coordenada base (Bahía Blanca, Centro)
 }: MapPolygonDrawerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);

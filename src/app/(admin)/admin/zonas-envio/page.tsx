@@ -18,7 +18,7 @@ export default function ZonasEnvioPage() {
   const [estimatedMax, setEstimatedMax] = useState(35);
   const [currentCoords, setCurrentCoords] = useState<LatLngPoint[]>([]);
   const [testResult, setTestResult] = useState<string | null>(null);
-  const [testCoords, setTestCoords] = useState({ lat: -34.5885, lng: -58.4305 });
+  const [testCoords, setTestCoords] = useState({ lat: -38.7183, lng: -62.2663 }); // Bahía Blanca Centro
 
   const fetchZones = async () => {
     try {

@@ -12,13 +12,23 @@ export default function CartPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [zones, setZones] = useState<any[]>([]);
+  const [bankInfo, setBankInfo] = useState<any>({
+    alias: 'YANKUN.SUSHI.BBLA',
+    cbu: '0000003100012345678901',
+    holder: 'Yankun Gastronomia SRL',
+  });
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'MERCADO_PAGO' | 'TRANSFERENCIA' | 'EFECTIVO'>('MERCADO_PAGO');
-  const [paymentProofFile, setPaymentProofFile] = useState<string | null>(null);
+  const [paymentProofUrl, setPaymentProofUrl] = useState<string | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
   const [cashAmount, setCashAmount] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
+  const [scheduledOption, setScheduledOption] = useState<'ASAP' | 'SCHEDULED'>('ASAP');
+  const [scheduledTime, setScheduledTime] = useState('21:00');
 
   const {
     items,
@@ -33,7 +43,7 @@ export default function CartPage() {
     clearCart,
     setDeliveryType,
     setDeliveryZone,
-    applyCoupon,
+    setCouponDiscount,
     removeCoupon,
     setCustomer,
     getSubtotal,
@@ -43,19 +53,32 @@ export default function CartPage() {
 
   useEffect(() => {
     setMounted(true);
-    async function loadZones() {
+    async function loadInitialData() {
       try {
-        const res = await fetch('/api/zones');
-        if (res.ok) {
-          const data = await res.json();
-          setZones(data);
+        const [zonesRes, settingsRes] = await Promise.all([
+          fetch('/api/zones'),
+          fetch('/api/settings/public'),
+        ]);
+
+        if (zonesRes.ok) {
+          const zData = await zonesRes.json();
+          setZones(zData);
+          // Si no hay zona asignada y hay zonas de Bahía Blanca, asignar la primera (Centro)
+          if (!deliveryZoneId && zData.length > 0) {
+            setDeliveryZone(zData[0].id, zData[0].name, zData[0].deliveryFee);
+          }
+        }
+
+        if (settingsRes.ok) {
+          const sData = await settingsRes.json();
+          if (sData.bankDetails) setBankInfo(sData.bankDetails);
         }
       } catch (e) {
-        console.error('Error cargando zonas:', e);
+        console.error('Error cargando datos de checkout:', e);
       }
     }
-    loadZones();
-  }, []);
+    loadInitialData();
+  }, [deliveryZoneId, setDeliveryZone]);
 
   if (!mounted) return null;
 
@@ -63,46 +86,127 @@ export default function CartPage() {
   const discount = getDiscount();
   const total = getTotal();
 
-  // Test address coordinates with Ray-Casting
-  const handleAddressChange = (addressText: string) => {
+  // Geolocalización real para Bahía Blanca usando Nominatim (OpenStreetMap)
+  const handleAddressGeocode = async (addressText: string) => {
     setCustomer({ address: addressText });
+    if (!addressText.trim() || addressText.length < 4) return;
 
-    // Mock geolocation coordinates based on keywords if user writes an address
-    let testPoint = { lat: -34.5885, lng: -58.4305 }; // Default Palermo
-    if (addressText.toLowerCase().includes('recoleta')) {
-      testPoint = { lat: -34.5900, lng: -58.3950 };
-    } else if (addressText.toLowerCase().includes('belgrano')) {
-      testPoint = { lat: -34.5650, lng: -58.4500 };
-    }
+    setGeocoding(true);
+    try {
+      // Buscar dirección en Bahía Blanca
+      const query = encodeURIComponent(`${addressText}, Bahía Blanca, Buenos Aires, Argentina`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`);
+      if (res.ok) {
+        const results = await res.json();
+        if (results && results.length > 0) {
+          const point = {
+            lat: parseFloat(results[0].lat),
+            lng: parseFloat(results[0].lon),
+          };
+          setCustomer({ lat: point.lat, lng: point.lng });
 
-    if (zones.length > 0) {
-      const match = findMatchingDeliveryZone(testPoint, zones);
-      if (match) {
-        setDeliveryZone(match.id, match.name, match.deliveryFee);
+          if (zones.length > 0) {
+            const match = findMatchingDeliveryZone(point, zones);
+            if (match) {
+              setDeliveryZone(match.id, match.name, match.deliveryFee);
+            }
+          }
+        }
       }
+    } catch (e) {
+      console.warn('Geocodificación no disponible, usando fallback manual de zona:', e);
+    } finally {
+      setGeocoding(false);
     }
   };
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  // Botón GPS: "Usar mi ubicación actual en Bahía Blanca"
+  const handleUseCurrentGPS = () => {
+    if (!navigator.geolocation) {
+      setErrorMessage('Tu navegador no soporta geolocalización.');
+      return;
+    }
+
+    setGeocoding(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const point = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setCustomer({ lat: point.lat, lng: point.lng });
+
+        if (zones.length > 0) {
+          const match = findMatchingDeliveryZone(point, zones);
+          if (match) {
+            setDeliveryZone(match.id, match.name, match.deliveryFee);
+            setCustomer({ address: `Ubicación GPS: (${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}) - Bahía Blanca` });
+          } else {
+            setErrorMessage('Tu ubicación GPS está fuera del radio de entrega de Bahía Blanca.');
+          }
+        }
+        setGeocoding(false);
+      },
+      (err) => {
+        setErrorMessage('No pudimos acceder a tu GPS. Por favor escribe tu dirección o elige el barrio.');
+        setGeocoding(false);
+      }
+    );
+  };
+
+  // Validación real de cupón contra /api/coupons/validate
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!couponInput) return;
-    const ok = applyCoupon(couponInput);
-    if (ok) {
-      setCouponError('');
-      setCouponInput('');
-    } else {
-      setCouponError('Cupón inválido o vencido');
+    if (!couponInput.trim()) return;
+
+    setCouponError('');
+    setCouponSuccess('');
+
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponInput, subtotal }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setCouponError(data.message || 'Cupón inválido o expirado');
+      } else {
+        setCouponDiscount(data.code, data.discountPercent);
+        setCouponSuccess(data.message);
+        setCouponInput('');
+      }
+    } catch {
+      setCouponError('Error al validar cupón con el servidor');
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Subida segura del comprobante a Supabase Storage
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPaymentProofFile(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setUploadingProof(true);
+    setErrorMessage('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Error al subir comprobante');
+      }
+
+      const { url } = await res.json();
+      setPaymentProofUrl(url);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'No se pudo subir la foto del comprobante');
+    } finally {
+      setUploadingProof(false);
     }
   };
 
@@ -114,11 +218,15 @@ export default function CartPage() {
       return;
     }
     if (!customer.phone.trim()) {
-      setErrorMessage('Por favor ingresa tu número de WhatsApp / Teléfono para el seguimiento.');
+      setErrorMessage('Por favor ingresa tu número de WhatsApp para el seguimiento.');
       return;
     }
     if (deliveryType === 'DELIVERY' && !customer.address.trim()) {
-      setErrorMessage('Por favor especifica tu dirección completa de entrega.');
+      setErrorMessage('Por favor especifica tu dirección completa de entrega en Bahía Blanca.');
+      return;
+    }
+    if (paymentMethod === 'TRANSFERENCIA' && !paymentProofUrl) {
+      setErrorMessage('Por favor adjunta la captura del comprobante de transferencia bancaria.');
       return;
     }
 
@@ -126,19 +234,22 @@ export default function CartPage() {
     setErrorMessage('');
 
     try {
+      const scheduledForDate = scheduledOption === 'SCHEDULED'
+        ? new Date(new Date().setHours(parseInt(scheduledTime.split(':')[0]), parseInt(scheduledTime.split(':')[1]), 0)).toISOString()
+        : null;
+
       const orderPayload = {
-        customerName: customer.name,
-        customerPhone: customer.phone,
+        customerName: customer.name.trim(),
+        customerPhone: customer.phone.trim(),
         deliveryType,
-        deliveryAddress: deliveryType === 'DELIVERY' ? customer.address : 'Retiro en Local (Honduras 4850, Palermo Soho)',
+        deliveryAddress: deliveryType === 'DELIVERY' ? customer.address : 'Retiro en Local (Alsina 350, Bahía Blanca)',
         deliveryZoneId: deliveryType === 'DELIVERY' ? deliveryZoneId : null,
-        deliveryFee: deliveryType === 'DELIVERY' ? deliveryFee : 0,
-        subtotal,
-        discount,
-        total,
         paymentMethod,
-        paymentProofUrl: paymentProofFile,
+        paymentProofUrl,
+        couponCode: appliedCoupon,
         notes: customer.notes || '',
+        scheduledFor: scheduledForDate,
+        cashAmountPaid: paymentMethod === 'EFECTIVO' && cashAmount ? parseFloat(cashAmount) : null,
         items: items.map((i) => ({
           productId: i.productId,
           name: i.name,
@@ -151,6 +262,7 @@ export default function CartPage() {
         })),
       };
 
+      // 1. Crear comanda en servidor con recálculo de precios seguro
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,10 +276,37 @@ export default function CartPage() {
 
       const createdOrder = await res.json();
 
-      // Clear cart
-      clearCart();
+      // 2. Si el método es Mercado Pago, generar la preferencia y redirigir al checkout oficial
+      if (paymentMethod === 'MERCADO_PAGO') {
+        const mpRes = await fetch('/api/payments/mercadopago', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: createdOrder.id,
+            orderNumber: createdOrder.orderNumber,
+            items: items.map((i) => ({
+              productId: i.productId,
+              name: i.name,
+              price: i.price,
+              quantity: i.quantity,
+            })),
+            total: createdOrder.total,
+            customerEmail: customer.phone ? `${customer.phone.replace(/[^0-9]/g, '')}@cliente.yankunsushi.com` : 'cliente@yankunsushi.com',
+          }),
+        });
 
-      // Redirect to live order tracking stepper
+        if (mpRes.ok) {
+          const mpData = await mpRes.json();
+          if (mpData.init_point) {
+            clearCart();
+            window.location.href = mpData.init_point;
+            return;
+          }
+        }
+      }
+
+      // 3. Para efectivo o transferencia, limpiar carrito y redirigir al tracker de la comanda
+      clearCart();
       router.push(`/pedido/${createdOrder.id}`);
     } catch (err: any) {
       console.error('Error creando orden:', err);
@@ -176,242 +315,327 @@ export default function CartPage() {
     }
   };
 
+  const calculatedCashChange = paymentMethod === 'EFECTIVO' && cashAmount && parseFloat(cashAmount) > total
+    ? parseFloat(cashAmount) - total
+    : 0;
+
   return (
     <div className="bg-surface min-h-screen pb-28">
       <Header />
 
-      <main className="max-w-2xl mx-auto pt-20 px-4 space-y-4">
-        {/* Title */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/"
-              className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            </Link>
-            <h1 className="font-headline font-bold text-xl text-on-surface">
-              Tu Comanda & Checkout
+      <main className="pt-20 px-4 max-w-xl mx-auto space-y-6">
+        {/* Header title */}
+        <div className="flex items-center justify-between pb-3 border-b border-outline-variant/30">
+          <div>
+            <span className="font-headline text-[11px] uppercase tracking-wider text-secondary font-bold">
+              Bahía Blanca • Checkout Shokunin
+            </span>
+            <h1 className="font-headline font-bold text-2xl text-on-surface">
+              Tu Comanda
             </h1>
           </div>
-          {items.length > 0 && (
-            <button
-              onClick={clearCart}
-              className="text-xs text-primary font-headline font-semibold hover:underline"
-            >
-              Vaciar
-            </button>
-          )}
+          <span className="text-xs text-on-surface-variant font-medium">
+            {items.reduce((s, i) => s + i.quantity, 0)} piezas/rolls
+          </span>
         </div>
 
+        {errorMessage && (
+          <div className="p-3.5 rounded-xl bg-error-container text-on-error-container text-xs font-headline font-bold flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">error</span>
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         {items.length === 0 ? (
-          <div className="py-20 text-center flex flex-col items-center justify-center gap-3 bg-surface-container-low rounded-2xl p-8 border border-outline-variant/30">
-            <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-outline">
-              <span className="material-symbols-outlined text-3xl">shopping_basket</span>
-            </div>
-            <h3 className="font-headline font-bold text-lg text-on-surface">
+          <div className="bg-surface-container-lowest rounded-2xl p-10 text-center border border-outline-variant/30 space-y-4">
+            <span className="material-symbols-outlined text-4xl text-outline">shopping_bag</span>
+            <h3 className="font-headline font-bold text-base text-on-surface">
               Tu carrito está vacío
             </h3>
-            <p className="text-xs text-on-surface-variant max-w-xs">
-              Aún no has agregado ninguna pieza de autor. Explora nuestra carta y deleita tu paladar.
+            <p className="text-xs text-on-surface-variant">
+              Explora nuestra carta artesanal de rolls y piezas Edo para comenzar.
             </p>
             <Link
-              href="/menu"
-              className="mt-3 px-6 py-2.5 rounded-full bg-primary hover:bg-primary-container text-white font-headline font-bold text-xs shadow-sm transition-transform active:scale-95"
+              href="/"
+              className="inline-block px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-headline font-bold shadow-sm"
             >
-              Ver Menú Shokunin
+              Ver Carta en Bahía Blanca
             </Link>
           </div>
         ) : (
           <>
-            {/* 1. Item List */}
-            <section className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-3">
-              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant">
-                Piezas Seleccionadas ({items.length})
-              </h3>
-              <div className="divide-y divide-outline-variant/20">
-                {items.map((item) => (
-                  <div key={item.cartItemId} className="py-3 flex gap-3 items-start justify-between">
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-surface-container flex-shrink-0 border border-outline-variant/20">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                    </div>
-
-                    <div className="flex-1 min-w-0 pr-2">
+            {/* Lista de Items */}
+            <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 divide-y divide-outline-variant/15">
+              {items.map((item) => (
+                <div key={item.cartItemId} className="py-3 first:pt-0 last:pb-0 flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
                       <h4 className="font-headline font-bold text-xs text-on-surface leading-tight">
                         {item.name}
                       </h4>
-                      {item.baseRice && (
-                        <p className="text-[10px] text-secondary font-medium mt-0.5">
-                          ✦ {item.baseRice}
-                        </p>
-                      )}
-                      {item.sauces.length > 0 && (
-                        <p className="text-[10px] text-on-surface-variant">
-                          Salsas: {item.sauces.join(', ')}
-                        </p>
-                      )}
-                      {item.extras.length > 0 && (
-                        <p className="text-[10px] text-tertiary font-medium">
-                          Extras: {item.extras.map((e) => e.name).join(', ')}
-                        </p>
-                      )}
-                      {item.notes && (
-                        <p className="text-[10px] text-primary italic">
-                          Nota: {item.notes}
-                        </p>
-                      )}
-                      <div className="font-headline font-bold text-xs text-on-surface mt-1">
+                      <span className="font-headline font-bold text-xs text-primary flex-shrink-0">
                         ${(item.price * item.quantity).toLocaleString('es-AR')}
-                      </div>
+                      </span>
                     </div>
 
-                    {/* Quantity Stepper */}
-                    <div className="flex items-center bg-surface-container rounded-full p-0.5 border border-outline-variant/30 flex-shrink-0">
-                      <button
-                        onClick={() => updateQuantity(item.cartItemId, -1)}
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[14px]">remove</span>
-                      </button>
-                      <span className="w-5 text-center font-headline font-bold text-xs text-on-surface">
-                        {item.quantity}
+                    {item.baseRice && (
+                      <span className="text-[10px] text-tertiary font-medium block mt-0.5">
+                        🍚 {item.baseRice}
                       </span>
+                    )}
+
+                    {item.extras && item.extras.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.extras.map((ex) => (
+                          <span
+                            key={ex.id}
+                            className="text-[9px] bg-tertiary-container/30 text-on-tertiary-container px-1.5 py-0.2 rounded font-medium"
+                          >
+                            + {ex.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Selector de cantidad */}
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center border border-outline-variant/40 rounded-lg overflow-hidden bg-surface-container">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.cartItemId, -1)}
+                          className="w-6 h-6 flex items-center justify-center text-xs font-bold text-on-surface-variant hover:bg-surface-container-high"
+                        >
+                          -
+                        </button>
+                        <span className="w-7 text-center text-xs font-headline font-bold">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.cartItemId, 1)}
+                          className="w-6 h-6 flex items-center justify-center text-xs font-bold text-on-surface-variant hover:bg-surface-container-high"
+                        >
+                          +
+                        </button>
+                      </div>
+
                       <button
-                        onClick={() => updateQuantity(item.cartItemId, 1)}
-                        className="w-6 h-6 rounded-full flex items-center justify-center bg-primary text-white hover:bg-primary-container transition-colors"
+                        type="button"
+                        onClick={() => removeItem(item.cartItemId)}
+                        className="text-[11px] text-error hover:underline font-medium"
                       >
-                        <span className="material-symbols-outlined text-[14px]">add</span>
+                        Quitar
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
+                </div>
+              ))}
+            </div>
 
-            {/* 2. Delivery Mode Selector (Take Away 15% OFF vs Domicilio) */}
-            <section className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-3">
-              <label className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant block">
-                Método de Entrega
-              </label>
+            {/* Modalidad de Entrega */}
+            <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-3">
+              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant">
+                Modalidad de Entrega (Bahía Blanca)
+              </h3>
 
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setDeliveryType('DELIVERY')}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
+                  className={`p-3 rounded-xl border text-left transition-all ${
                     deliveryType === 'DELIVERY'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-outline-variant/40 bg-surface-container-low hover:bg-surface-container'
+                      ? 'border-primary bg-primary/5 text-primary font-bold'
+                      : 'border-outline-variant/40 bg-surface-container text-on-surface-variant'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px] text-primary">moped</span>
-                  <span className="font-headline font-bold text-xs text-on-surface">A Domicilio</span>
-                  <span className="text-[10px] text-on-surface-variant">25–35 min</span>
+                  <span className="material-symbols-outlined text-[18px] block mb-1">moped</span>
+                  <span className="text-xs font-headline block">Envío a Domicilio</span>
+                  <span className="text-[10px] opacity-75">30-45 min</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDeliveryType('TAKE_AWAY')}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
+                  className={`p-3 rounded-xl border text-left transition-all ${
                     deliveryType === 'TAKE_AWAY'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-outline-variant/40 bg-surface-container-low hover:bg-surface-container'
+                      ? 'border-secondary bg-secondary-container/20 text-on-secondary-container font-bold'
+                      : 'border-outline-variant/40 bg-surface-container text-on-surface-variant'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[20px] text-secondary">takeout_dining</span>
-                  <span className="font-headline font-bold text-xs text-on-surface">Retiro en Local</span>
-                  <span className="text-[10px] bg-secondary-container text-on-secondary-container px-1.5 py-0.2 rounded-full font-bold">
-                    15% OFF
-                  </span>
+                  <span className="material-symbols-outlined text-[18px] block mb-1">storefront</span>
+                  <span className="text-xs font-headline block">Retiro en Local</span>
+                  <span className="text-[10px] text-secondary font-bold">15% Descuento</span>
                 </button>
               </div>
 
-              {/* Delivery Zone validation banner */}
               {deliveryType === 'DELIVERY' ? (
-                <div className="space-y-2 pt-1">
+                <div className="space-y-3 pt-2">
                   <div>
                     <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
-                      Dirección de entrega (CABA):
+                      Dirección en Bahía Blanca:
                     </label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-3 flex items-center text-primary pointer-events-none">
-                        <span className="material-symbols-outlined text-[16px]">location_on</span>
-                      </span>
                       <input
                         type="text"
                         value={customer.address}
-                        onChange={(e) => handleAddressChange(e.target.value)}
-                        placeholder="Ej: Honduras 4850, Palermo Soho"
-                        className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        onChange={(e) => handleAddressGeocode(e.target.value)}
+                        placeholder="Ej. Alsina 450, Barrio Universitario, Bahía Blanca"
+                        className="w-full pl-3.5 pr-10 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
                       />
+                      {geocoding && (
+                        <div className="absolute right-3 top-3 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      )}
                     </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/30 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-tertiary text-[16px]">check_circle</span>
-                      <span className="font-headline font-medium text-on-surface">
-                        {deliveryZoneName ? `Cobertura confirmada: ${deliveryZoneName}` : 'Cobertura confirmada en Palermo'}
-                      </span>
-                    </div>
-                    <span className="font-headline font-bold text-primary">
-                      ${deliveryFee.toLocaleString('es-AR')}
-                    </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={handleUseCurrentGPS}
+                      className="text-[11px] text-primary hover:underline font-headline font-bold flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">my_location</span>
+                      <span>Usar mi ubicación GPS actual</span>
+                    </button>
+
+                    {/* Selector de zona asistido */}
+                    <select
+                      value={deliveryZoneId || ''}
+                      onChange={(e) => {
+                        const z = zones.find((item) => item.id === e.target.value);
+                        if (z) setDeliveryZone(z.id, z.name, z.deliveryFee);
+                      }}
+                      className="text-xs bg-surface-container border border-outline-variant/40 rounded-lg px-2 py-1 text-on-surface focus:outline-none"
+                    >
+                      {zones.map((z) => (
+                        <option key={z.id} value={z.id}>
+                          {z.name} (${z.deliveryFee})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               ) : (
-                <div className="p-3 rounded-xl bg-secondary-container/20 border border-secondary/30 text-xs space-y-1">
-                  <div className="font-headline font-bold text-on-secondary-container flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">storefront</span>
-                    Punto de Retiro Yankun Lab:
-                  </div>
-                  <p className="text-on-surface-variant">
-                    Honduras 4850, Palermo Soho, CABA. Te avisaremos cuando el Itamae termine tu comanda.
+                <div className="p-3 rounded-xl bg-secondary-container/20 text-xs text-on-surface space-y-1">
+                  <span className="font-headline font-bold text-secondary block">
+                    📍 Dirección de Retiro:
+                  </span>
+                  <p>Alsina 350, Centro, Bahía Blanca</p>
+                  <p className="text-[10px] text-on-surface-variant">
+                    Demora estimada de preparación: 20-25 minutos.
                   </p>
                 </div>
               )}
-            </section>
+            </div>
 
-            {/* 3. Customer Info */}
-            <section className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-3">
-              <label className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant block">
-                Datos del Comensal
-              </label>
+            {/* Horario de Entrega / Pedido Programado */}
+            <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-3">
+              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-primary">schedule</span>
+                Horario de Entrega
+              </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setScheduledOption('ASAP')}
+                  className={`p-2.5 rounded-xl border text-xs font-headline font-bold transition-all ${
+                    scheduledOption === 'ASAP'
+                      ? 'border-primary bg-primary text-white shadow-sm'
+                      : 'border-outline-variant/40 bg-surface-container text-on-surface-variant'
+                  }`}
+                >
+                  Lo antes posible (35-45m)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setScheduledOption('SCHEDULED')}
+                  className={`p-2.5 rounded-xl border text-xs font-headline font-bold transition-all ${
+                    scheduledOption === 'SCHEDULED'
+                      ? 'border-primary bg-primary text-white shadow-sm'
+                      : 'border-outline-variant/40 bg-surface-container text-on-surface-variant'
+                  }`}
+                >
+                  Programar para hoy
+                </button>
+              </div>
+
+              {scheduledOption === 'SCHEDULED' && (
+                <div className="pt-2">
+                  <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
+                    Selecciona horario estimado de entrega:
+                  </label>
+                  <select
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface font-headline font-bold"
+                  >
+                    <option value="20:00">20:00 hs</option>
+                    <option value="20:30">20:30 hs</option>
+                    <option value="21:00">21:00 hs</option>
+                    <option value="21:30">21:30 hs</option>
+                    <option value="22:00">22:00 hs</option>
+                    <option value="22:30">22:30 hs</option>
+                    <option value="23:00">23:00 hs</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Datos del Cliente */}
+            <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-3">
+              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant">
+                Datos de Contacto
+              </h3>
+
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-[11px] font-headline font-medium text-on-surface mb-1">
+                  <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
                     Nombre y Apellido:
                   </label>
                   <input
                     type="text"
                     value={customer.name}
                     onChange={(e) => setCustomer({ name: e.target.value })}
-                    placeholder="Ej: Sofía Martínez"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
+                    placeholder="Ej. Martín González"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-headline font-medium text-on-surface mb-1">
-                    WhatsApp / Teléfono:
+                  <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
+                    WhatsApp (para seguimiento del repartidor):
                   </label>
                   <input
                     type="tel"
                     value={customer.phone}
                     onChange={(e) => setCustomer({ phone: e.target.value })}
-                    placeholder="Ej: +54 9 11 2345 6789"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
+                    placeholder="Ej. +5492914445566"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
+                    Notas adicionales o aclaraciones:
+                  </label>
+                  <input
+                    type="text"
+                    value={customer.notes || ''}
+                    onChange={(e) => setCustomer({ notes: e.target.value })}
+                    placeholder="Ej. Tocar timbre 4B, sin wasabi, salsa soja extra..."
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
                   />
                 </div>
               </div>
-            </section>
+            </div>
 
-            {/* 4. Payment Method */}
-            <section className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-3">
-              <label className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant block">
-                Forma de Pago
-              </label>
+            {/* Medios de Pago */}
+            <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-3">
+              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant">
+                Medio de Pago
+              </h3>
 
               <div className="space-y-2">
                 {/* Mercado Pago */}
@@ -420,24 +644,18 @@ export default function CartPage() {
                   onClick={() => setPaymentMethod('MERCADO_PAGO')}
                   className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
                     paymentMethod === 'MERCADO_PAGO'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-outline-variant/40 bg-surface-container-low hover:bg-surface-container'
+                      ? 'border-primary bg-primary/5 text-primary font-bold'
+                      : 'border-outline-variant/40 bg-surface-container text-on-surface-variant'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-full bg-[#009EE3]/15 text-[#009EE3] flex items-center justify-center font-bold text-xs">
-                      MP
-                    </span>
+                    <span className="material-symbols-outlined text-[20px]">credit_card</span>
                     <div>
-                      <div className="font-headline font-semibold text-xs text-on-surface">
-                        Mercado Pago (Tarjetas, Débito, Saldo)
-                      </div>
-                      <p className="text-[10px] text-on-surface-variant">
-                        Acreditación instantánea y protegida
-                      </p>
+                      <span className="text-xs font-headline block">Mercado Pago (Tarjetas, Débito, Dinero en cuenta)</span>
+                      <span className="text-[10px] opacity-75">Acreditación instantánea</span>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-[18px] text-primary">
+                  <span className="material-symbols-outlined text-[18px]">
                     {paymentMethod === 'MERCADO_PAGO' ? 'radio_button_checked' : 'radio_button_unchecked'}
                   </span>
                 </button>
@@ -448,47 +666,48 @@ export default function CartPage() {
                   onClick={() => setPaymentMethod('TRANSFERENCIA')}
                   className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
                     paymentMethod === 'TRANSFERENCIA'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-outline-variant/40 bg-surface-container-low hover:bg-surface-container'
+                      ? 'border-secondary bg-secondary-container/20 text-on-secondary-container font-bold'
+                      : 'border-outline-variant/40 bg-surface-container text-on-surface-variant'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-full bg-secondary/15 text-secondary flex items-center justify-center font-bold text-xs">
-                      <span className="material-symbols-outlined text-[18px]">account_balance</span>
-                    </span>
+                    <span className="material-symbols-outlined text-[20px]">account_balance</span>
                     <div>
-                      <div className="font-headline font-semibold text-xs text-on-surface">
-                        Transferencia Bancaria
-                      </div>
-                      <p className="text-[10px] text-on-surface-variant">
-                        Alias: YANKUN.SUSHI.LAB (Cargar comprobante)
-                      </p>
+                      <span className="text-xs font-headline block">Transferencia Bancaria Directa</span>
+                      <span className="text-[10px] text-secondary font-bold">Sin comisiones adicionales</span>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-[18px] text-primary">
+                  <span className="material-symbols-outlined text-[18px]">
                     {paymentMethod === 'TRANSFERENCIA' ? 'radio_button_checked' : 'radio_button_unchecked'}
                   </span>
                 </button>
 
                 {paymentMethod === 'TRANSFERENCIA' && (
-                  <div className="p-3 rounded-xl bg-surface-container text-xs space-y-2 border border-outline-variant/40">
-                    <div className="text-[11px] text-on-surface space-y-0.5">
-                      <p><strong>CBU:</strong> 0000003100012345678901</p>
-                      <p><strong>Alias:</strong> YANKUN.SUSHI.LAB</p>
-                      <p><strong>Titular:</strong> Yankun Gastronomia SRL</p>
+                  <div className="p-3.5 rounded-xl bg-surface-container border border-outline-variant/40 space-y-3 text-xs">
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-headline font-bold text-on-surface block">
+                        Datos para transferir:
+                      </span>
+                      <p>Alias: <strong className="font-mono text-primary">{bankInfo.alias}</strong></p>
+                      <p>CBU: <span className="font-mono text-on-surface-variant">{bankInfo.cbu}</span></p>
+                      <p>Titular: {bankInfo.holder}</p>
                     </div>
+
                     <div>
-                      <label className="block text-[10px] font-headline font-bold text-on-surface mb-1">
+                      <label className="block text-[11px] font-headline font-bold text-on-surface mb-1">
                         Adjuntar comprobante de transferencia:
                       </label>
                       <input
                         type="file"
-                        accept="image/*,.pdf"
+                        accept="image/*"
                         onChange={handleFileUpload}
-                        className="text-xs file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-headline file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-container"
+                        className="text-xs text-on-surface-variant file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-headline file:font-bold file:bg-primary file:text-white"
                       />
-                      {paymentProofFile && (
-                        <p className="text-[10px] text-tertiary font-bold mt-1">✓ Comprobante listo para enviar</p>
+                      {uploadingProof && (
+                        <span className="text-[10px] text-primary block mt-1">Subiendo comprobante a Storage...</span>
+                      )}
+                      {paymentProofUrl && (
+                        <span className="text-[10px] text-tertiary font-bold block mt-1">✓ Comprobante adjuntado correctamente</span>
                       )}
                     </div>
                   </div>
@@ -500,45 +719,63 @@ export default function CartPage() {
                   onClick={() => setPaymentMethod('EFECTIVO')}
                   className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
                     paymentMethod === 'EFECTIVO'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-outline-variant/40 bg-surface-container-low hover:bg-surface-container'
+                      ? 'border-tertiary bg-tertiary-container/20 text-on-tertiary-container font-bold'
+                      : 'border-outline-variant/40 bg-surface-container text-on-surface-variant'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-full bg-tertiary/15 text-tertiary flex items-center justify-center font-bold text-xs">
-                      <span className="material-symbols-outlined text-[18px]">payments</span>
-                    </span>
+                    <span className="material-symbols-outlined text-[20px]">payments</span>
                     <div>
-                      <div className="font-headline font-semibold text-xs text-on-surface">
-                        Efectivo contra entrega
-                      </div>
-                      <p className="text-[10px] text-on-surface-variant">
-                        Paga al recibir o al retirar
-                      </p>
+                      <span className="text-xs font-headline block">Efectivo contra Entrega</span>
+                      <span className="text-[10px] opacity-75">Abona al recibir</span>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-[18px] text-primary">
+                  <span className="material-symbols-outlined text-[18px]">
                     {paymentMethod === 'EFECTIVO' ? 'radio_button_checked' : 'radio_button_unchecked'}
                   </span>
                 </button>
-              </div>
-            </section>
 
-            {/* 5. Coupon code */}
-            <section className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-2">
-              <label className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant block">
+                {paymentMethod === 'EFECTIVO' && (
+                  <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40 space-y-2">
+                    <label className="block text-xs font-headline font-semibold text-on-surface">
+                      ¿Con cuánto vas a pagar? (Para que el cadete lleve cambio):
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="font-headline font-bold text-xs">$</span>
+                      <input
+                        type="number"
+                        value={cashAmount}
+                        onChange={(e) => setCashAmount(e.target.value)}
+                        placeholder={`Monto superior a $${total.toLocaleString('es-AR')}`}
+                        className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-surface-container-high border border-outline-variant/50 text-on-surface focus:outline-none"
+                      />
+                    </div>
+                    {calculatedCashChange > 0 && (
+                      <span className="text-[11px] text-primary font-bold block">
+                        Tu vuelto será de: ${calculatedCashChange.toLocaleString('es-AR')}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cupones de Descuento */}
+            <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-2">
+              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant">
                 Cupón de Descuento
-              </label>
+              </h3>
 
               {appliedCoupon ? (
-                <div className="p-2.5 rounded-xl bg-tertiary-container/20 border border-tertiary/40 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 text-tertiary font-headline font-bold">
-                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                    <span>Cupón {appliedCoupon} aplicado (15% OFF)</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-tertiary-container/30 border border-tertiary/40">
+                  <div className="flex items-center gap-2 text-xs font-headline font-bold text-on-tertiary-container">
+                    <span className="material-symbols-outlined text-[18px]">verified</span>
+                    <span>Cupón {appliedCoupon} aplicado</span>
                   </div>
                   <button
+                    type="button"
                     onClick={removeCoupon}
-                    className="text-[11px] text-primary font-headline font-bold hover:underline"
+                    className="text-xs text-error font-bold hover:underline"
                   >
                     Quitar
                   </button>
@@ -548,76 +785,74 @@ export default function CartPage() {
                   <input
                     type="text"
                     value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value)}
-                    placeholder="Ej: KANSO15"
-                    className="flex-1 px-3 py-2 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface uppercase focus:outline-none focus:border-primary"
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Ingresa código (ej. KANSO15)"
+                    className="flex-1 px-3.5 py-2 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface uppercase font-mono focus:outline-none focus:border-primary"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-secondary text-white font-headline text-xs font-bold hover:bg-secondary/90 transition-colors"
+                    className="px-4 py-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-headline font-bold transition-all"
                   >
                     Aplicar
                   </button>
                 </form>
               )}
-              {couponError && <p className="text-[11px] text-error font-medium">{couponError}</p>}
-            </section>
 
-            {/* 6. Totals Breakdown */}
-            <section className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-outline-variant/30 space-y-2 text-xs">
+              {couponError && <p className="text-[10px] text-error font-semibold">{couponError}</p>}
+              {couponSuccess && <p className="text-[10px] text-tertiary font-semibold">{couponSuccess}</p>}
+            </div>
+
+            {/* Resumen de Total */}
+            <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-card border border-outline-variant/30 space-y-2.5 text-xs">
               <div className="flex justify-between text-on-surface-variant">
-                <span>Subtotal de piezas</span>
-                <span className="font-headline font-semibold text-on-surface">
-                  ${subtotal.toLocaleString('es-AR')}
-                </span>
+                <span>Subtotal:</span>
+                <span>${subtotal.toLocaleString('es-AR')}</span>
               </div>
 
               {discount > 0 && (
-                <div className="flex justify-between text-tertiary font-medium">
-                  <span>Descuento aplicado</span>
-                  <span className="font-headline font-bold">-${discount.toLocaleString('es-AR')}</span>
+                <div className="flex justify-between text-secondary font-semibold">
+                  <span>Descuento aplicado:</span>
+                  <span>-${discount.toLocaleString('es-AR')}</span>
                 </div>
               )}
 
-              {deliveryType === 'DELIVERY' && (
-                <div className="flex justify-between text-on-surface-variant">
-                  <span>Costo de envío ({deliveryZoneName || 'Palermo'})</span>
-                  <span className="font-headline font-semibold text-on-surface">
-                    ${deliveryFee.toLocaleString('es-AR')}
-                  </span>
-                </div>
-              )}
+              <div className="flex justify-between text-on-surface-variant">
+                <span>Costo de envío ({deliveryType === 'TAKE_AWAY' ? 'Retiro Local' : deliveryZoneName || 'Bahía Blanca'}):</span>
+                <span>{deliveryType === 'TAKE_AWAY' || deliveryFee === 0 ? 'Sin cargo' : `$${deliveryFee.toLocaleString('es-AR')}`}</span>
+              </div>
 
-              <hr className="border-outline-variant/30 my-1" />
-
-              <div className="flex justify-between items-center text-sm pt-1">
-                <span className="font-headline font-bold text-on-surface">Total a Pagar</span>
-                <span className="font-headline font-bold text-lg text-primary">
+              <div className="pt-2 border-t border-outline-variant/30 flex justify-between items-baseline font-headline font-bold text-base text-on-surface">
+                <span>Total a Pagar:</span>
+                <span className="text-xl text-primary font-extrabold">
                   ${total.toLocaleString('es-AR')}
                 </span>
               </div>
-            </section>
+            </div>
 
-            {/* Error Message */}
-            {errorMessage && (
-              <div className="p-3 rounded-xl bg-error-container text-on-error-container text-xs flex items-center gap-2">
-                <span className="material-symbols-outlined text-[16px]">error</span>
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {/* 7. Big Vermilion CTA */}
+            {/* Botón de Confirmación */}
             <button
               type="button"
               onClick={handleCreateOrder}
-              disabled={isSubmitting}
-              className="w-full py-4 px-6 rounded-full bg-primary hover:bg-primary-container text-white font-headline font-bold text-base shadow-floating-bar flex items-center justify-between active:scale-[0.98] transition-all disabled:opacity-60"
+              disabled={isSubmitting || uploadingProof}
+              className="w-full py-4 rounded-2xl bg-primary text-white font-headline text-sm font-bold shadow-lg hover:bg-primary/95 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <span>{isSubmitting ? 'Enviando a Cocina...' : 'Confirmar y Enviar Pedido'}</span>
-              <span className="flex items-center gap-1 font-extrabold">
-                ${total.toLocaleString('es-AR')}
-                <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-              </span>
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  <span>Enviando Comanda a Cocina...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">
+                    {paymentMethod === 'MERCADO_PAGO' ? 'lock' : 'send'}
+                  </span>
+                  <span>
+                    {paymentMethod === 'MERCADO_PAGO'
+                      ? `Pagar $${total.toLocaleString('es-AR')} con Mercado Pago`
+                      : `Confirmar Pedido ($${total.toLocaleString('es-AR')})`}
+                  </span>
+                </>
+              )}
             </button>
           </>
         )}

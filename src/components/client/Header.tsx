@@ -1,11 +1,45 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/store/useCartStore';
 
+interface PublicStoreInfo {
+  storeName: string;
+  storeAddress: string;
+  storeCity: string;
+  isOpen: boolean;
+  openHours: string;
+  whatsapp: string;
+}
+
 export default function Header() {
-  const { customer, deliveryType, deliveryZoneName } = useCartStore();
+  const { deliveryType, deliveryZoneName } = useCartStore();
+  const [storeInfo, setStoreInfo] = useState<PublicStoreInfo>({
+    storeName: 'Yankun Sushi Lab — Bahía Blanca',
+    storeAddress: 'Alsina 350, Centro, Bahía Blanca',
+    storeCity: 'Bahía Blanca',
+    isOpen: true,
+    openHours: '19:30 a 23:45 hs',
+    whatsapp: '+5492915556677',
+  });
+
+  useEffect(() => {
+    async function loadPublicInfo() {
+      try {
+        const res = await fetch('/api/settings/public');
+        if (res.ok) {
+          const data = await res.json();
+          setStoreInfo(data);
+        }
+      } catch (e) {
+        // Fallback default
+      }
+    }
+    loadPublicInfo();
+  }, []);
+
+  const cleanWhatsapp = storeInfo.whatsapp.replace(/[^0-9]/g, '');
 
   return (
     <header className="fixed top-0 w-full z-40 pt-safe bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 shadow-[0_1px_8px_rgba(0,0,0,0.03)]">
@@ -20,11 +54,18 @@ export default function Header() {
               <span className="font-headline font-bold text-base text-on-surface tracking-tight">Yankun</span>
               <span className="font-headline text-xs uppercase tracking-wider text-primary font-bold">館</span>
               <span className="text-[10px] bg-secondary-container text-on-secondary-container px-1.5 py-0.2 rounded-full font-semibold">LAB</span>
+              {!storeInfo.isOpen && (
+                <span className="text-[9px] bg-error-container text-on-error-container px-1.5 py-0.5 rounded-full font-bold ml-1">
+                  CERRADO
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1 text-on-surface-variant text-xs">
               <span className="material-symbols-outlined text-primary text-[13px]">location_on</span>
-              <span className="truncate max-w-[150px] font-medium">
-                {deliveryType === 'TAKE_AWAY' ? 'Retiro en Local' : (deliveryZoneName || 'Palermo, CABA')}
+              <span className="truncate max-w-[170px] font-medium">
+                {deliveryType === 'TAKE_AWAY'
+                  ? 'Retiro: Alsina 350 (B. Blanca)'
+                  : (deliveryZoneName || 'Bahía Blanca')}
               </span>
             </div>
           </div>
@@ -42,11 +83,11 @@ export default function Header() {
           </Link>
 
           <a
-            href="https://wa.me/5491155556666?text=Hola%20Yankun%20Sushi%20Lab,%20quisiera%20hacer%20una%20consulta"
+            href={`https://wa.me/${cleanWhatsapp}?text=Hola%20Yankun%20Sushi%20Lab%20Bah%C3%ADa%20Blanca,%20quisiera%20hacer%20un%20pedido`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-9 h-9 flex items-center justify-center rounded-full bg-tertiary-container/30 text-tertiary hover:bg-tertiary-container/50 active:scale-95 transition-all"
-            aria-label="Atención por WhatsApp"
+            aria-label="Atención por WhatsApp Bahía Blanca"
           >
             <span className="material-symbols-outlined text-[18px]">chat</span>
           </a>

@@ -8,7 +8,7 @@ export interface CartModifierExtra {
 }
 
 export interface CartItem {
-  cartItemId: string; // Unique hash based on id + modifiers
+  cartItemId: string; // Hash único basado en id + modificadores
   productId: string;
   name: string;
   price: number;
@@ -39,6 +39,8 @@ interface CartStore {
   appliedCoupon: string | null;
   couponDiscountPercent: number;
   customer: CustomerData;
+  scheduledFor: string | null;
+  cashAmountPaid: number | null;
   
   // Actions
   addItem: (item: Omit<CartItem, 'cartItemId'>) => void;
@@ -47,9 +49,11 @@ interface CartStore {
   clearCart: () => void;
   setDeliveryType: (type: 'DELIVERY' | 'TAKE_AWAY') => void;
   setDeliveryZone: (zoneId: string | null, zoneName: string | null, fee: number) => void;
-  applyCoupon: (code: string) => boolean;
+  setCouponDiscount: (code: string | null, percent: number) => void;
   removeCoupon: () => void;
   setCustomer: (customer: Partial<CustomerData>) => void;
+  setScheduledFor: (isoDate: string | null) => void;
+  setCashAmountPaid: (amount: number | null) => void;
   
   // Computed getters
   getItemsCount: () => number;
@@ -65,16 +69,18 @@ export const useCartStore = create<CartStore>()(
       deliveryType: 'DELIVERY',
       deliveryFee: 1200,
       deliveryZoneId: 'zone_palermo',
-      deliveryZoneName: 'Palermo Soho',
+      deliveryZoneName: 'Zona 1: Centro & Macrocentro',
       appliedCoupon: null,
       couponDiscountPercent: 0,
+      scheduledFor: null,
+      cashAmountPaid: null,
       customer: {
         name: '',
         phone: '',
-        address: 'Honduras 4850, Palermo Soho, CABA',
+        address: 'Alsina 350, Centro, Bahía Blanca',
         notes: '',
-        lat: -34.5885,
-        lng: -58.4305,
+        lat: -38.7183,
+        lng: -62.2663,
       },
 
       addItem: (newItem) => {
@@ -115,7 +121,7 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [], appliedCoupon: null, couponDiscountPercent: 0 });
+        set({ items: [], appliedCoupon: null, couponDiscountPercent: 0, cashAmountPaid: null, scheduledFor: null });
       },
 
       setDeliveryType: (type) => {
@@ -130,13 +136,8 @@ export const useCartStore = create<CartStore>()(
         });
       },
 
-      applyCoupon: (code) => {
-        const clean = code.trim().toUpperCase();
-        if (clean === 'KANSO15' || clean === 'YANKUN15') {
-          set({ appliedCoupon: clean, couponDiscountPercent: 15 });
-          return true;
-        }
-        return false;
+      setCouponDiscount: (code, percent) => {
+        set({ appliedCoupon: code, couponDiscountPercent: percent });
       },
 
       removeCoupon: () => {
@@ -150,6 +151,14 @@ export const useCartStore = create<CartStore>()(
             ...newCustomerData,
           },
         });
+      },
+
+      setScheduledFor: (isoDate) => {
+        set({ scheduledFor: isoDate });
+      },
+
+      setCashAmountPaid: (amount) => {
+        set({ cashAmountPaid: amount });
       },
 
       getItemsCount: () => {
@@ -182,7 +191,7 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: 'yankun-cart-storage-v1',
+      name: 'yankun-cart-storage-bbla-v1',
       storage: createJSONStorage(() => localStorage),
     }
   )

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -8,20 +8,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string>('');
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/admin/auth');
+        if (res.ok) {
+          const data = await res.json();
+          setUserRole(data.user?.role || '');
+        }
+      } catch (e) {
+        // Handled by middleware
+      }
+    }
+    if (pathname !== '/admin/login') {
+      checkAuth();
+    }
+  }, [pathname]);
 
   // If on login page, render clean full page without sidebar
   if (pathname === '/admin/login') {
     return <>{children}</>;
   }
 
-  const navLinks = [
-    { label: 'Dashboard CRM', href: '/admin/dashboard', icon: 'dashboard' },
-    { label: 'Cocina KDS en Vivo', href: '/admin/cocina', icon: 'skillet' },
-    { label: 'Catálogo & Escandallo', href: '/admin/catalogo', icon: 'menu_book' },
-    { label: 'Zonas de Reparto', href: '/admin/zonas-envio', icon: 'map' },
-    { label: 'Bandeja Omnicanal', href: '/admin/omnicanal', icon: 'forum' },
-    { label: 'Bot IA Shokunin', href: '/admin/bot-ia', icon: 'smart_toy' },
+  // Si el usuario es COCINERO, solo ve la pantalla de cocina
+  const allNavLinks = [
+    { label: 'Dashboard CRM', href: '/admin/dashboard', icon: 'dashboard', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
+    { label: 'Cocina KDS en Vivo', href: '/admin/cocina', icon: 'skillet', roles: ['SUPERADMIN', 'ADMIN_LOCAL', 'COCINERO'] },
+    { label: 'Catálogo & Escandallo', href: '/admin/catalogo', icon: 'menu_book', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
+    { label: 'Zonas de Reparto', href: '/admin/zonas-envio', icon: 'map', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
+    { label: 'Bandeja Omnicanal', href: '/admin/omnicanal', icon: 'forum', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
+    { label: 'Bot IA Shokunin', href: '/admin/bot-ia', icon: 'smart_toy', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
+    { label: 'Configuración General', href: '/admin/configuracion', icon: 'settings', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
   ];
+
+  const navLinks = userRole === 'COCINERO'
+    ? allNavLinks.filter((l) => l.roles.includes('COCINERO'))
+    : allNavLinks;
 
   const handleLogout = async () => {
     try {
@@ -42,7 +66,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <div>
             <span className="font-headline font-bold text-sm">Yankun Admin</span>
-            <span className="text-[10px] text-secondary-fixed block -mt-0.5">Control Center</span>
+            <span className="text-[10px] text-secondary-fixed block -mt-0.5">Bahía Blanca Control</span>
           </div>
         </div>
 
@@ -104,7 +128,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-tertiary" />
               <span className="text-[10px] font-headline text-secondary-fixed uppercase tracking-wider font-semibold">
-                CRM Master & KDS
+                Bahía Blanca {userRole ? `• ${userRole}` : ''}
               </span>
             </div>
           </div>

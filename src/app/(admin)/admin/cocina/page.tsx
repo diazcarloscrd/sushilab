@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { generateKitchenTicketText } from '@/lib/printer';
+import { generateKitchenTicketText, generateDispatchTicketText } from '@/lib/printer';
 
 interface OrderItem {
   id: string;
@@ -22,10 +22,16 @@ interface Order {
   customerPhone: string;
   deliveryType: 'DELIVERY' | 'TAKE_AWAY';
   deliveryAddress: string;
+  subtotal: number;
+  discount: number;
+  deliveryFee: number;
   total: number;
-  status: 'CREADO' | 'EN_COCINA' | 'EN_CAMINO' | 'ENTREGADO' | 'CANCELADO';
+  status: 'PENDIENTE_PAGO' | 'PENDIENTE_VERIFICACION' | 'CREADO' | 'EN_COCINA' | 'LISTO' | 'EN_CAMINO' | 'ENTREGADO' | 'CANCELADO';
   paymentMethod: string;
   paymentStatus: string;
+  paymentProofUrl?: string;
+  cashAmountPaid?: number;
+  cashChange?: number;
   notes?: string;
   estimatedMinutes: number;
   createdAt: string;
@@ -35,29 +41,66 @@ interface Order {
 export default function KitchenKdsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'DELIVERY' | 'TAKE_AWAY'>('ALL');
-  const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'DELIVERY' | 'TAKE_AWAY' | 'VERIFICACION'>('ALL');
+  const [selectedProofOrder, setSelectedProofOrder] = useState<Order | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const previousOrdersCount = useRef<number>(0);
 
+  // Reproductor de Chime de Cocina con Web Audio API (Sin depender de mp3 externo)
+  const playKitchenChime = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.6);
+    } catch (e) {
+      console.warn('Audio no inicializado:', e);
+    }
+  }, [soundEnabled]);
+
+  // Cargar pedidos activos de cocina
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch('/api/orders?limit=40');
       if (res.ok) {
         const data = await res.json();
-        setOrders(data);
+        const list: Order[] = data.orders || [];
+
+        // Filtrar pedidos relevantes para cocina (En cocina, Listos para despacho y pendientes de comprobante)
+        const kitchenOrders = list.filter((o) =>
+          ['EN_COCINA', 'LISTO', 'PENDIENTE_VERIFICACION'].includes(o.status)
+        );
+
+        if (kitchenOrders.length > previousOrdersCount.current && previousOrdersCount.current > 0) {
+          playKitchenChime();
+        }
+        previousOrdersCount.current = kitchenOrders.length;
+        setOrders(kitchenOrders);
       }
     } catch (err) {
       console.error('Error fetching orders for KDS:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [playKitchenChime]);
 
   useEffect(() => {
     fetchOrders();
 
-    // Subscribe to Supabase Realtime channel for instant order pushes
+    // Suscripción Realtime a cambios en comandas
     const channel = supabase
-      .channel('kds-orders-channel')
+      .channel('kds_realtime_orders')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'Order' },
@@ -67,45 +110,113 @@ export default function KitchenKdsPage() {
       )
       .subscribe();
 
-    const interval = setInterval(fetchOrders, 6000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
   }, [fetchOrders]);
 
-  // Update order status
-  const handleUpdateStatus = async (orderId: string, nextStatus: Order['status']) => {
+  // Actualizar estado de comanda
+  const handleUpdateStatus = async (orderId: string, nextStatus: Order['status'], notes?: string) => {
     try {
       // Optimistic update
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o))
       );
 
-      await fetch(`/api/orders/${orderId}`, {
+      const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: nextStatus, notes }),
       });
+
+      if (!res.ok) {
+        fetchOrders();
+      }
     } catch (err) {
       console.error('Error updating order status:', err);
       fetchOrders();
     }
   };
 
-  // Calculate elapsed minutes since order creation
+  // Aprobar comprobante de transferencia
+  const handleApproveTransfer = async (orderId: string) => {
+    try {
+      await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'EN_COCINA',
+          paymentStatus: 'APROBADO',
+          notes: 'Transferencia bancaria verificada manualmente por cocina/caja',
+        }),
+      });
+      setSelectedProofOrder(null);
+      fetchOrders();
+    } catch (err) {
+      console.error('Error aprobando transferencia:', err);
+    }
+  };
+
+  // Imprimir comanda de cocina o ticket de despacho
+  const handlePrint = (order: Order, type: 'KITCHEN' | 'DISPATCH') => {
+    const printData = {
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      address: order.deliveryAddress,
+      isTakeAway: order.deliveryType === 'TAKE_AWAY',
+      notes: order.notes,
+      items: (order.items || []).map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        baseRice: i.baseRice,
+        price: i.price,
+      })),
+      subtotal: order.subtotal,
+      discount: order.discount,
+      deliveryFee: order.deliveryFee,
+      total: order.total,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      cashAmountPaid: order.cashAmountPaid,
+      cashChange: order.cashChange,
+      createdAt: order.createdAt,
+    };
+
+    const text = type === 'KITCHEN'
+      ? generateKitchenTicketText(printData)
+      : generateDispatchTicketText(printData);
+
+    // Abrir ventana limpia para imprimir
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Comanda #${order.orderNumber}</title>
+            <style>
+              body { font-family: monospace; white-space: pre; font-size: 13px; margin: 10px; }
+            </style>
+          </head>
+          <body>${text.replace(/\x1B[^\n]*/g, '').replace(/\x1D[^\n]*/g, '')}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+  };
+
   const getElapsedMinutes = (createdAt: string) => {
     const elapsed = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
     return Math.max(0, elapsed);
   };
 
-  // Timer alert styling
   const getTimerBadge = (createdAt: string) => {
     const mins = getElapsedMinutes(createdAt);
     if (mins < 15) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary font-headline text-[10px] font-bold">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-tertiary-container/40 text-tertiary font-headline text-[10px] font-bold">
           <span className="w-1.5 h-1.5 rounded-full bg-tertiary" />
           <span>{mins}m (A tiempo)</span>
         </span>
@@ -113,378 +224,326 @@ export default function KitchenKdsPage() {
     }
     if (mins <= 30) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-headline text-[10px] font-bold">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-headline text-[10px] font-bold">
           <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
           <span>{mins}m (Atención)</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-headline text-[10px] font-bold animate-pulse">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-error-container text-error font-headline text-[10px] font-bold animate-pulse">
         <span className="w-1.5 h-1.5 rounded-full bg-error" />
-        <span>{mins}m (Demorado)</span>
+        <span>{mins}m (DEMORADO)</span>
       </span>
     );
   };
 
-  // Trigger print thermal comanda
-  const handlePrint = (order: Order) => {
-    setPrintingOrder(order);
-    const printWindow = window.open('', '_blank', 'width=350,height=600');
-    if (!printWindow) return;
-
-    const receiptHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Comanda #${order.orderNumber}</title>
-          <style>
-            body { font-family: monospace; font-size: 13px; margin: 0; padding: 10px; line-height: 1.3; }
-            .center { text-align: center; }
-            .bold { font-weight: bold; }
-            .title { font-size: 18px; font-weight: bold; }
-            hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
-            .item { display: flex; justify-content: space-between; margin-bottom: 4px; }
-            .options { font-size: 11px; margin-left: 12px; color: #444; }
-          </style>
-        </head>
-        <body onload="window.print(); window.close();">
-          <div class="center">
-            <div class="title">YANKUN SUSHI LAB</div>
-            <div>*** COMANDA #${order.orderNumber} ***</div>
-            <div class="bold">${order.deliveryType === 'TAKE_AWAY' ? '>> RETIRO EN LOCAL (TAKE AWAY) <<' : '>> ENVIO A DOMICILIO <<'}</div>
-            <div>${new Date(order.createdAt).toLocaleTimeString('es-AR')}</div>
-          </div>
-          <hr />
-          <div><strong>Cliente:</strong> ${order.customerName}</div>
-          <div><strong>Tel:</strong> ${order.customerPhone}</div>
-          ${order.deliveryAddress ? `<div><strong>Dirección:</strong> ${order.deliveryAddress}</div>` : ''}
-          ${order.notes ? `<div><strong>OBS:</strong> ${order.notes}</div>` : ''}
-          <hr />
-          <div class="bold">CANT  PRODUCTO</div>
-          <hr />
-          ${order.items
-            ?.map(
-              (i) => `
-            <div class="item">
-              <span><strong>${i.quantity}x</strong> ${i.name}</span>
-              <span>$${(i.price * i.quantity).toLocaleString('es-AR')}</span>
-            </div>
-            ${i.baseRice ? `<div class="options">• Base: ${i.baseRice}</div>` : ''}
-            ${i.notes ? `<div class="options">• Nota: ${i.notes}</div>` : ''}
-          `
-            )
-            .join('')}
-          <hr />
-          <div><strong>Pago:</strong> ${order.paymentMethod} (${order.paymentStatus})</div>
-          <div class="bold" style="font-size: 15px; margin-top: 4px;">TOTAL: $${order.total.toLocaleString('es-AR')}</div>
-          <hr />
-          <div class="center" style="font-size: 11px;">Itamae: Yankun Shokunin Lab</div>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(receiptHtml);
-    printWindow.document.close();
-  };
-
   const filteredOrders = orders.filter((o) => {
-    if (activeFilter === 'ALL') return true;
-    return o.deliveryType === activeFilter;
+    if (activeFilter === 'DELIVERY') return o.deliveryType === 'DELIVERY';
+    if (activeFilter === 'TAKE_AWAY') return o.deliveryType === 'TAKE_AWAY';
+    if (activeFilter === 'VERIFICACION') return o.status === 'PENDIENTE_VERIFICACION';
+    return true;
   });
-
-  const createdOrders = filteredOrders.filter((o) => o.status === 'CREADO');
-  const inKitchenOrders = filteredOrders.filter((o) => o.status === 'EN_COCINA');
-  const readyOrders = filteredOrders.filter((o) => o.status === 'EN_CAMINO');
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
+      {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/30">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-tertiary animate-ping" />
-            <span className="font-headline text-xs uppercase tracking-wider text-primary font-bold">
-              KDS en Tiempo Real
-            </span>
-          </div>
-          <h1 className="font-headline font-bold text-2xl text-on-surface mt-1">
-            Pantalla de Cocina & Comandas
+          <span className="font-headline text-xs uppercase tracking-wider text-secondary font-bold">
+            Bahía Blanca • KDS Shokunin
+          </span>
+          <h1 className="font-headline font-bold text-2xl text-on-surface mt-0.5">
+            Sistema de Despacho de Cocina en Vivo
           </h1>
           <p className="text-xs text-on-surface-variant">
-            Sincronización instantánea con comensales vía Supabase Realtime & ESC/POS térmico.
+            Monitoreo en tiempo real de piezas, tiempos de elaboración y control de comanda.
           </p>
         </div>
 
-        {/* Filter Pills & Manual Refresh */}
-        <div className="flex items-center gap-2">
-          <div className="flex p-1 bg-surface-container rounded-xl text-xs font-headline font-semibold">
-            {[
-              { id: 'ALL', label: 'Todos' },
-              { id: 'DELIVERY', label: 'Delivery' },
-              { id: 'TAKE_AWAY', label: 'Take Away' },
-            ].map((f) => (
+        <div className="flex items-center gap-3">
+          {/* Sound Toggle */}
+          <button
+            onClick={() => {
+              setSoundEnabled(!soundEnabled);
+              playKitchenChime();
+            }}
+            className={`px-3 py-2 rounded-xl text-xs font-headline font-semibold flex items-center gap-1.5 transition-all ${
+              soundEnabled
+                ? 'bg-tertiary-container text-on-tertiary-container'
+                : 'bg-surface-container text-on-surface-variant'
+            }`}
+            title="Activar/desactivar alerta sonora de nuevas comandas"
+          >
+            <span className="material-symbols-outlined text-[16px]">
+              {soundEnabled ? 'volume_up' : 'volume_off'}
+            </span>
+            <span>{soundEnabled ? 'Alerta Sonora Activa' : 'Silenciado'}</span>
+          </button>
+
+          {/* Filters */}
+          <div className="flex rounded-xl bg-surface-container p-1 border border-outline-variant/30 text-xs font-headline">
+            <button
+              onClick={() => setActiveFilter('ALL')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${
+                activeFilter === 'ALL'
+                  ? 'bg-primary text-white font-bold shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Todos ({orders.length})
+            </button>
+            <button
+              onClick={() => setActiveFilter('DELIVERY')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${
+                activeFilter === 'DELIVERY'
+                  ? 'bg-primary text-white font-bold shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Delivery
+            </button>
+            <button
+              onClick={() => setActiveFilter('TAKE_AWAY')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${
+                activeFilter === 'TAKE_AWAY'
+                  ? 'bg-primary text-white font-bold shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Take Away
+            </button>
+            {orders.some((o) => o.status === 'PENDIENTE_VERIFICACION') && (
               <button
-                key={f.id}
-                onClick={() => setActiveFilter(f.id as any)}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === f.id
-                    ? 'bg-primary text-white shadow-sm font-bold'
-                    : 'text-on-surface-variant hover:text-on-surface'
+                onClick={() => setActiveFilter('VERIFICACION')}
+                className={`px-3 py-1.5 rounded-lg transition-all bg-secondary-container text-on-secondary-container font-bold animate-pulse`}
+              >
+                ⚠️ Transferencias
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Orders Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="bg-surface-container-lowest rounded-2xl p-12 text-center border border-outline-variant/30 space-y-3">
+          <span className="material-symbols-outlined text-4xl text-outline">skillet</span>
+          <h3 className="font-headline font-bold text-base text-on-surface">
+            Cocina al Día
+          </h3>
+          <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
+            No hay comandas activas pendientes de elaboración en este momento. Las nuevas órdenes confirmadas ingresarán automáticamente con alerta sonora.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredOrders.map((order) => {
+            const isVerification = order.status === 'PENDIENTE_VERIFICACION';
+            const isReady = order.status === 'LISTO';
+            return (
+              <div
+                key={order.id}
+                className={`bg-surface-container-lowest rounded-2xl border transition-all shadow-card flex flex-col overflow-hidden ${
+                  isVerification
+                    ? 'border-secondary/60 ring-1 ring-secondary/40'
+                    : isReady
+                    ? 'border-tertiary/60'
+                    : 'border-outline-variant/30'
                 }`}
               >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={fetchOrders}
-            className="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors"
-            title="Sincronizar ahora"
-          >
-            <span className="material-symbols-outlined text-[18px]">sync</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 3-Column Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Column 1: Creados */}
-        <div className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/30 flex flex-col min-h-[500px]">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-outline-variant/30">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-primary" />
-              <h3 className="font-headline font-bold text-sm text-on-surface">
-                Comandas Nuevas
-              </h3>
-            </div>
-            <span className="w-6 h-6 rounded-full bg-primary text-white font-headline font-bold text-xs flex items-center justify-center">
-              {createdOrders.length}
-            </span>
-          </div>
-
-          <div className="space-y-3 flex-1 overflow-y-auto">
-            {createdOrders.length === 0 ? (
-              <div className="h-40 flex items-center justify-center text-xs text-on-surface-variant italic">
-                Sin comandas nuevas en espera
-              </div>
-            ) : (
-              createdOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-surface-container-lowest rounded-xl p-3.5 shadow-card border-l-4 border-l-primary space-y-2.5 transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-headline font-extrabold text-sm text-on-surface">
+                {/* Header card */}
+                <div className="p-4 bg-surface-container-low/50 border-b border-outline-variant/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-headline font-bold text-lg text-on-surface">
                       #{order.orderNumber}
                     </span>
-                    {getTimerBadge(order.createdAt)}
-                  </div>
-
-                  <div>
-                    <div className="font-headline font-semibold text-xs text-on-surface">
-                      {order.customerName}
-                    </div>
-                    <div className="text-[11px] text-on-surface-variant">
-                      {order.deliveryType === 'TAKE_AWAY' ? '📍 Retiro en Local' : `🛵 ${order.deliveryAddress}`}
-                    </div>
-                  </div>
-
-                  {/* Items list */}
-                  <div className="bg-surface-container/60 rounded-lg p-2 space-y-1 text-xs">
-                    {order.items?.map((item) => (
-                      <div key={item.id} className="leading-tight">
-                        <span className="font-bold text-primary">{item.quantity}x</span>{' '}
-                        <span className="font-medium text-on-surface">{item.name}</span>
-                        {item.baseRice && (
-                          <span className="block text-[10px] text-secondary">
-                            ✦ {item.baseRice}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {order.notes && (
-                    <p className="text-[10px] bg-secondary-container/30 text-on-secondary-container p-1.5 rounded font-medium">
-                      Nota: {order.notes}
-                    </p>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => handlePrint(order)}
-                      className="px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-headline flex items-center gap-1"
-                      title="Imprimir ticket térmico"
+                    <span
+                      className={`text-[10px] font-headline font-bold px-2 py-0.5 rounded-full ${
+                        order.deliveryType === 'TAKE_AWAY'
+                          ? 'bg-secondary-container text-on-secondary-container'
+                          : 'bg-primary-container text-on-primary-container'
+                      }`}
                     >
-                      <span className="material-symbols-outlined text-[15px]">print</span>
-                      <span>Ticket</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleUpdateStatus(order.id, 'EN_COCINA')}
-                      className="flex-1 py-1.5 px-3 rounded-lg bg-primary hover:bg-primary-container text-white font-headline font-bold text-xs shadow-sm flex items-center justify-center gap-1 active:scale-95 transition-all"
-                    >
-                      <span>Aceptar a Cocina</span>
-                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                    </button>
+                      {order.deliveryType === 'TAKE_AWAY' ? 'Retiro Local' : 'Delivery'}
+                    </span>
                   </div>
+                  {getTimerBadge(order.createdAt)}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
 
-        {/* Column 2: En Cocina */}
-        <div className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/30 flex flex-col min-h-[500px]">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-outline-variant/30">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-secondary" />
-              <h3 className="font-headline font-bold text-sm text-on-surface">
-                En Barra Shokunin
-              </h3>
-            </div>
-            <span className="w-6 h-6 rounded-full bg-secondary text-white font-headline font-bold text-xs flex items-center justify-center">
-              {inKitchenOrders.length}
-            </span>
-          </div>
-
-          <div className="space-y-3 flex-1 overflow-y-auto">
-            {inKitchenOrders.length === 0 ? (
-              <div className="h-40 flex items-center justify-center text-xs text-on-surface-variant italic">
-                La barra está al día
-              </div>
-            ) : (
-              inKitchenOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-surface-container-lowest rounded-xl p-3.5 shadow-card border-l-4 border-l-secondary space-y-2.5 transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-headline font-extrabold text-sm text-on-surface">
-                      #{order.orderNumber}
-                    </span>
-                    {getTimerBadge(order.createdAt)}
-                  </div>
-
-                  <div>
-                    <div className="font-headline font-semibold text-xs text-on-surface">
+                {/* Body info */}
+                <div className="p-4 flex-1 space-y-3">
+                  {/* Customer info */}
+                  <div className="text-xs">
+                    <span className="font-headline font-bold text-on-surface block">
                       {order.customerName}
-                    </div>
-                    <div className="text-[11px] text-on-surface-variant">
-                      {order.deliveryType === 'TAKE_AWAY' ? '📍 Retiro en Local' : `🛵 ${order.deliveryAddress}`}
-                    </div>
+                    </span>
+                    <span className="text-on-surface-variant text-[11px] block">
+                      {order.customerPhone} • {order.deliveryAddress}
+                    </span>
                   </div>
 
-                  <div className="bg-surface-container/60 rounded-lg p-2 space-y-1 text-xs">
+                  {/* Notes / Allergies alert */}
+                  {order.notes && (
+                    <div className="p-2.5 rounded-xl bg-error-container/20 border border-error/30 text-error text-[11px] font-semibold flex items-start gap-1.5">
+                      <span className="material-symbols-outlined text-[15px] flex-shrink-0 mt-0.5">warning</span>
+                      <span>{order.notes}</span>
+                    </div>
+                  )}
+
+                  {/* Items */}
+                  <div className="space-y-2 border-t border-b border-outline-variant/20 py-3">
                     {order.items?.map((item) => (
-                      <div key={item.id} className="leading-tight">
-                        <span className="font-bold text-secondary">{item.quantity}x</span>{' '}
-                        <span className="font-medium text-on-surface">{item.name}</span>
-                        {item.baseRice && (
-                          <span className="block text-[10px] text-secondary">
-                            ✦ {item.baseRice}
+                      <div key={item.id} className="text-xs flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="font-headline font-bold text-on-surface">
+                            {item.quantity}x {item.name}
                           </span>
-                        )}
+                          {item.baseRice && (
+                            <span className="block text-[10px] text-tertiary font-medium">
+                              🍚 {item.baseRice}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-mono text-on-surface-variant flex-shrink-0">
+                          ${(item.price * item.quantity).toLocaleString('es-AR')}
+                        </span>
                       </div>
                     ))}
                   </div>
 
-                  {order.notes && (
-                    <p className="text-[10px] bg-secondary-container/30 text-on-secondary-container p-1.5 rounded font-medium">
-                      Nota: {order.notes}
-                    </p>
+                  {/* Payment Details */}
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <span className="text-on-surface-variant">
+                      Pago: <strong className="text-on-surface">{order.paymentMethod}</strong> ({order.paymentStatus})
+                    </span>
+                    <span className="font-headline font-bold text-sm text-primary">
+                      ${order.total.toLocaleString('es-AR')}
+                    </span>
+                  </div>
+
+                  {order.paymentMethod === 'EFECTIVO' && order.cashAmountPaid && (
+                    <div className="text-[11px] bg-surface-container px-2.5 py-1.5 rounded-lg text-on-surface">
+                      Paga con: <strong>${order.cashAmountPaid.toLocaleString('es-AR')}</strong> | Vuelto: <strong className="text-primary">${(order.cashChange || 0).toLocaleString('es-AR')}</strong>
+                    </div>
                   )}
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => handlePrint(order)}
-                      className="px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-headline flex items-center gap-1"
-                    >
-                      <span className="material-symbols-outlined text-[15px]">print</span>
-                    </button>
+                  {/* Verification banner if bank transfer proof attached */}
+                  {isVerification && (
+                    <div className="p-3 rounded-xl bg-secondary-container/30 border border-secondary/40 space-y-2">
+                      <div className="flex items-center justify-between text-xs text-on-secondary-container font-headline font-bold">
+                        <span>Comprobante de Transferencia</span>
+                        <button
+                          onClick={() => setSelectedProofOrder(order)}
+                          className="text-[11px] underline text-primary"
+                        >
+                          Ver Imagen
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => handleApproveTransfer(order.id)}
+                        className="w-full py-2 rounded-lg bg-secondary text-white font-headline text-xs font-bold hover:bg-secondary/90 transition-all shadow-sm"
+                      >
+                        ✓ Aprobar Pago y Pasar a Cocina
+                      </button>
+                    </div>
+                  )}
+                </div>
 
+                {/* Actions bottom bar */}
+                <div className="p-3 bg-surface-container-low border-t border-outline-variant/20 flex gap-2">
+                  <button
+                    onClick={() => handlePrint(order, 'KITCHEN')}
+                    className="p-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-all"
+                    title="Imprimir comanda de cocina (ESC/POS)"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">print</span>
+                  </button>
+
+                  <button
+                    onClick={() => handlePrint(order, 'DISPATCH')}
+                    className="p-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-all"
+                    title="Imprimir ticket de despacho para cadetería"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                  </button>
+
+                  {order.status === 'EN_COCINA' && (
+                    <button
+                      onClick={() => handleUpdateStatus(order.id, 'LISTO')}
+                      className="flex-1 py-2.5 rounded-xl bg-primary text-white font-headline text-xs font-bold hover:bg-primary/90 transition-all shadow-sm flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">check</span>
+                      <span>Marcar Listo</span>
+                    </button>
+                  )}
+
+                  {order.status === 'LISTO' && (
                     <button
                       onClick={() => handleUpdateStatus(order.id, 'EN_CAMINO')}
-                      className="flex-1 py-1.5 px-3 rounded-lg bg-secondary hover:bg-secondary/90 text-white font-headline font-bold text-xs shadow-sm flex items-center justify-center gap-1 active:scale-95 transition-all"
+                      className="flex-1 py-2.5 rounded-xl bg-tertiary text-white font-headline text-xs font-bold hover:bg-tertiary/90 transition-all shadow-sm flex items-center justify-center gap-1.5"
                     >
-                      <span>Marcar Listo / Despacho</span>
-                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                      <span className="material-symbols-outlined text-[16px]">moped</span>
+                      <span>Despachar Reparto</span>
                     </button>
-                  </div>
+                  )}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Column 3: Listos / En Camino */}
-        <div className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/30 flex flex-col min-h-[500px]">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-outline-variant/30">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-tertiary" />
-              <h3 className="font-headline font-bold text-sm text-on-surface">
-                Listos / En Camino
-              </h3>
-            </div>
-            <span className="w-6 h-6 rounded-full bg-tertiary text-white font-headline font-bold text-xs flex items-center justify-center">
-              {readyOrders.length}
-            </span>
-          </div>
-
-          <div className="space-y-3 flex-1 overflow-y-auto">
-            {readyOrders.length === 0 ? (
-              <div className="h-40 flex items-center justify-center text-xs text-on-surface-variant italic">
-                Sin pedidos en despacho
               </div>
-            ) : (
-              readyOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-surface-container-lowest rounded-xl p-3.5 shadow-card border-l-4 border-l-tertiary space-y-2.5 transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-headline font-extrabold text-sm text-on-surface">
-                      #{order.orderNumber}
-                    </span>
-                    <span className="text-[10px] font-headline font-bold text-tertiary bg-tertiary-container/30 px-2 py-0.5 rounded-full">
-                      {order.deliveryType === 'TAKE_AWAY' ? 'Listo en Barra' : 'Con Repartidor'}
-                    </span>
-                  </div>
+            );
+          })}
+        </div>
+      )}
 
-                  <div>
-                    <div className="font-headline font-semibold text-xs text-on-surface">
-                      {order.customerName}
-                    </div>
-                    <div className="text-[11px] text-on-surface-variant">
-                      Total: ${order.total.toLocaleString('es-AR')} ({order.paymentMethod})
-                    </div>
-                  </div>
+      {/* Modal para Ver Comprobante de Transferencia */}
+      {selectedProofOrder && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline font-bold text-base text-on-surface">
+                Comprobante • Pedido #{selectedProofOrder.orderNumber}
+              </h3>
+              <button
+                onClick={() => setSelectedProofOrder(null)}
+                className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface"
+              >
+                ✕
+              </button>
+            </div>
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => handlePrint(order)}
-                      className="px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-headline flex items-center gap-1"
-                    >
-                      <span className="material-symbols-outlined text-[15px]">print</span>
-                    </button>
+            <div className="aspect-[4/3] bg-black/10 rounded-xl overflow-hidden flex items-center justify-center border border-outline-variant/30">
+              {selectedProofOrder.paymentProofUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={selectedProofOrder.paymentProofUrl}
+                  alt="Comprobante de transferencia"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <span className="text-xs text-on-surface-variant">Sin imagen adjunta</span>
+              )}
+            </div>
 
-                    <button
-                      onClick={() => handleUpdateStatus(order.id, 'ENTREGADO')}
-                      className="flex-1 py-1.5 px-3 rounded-lg bg-tertiary hover:bg-tertiary/90 text-white font-headline font-bold text-xs shadow-sm flex items-center justify-center gap-1 active:scale-95 transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">task_alt</span>
-                      <span>Marcar Entregado</span>
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setSelectedProofOrder(null)}
+                className="px-4 py-2 rounded-xl text-xs font-headline font-semibold text-on-surface-variant hover:bg-surface-container"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={() => handleApproveTransfer(selectedProofOrder.id)}
+                className="px-5 py-2 rounded-xl bg-primary text-white text-xs font-headline font-bold hover:bg-primary/90 shadow-sm"
+              >
+                Aprobar y Mandar a Cocina
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

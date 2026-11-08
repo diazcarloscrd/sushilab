@@ -1,344 +1,433 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
 
-interface ChatConversation {
+interface ConversationItem {
   id: string;
-  customerName: string;
   customerPhone: string;
-  channel: 'WHATSAPP' | 'INSTAGRAM';
-  lastMessage: string;
-  time: string;
-  unread: number;
-  messages: Array<{
-    id: string;
-    sender: 'CUSTOMER' | 'AGENT' | 'BOT';
-    text: string;
-    time: string;
-  }>;
+  customerName?: string | null;
+  channel: string;
+  botActive: boolean;
+  unreadCount: number;
+  lastMessageText?: string | null;
+  lastMessageAt: string;
 }
 
-const INITIAL_CONVERSATIONS: ChatConversation[] = [
-  {
-    id: 'conv_1',
-    customerName: 'Santiago Rossi',
-    customerPhone: '+54 9 11 4444 7788',
-    channel: 'WHATSAPP',
-    lastMessage: 'Hola! Tienen nigiris aptos para celíacos sin TACC?',
-    time: '19:42',
-    unread: 1,
-    messages: [
-      { id: 'm1', sender: 'CUSTOMER', text: 'Buenas noches, quería consultar por la carta.', time: '19:40' },
-      { id: 'm2', sender: 'CUSTOMER', text: 'Hola! Tienen nigiris aptos para celíacos sin TACC?', time: '19:42' },
-    ],
-  },
-  {
-    id: 'conv_2',
-    customerName: 'Lucía Fernández',
-    customerPhone: '@lucia.fernandez_sushi',
-    channel: 'INSTAGRAM',
-    lastMessage: 'Perfecto, ya hice el pago por transferencia!',
-    time: '19:15',
-    unread: 0,
-    messages: [
-      { id: 'm3', sender: 'CUSTOMER', text: 'Hola chicos, hasta qué hora toman pedidos hoy?', time: '18:55' },
-      { id: 'm4', sender: 'BOT', text: '🕒 Horario de Servicio: Martes a Domingo de 19:30 a 23:45 hs.', time: '18:56' },
-      { id: 'm5', sender: 'CUSTOMER', text: 'Perfecto, ya hice el pago por transferencia!', time: '19:15' },
-    ],
-  },
-  {
-    id: 'conv_3',
-    customerName: 'Martín Benítez',
-    customerPhone: '+54 9 11 8899 1122',
-    channel: 'WHATSAPP',
-    lastMessage: 'Llegan con delivery a Recoleta?',
-    time: '18:30',
-    unread: 0,
-    messages: [
-      { id: 'm6', sender: 'CUSTOMER', text: 'Buenas, llegan con delivery a Recoleta?', time: '18:30' },
-      { id: 'm7', sender: 'BOT', text: '📍 Sí! Cubrimos Recoleta & Barrio Norte con costo de flete $1.500 (30-40 min).', time: '18:30' },
-    ],
-  },
-];
+interface MessageItem {
+  id: string;
+  customerPhone: string;
+  channel: string;
+  senderType: 'CUSTOMER' | 'AGENT' | 'BOT';
+  text: string;
+  createdAt: string;
+}
 
-export default function OmnicanalPage() {
-  const [conversations, setConversations] = useState<ChatConversation[]>(INITIAL_CONVERSATIONS);
-  const [selectedConv, setSelectedConv] = useState<ChatConversation>(INITIAL_CONVERSATIONS[0]);
-  const [messageInput, setMessageInput] = useState('');
-  const [orderDraft, setOrderDraft] = useState<Array<{ name: string; price: number; qty: number }>>([
-    { name: 'Omakase Signature Roll (10 piezas)', price: 14500, qty: 1 },
-    { name: 'Nigiri Salmón Trufado Akazu (6 piezas)', price: 12800, qty: 1 },
-  ]);
-  const [generatedLink, setGeneratedLink] = useState('');
+export default function AdminOmnicanalPage() {
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
+  const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [filterChannel, setFilterChannel] = useState<'ALL' | 'WHATSAPP' | 'INSTAGRAM'>('ALL');
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Cargar lista de conversaciones
+  const loadConversations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/conversations');
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data);
+        if (!selectedPhone && data.length > 0) {
+          setSelectedPhone(data[0].customerPhone);
+        }
+      }
+    } catch (e) {
+      console.error('Error cargando conversaciones:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedPhone]);
+
+  // Cargar mensajes de la conversación seleccionada
+  const loadMessages = useCallback(async (phone: string) => {
+    setLoadingMessages(true);
+    try {
+      const res = await fetch(`/api/admin/conversations/${encodeURIComponent(phone)}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data);
+        // Marcar como leída
+        await fetch('/api/admin/conversations', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customerPhone: phone, markRead: true }),
+        });
+        setConversations((prev) =>
+          prev.map((c) => (c.customerPhone === phone ? { ...c, unreadCount: 0 } : c))
+        );
+      }
+    } catch (e) {
+      console.error('Error cargando mensajes:', e);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConversations();
+
+    // Supabase Realtime para nuevos mensajes
+    const channel = supabase
+      .channel('omnicanal_chat_updates')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ChatMessage' }, (payload) => {
+        const newMsg = payload.new as MessageItem;
+        if (selectedPhone && newMsg.customerPhone === selectedPhone) {
+          setMessages((prev) => [...prev, newMsg]);
+        }
+        loadConversations();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadConversations, selectedPhone]);
+
+  useEffect(() => {
+    if (selectedPhone) {
+      loadMessages(selectedPhone);
+    }
+  }, [selectedPhone, loadMessages]);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const activeConv = conversations.find((c) => c.customerPhone === selectedPhone);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim()) return;
+    if (!inputText.trim() || !selectedPhone || sending) return;
 
-    const newMsg = {
-      id: `m_${Date.now()}`,
-      sender: 'AGENT' as const,
-      text: messageInput.trim(),
-      time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-    };
+    const messageText = inputText.trim();
+    setInputText('');
+    setSending(true);
 
-    const updated = {
-      ...selectedConv,
-      messages: [...selectedConv.messages, newMsg],
-      lastMessage: newMsg.text,
-      time: newMsg.time,
-    };
+    try {
+      const res = await fetch(`/api/admin/conversations/${encodeURIComponent(selectedPhone)}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: messageText, channel: activeConv?.channel || 'WHATSAPP' }),
+      });
 
-    setSelectedConv(updated);
-    setConversations((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-    setMessageInput('');
+      if (res.ok) {
+        const createdMsg = await res.json();
+        setMessages((prev) => [...prev, createdMsg]);
+        loadConversations();
+      }
+    } catch (e) {
+      console.error('Error enviando mensaje:', e);
+    } finally {
+      setSending(false);
+    }
   };
 
-  const handleApplyMacro = (macroText: string) => {
-    setMessageInput(macroText);
+  const handleToggleBot = async () => {
+    if (!activeConv) return;
+    const nextState = !activeConv.botActive;
+
+    try {
+      setConversations((prev) =>
+        prev.map((c) => (c.id === activeConv.id ? { ...c, botActive: nextState } : c))
+      );
+
+      await fetch('/api/admin/conversations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerPhone: activeConv.customerPhone, botActive: nextState }),
+      });
+    } catch (e) {
+      console.error('Error alternando bot:', e);
+    }
   };
 
-  const handleGenerateOrderLink = () => {
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const link = `https://sushilab.vercel.app/pedido/${randomNum}`;
-    setGeneratedLink(link);
-    setMessageInput(
-      `¡Listo! He generado tu comanda de autor. Puedes abonarla y seguirla en vivo desde este enlace: ${link}`
-    );
+  // Simular mensaje entrante para pruebas sin Meta
+  const handleSimulateIncoming = async () => {
+    const testPhone = '+5492914445566';
+    const sampleTexts = [
+      '¡Hola! ¿Llegan con delivery a Palihue?',
+      '¿Tienen rolls aptos para celíacos sin TACC?',
+      'Buenas tardes, ¿cuál es la recomendación del chef para hoy?',
+    ];
+    const randomText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+
+    await fetch('/api/webhooks/whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entry: [
+          {
+            changes: [
+              {
+                value: {
+                  messages: [
+                    {
+                      id: `wamid_sim_${Date.now()}`,
+                      from: testPhone,
+                      text: { body: randomText },
+                    },
+                  ],
+                  contacts: [{ profile: { name: 'Comensal Bahía Blanca' } }],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    loadConversations();
+    setSelectedPhone(testPhone);
   };
 
-  const draftTotal = orderDraft.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const filteredConversations = conversations.filter((c) => {
+    if (filterChannel === 'ALL') return true;
+    return c.channel === filterChannel;
+  });
 
   return (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-140px)] flex flex-col space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/30">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-outline-variant/30 flex-shrink-0">
         <div>
           <span className="font-headline text-xs uppercase tracking-wider text-secondary font-bold">
-            Comunicaciones Unificadas
+            Bahía Blanca • Atención Omnicanal
           </span>
-          <h1 className="font-headline font-bold text-2xl text-on-surface mt-0.5">
-            Bandeja Omnicanal (WhatsApp & Instagram)
+          <h1 className="font-headline font-bold text-xl text-on-surface mt-0.5">
+            Bandeja Unificada WhatsApp & Chat
           </h1>
-          <p className="text-xs text-on-surface-variant">
-            Atención al cliente en vivo, macros rápidas y generador de pedidos directo desde la conversación.
-          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSimulateIncoming}
+            className="px-3 py-1.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-headline font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+            title="Genera un mensaje simulado de WhatsApp para testear"
+          >
+            <span className="material-symbols-outlined text-[16px] text-tertiary">science</span>
+            <span>Simular Mensaje Entrante</span>
+          </button>
         </div>
       </div>
 
-      {/* Main 3-Section Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[650px] bg-surface-container-lowest rounded-2xl shadow-card border border-outline-variant/30 overflow-hidden">
-        {/* 1. Conversations List (Left, 3 cols) */}
-        <div className="lg:col-span-3 border-r border-outline-variant/20 flex flex-col h-full bg-surface-container-low/40">
-          <div className="p-3 border-b border-outline-variant/20">
-            <h3 className="font-headline font-bold text-xs text-on-surface uppercase tracking-wider">
-              Conversaciones Activas
-            </h3>
+      {/* Main Chat Splitter */}
+      <div className="flex-1 min-h-0 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-card flex overflow-hidden">
+        {/* Left Sidebar: Conversations List */}
+        <div className="w-80 border-r border-outline-variant/20 flex flex-col bg-surface-container-low/40">
+          {/* Channels Filter */}
+          <div className="p-3 border-b border-outline-variant/20 flex gap-1.5">
+            {(['ALL', 'WHATSAPP', 'INSTAGRAM'] as const).map((ch) => (
+              <button
+                key={ch}
+                onClick={() => setFilterChannel(ch)}
+                className={`flex-1 py-1.5 rounded-lg text-[11px] font-headline font-bold transition-all ${
+                  filterChannel === ch
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
+                }`}
+              >
+                {ch === 'ALL' ? 'Todos' : ch === 'WHATSAPP' ? 'WhatsApp' : 'Instagram'}
+              </button>
+            ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-outline-variant/15">
-            {conversations.map((conv) => {
-              const active = selectedConv.id === conv.id;
-              return (
-                <div
-                  key={conv.id}
-                  onClick={() => setSelectedConv(conv)}
-                  className={`p-3 cursor-pointer transition-colors ${
-                    active ? 'bg-surface-container-high' : 'hover:bg-surface-container'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-headline font-bold text-xs text-on-surface truncate">
-                      {conv.customerName}
-                    </span>
-                    <span className="text-[10px] text-on-surface-variant">{conv.time}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <p className="text-on-surface-variant truncate max-w-[160px] text-[11px]">
-                      {conv.lastMessage}
-                    </p>
-                    <span
-                      className={`text-[9px] font-headline font-bold px-1.5 py-0.2 rounded-full ${
-                        conv.channel === 'WHATSAPP'
-                          ? 'bg-[#25D366]/20 text-[#128C7E]'
-                          : 'bg-purple-100 text-purple-700'
-                      }`}
-                    >
-                      {conv.channel === 'WHATSAPP' ? 'WA' : 'IG'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 2. Active Chat Stream (Middle, 5 cols) */}
-        <div className="lg:col-span-5 flex flex-col h-full border-r border-outline-variant/20">
-          {/* Chat Header */}
-          <div className="p-3 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-low">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-bold text-xs text-on-surface">
-                {selectedConv.customerName.charAt(0)}
+          {/* List */}
+          <div className="flex-1 overflow-y-auto divide-y divide-outline-variant/10">
+            {loading ? (
+              <div className="p-8 text-center text-xs text-on-surface-variant">Cargando chats...</div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="p-8 text-center text-xs text-on-surface-variant space-y-2">
+                <span className="material-symbols-outlined text-3xl text-outline">forum</span>
+                <p>No hay conversaciones activas.</p>
+                <p className="text-[10px]">Usa &quot;Simular Mensaje Entrante&quot; para probar la bandeja.</p>
               </div>
-              <div>
-                <div className="font-headline font-bold text-xs text-on-surface">
-                  {selectedConv.customerName}
-                </div>
-                <div className="text-[10px] text-on-surface-variant">
-                  {selectedConv.customerPhone} ({selectedConv.channel})
-                </div>
-              </div>
-            </div>
-
-            <span className="w-2 h-2 rounded-full bg-tertiary" />
-          </div>
-
-          {/* Messages list */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-surface">
-            {selectedConv.messages.map((m) => {
-              const isMe = m.sender === 'AGENT';
-              const isBot = m.sender === 'BOT';
-              return (
-                <div
-                  key={m.id}
-                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed shadow-sm ${
-                      isMe
-                        ? 'bg-primary text-white rounded-tr-none'
-                        : isBot
-                        ? 'bg-secondary-container text-on-secondary-container rounded-tl-none font-medium'
-                        : 'bg-surface-container-high text-on-surface rounded-tl-none'
+            ) : (
+              filteredConversations.map((conv) => {
+                const isSelected = conv.customerPhone === selectedPhone;
+                return (
+                  <button
+                    key={conv.id}
+                    onClick={() => setSelectedPhone(conv.customerPhone)}
+                    className={`w-full p-3.5 text-left flex items-start gap-3 transition-colors ${
+                      isSelected
+                        ? 'bg-surface-container-highest/60 border-l-4 border-primary'
+                        : 'hover:bg-surface-container'
                     }`}
                   >
-                    {isBot && (
-                      <span className="block text-[9px] font-headline font-bold uppercase tracking-wider text-secondary mb-1">
-                        🤖 Bot Shokunin
-                      </span>
-                    )}
-                    {m.text}
-                  </div>
-                  <span className="text-[9px] text-on-surface-variant mt-0.5 px-1">
-                    {m.time}
+                    <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-xs text-on-surface flex-shrink-0">
+                      {conv.channel === 'WHATSAPP' ? '💬' : '📸'}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-headline font-bold text-xs text-on-surface truncate">
+                          {conv.customerName || conv.customerPhone}
+                        </span>
+                        <span className="text-[10px] text-on-surface-variant flex-shrink-0">
+                          {new Date(conv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-on-surface-variant truncate mt-0.5">
+                        {conv.lastMessageText || 'Sin mensajes'}
+                      </p>
+
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span
+                          className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+                            conv.botActive
+                              ? 'bg-tertiary-container/40 text-tertiary'
+                              : 'bg-secondary-container text-on-secondary-container'
+                          }`}
+                        >
+                          {conv.botActive ? '🤖 Bot Activo' : '👤 Humano'}
+                        </span>
+
+                        {conv.unreadCount > 0 && (
+                          <span className="w-4 h-4 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center ml-auto">
+                            {conv.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Right Area: Messages View & Sender */}
+        {activeConv ? (
+          <div className="flex-1 flex flex-col min-w-0 bg-surface">
+            {/* Top Chat Bar */}
+            <div className="px-5 py-3 border-b border-outline-variant/20 flex items-center justify-between gap-3 bg-surface-container-lowest">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-sm text-primary">
+                  {activeConv.customerName ? activeConv.customerName.charAt(0) : 'C'}
+                </div>
+                <div>
+                  <h3 className="font-headline font-bold text-sm text-on-surface truncate">
+                    {activeConv.customerName || 'Cliente'}
+                  </h3>
+                  <span className="text-xs text-on-surface-variant font-mono">
+                    {activeConv.customerPhone}
                   </span>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Quick Macros Bar */}
-          <div className="px-3 py-1.5 bg-surface-container-low border-t border-outline-variant/20 flex gap-1.5 overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() =>
-                handleApplyMacro(
-                  '⚠️ Atención Shokunin: Todos nuestros rolls pueden adaptarse celíaco-friendly con salsa de soja sin TACC en espacio sanitizado.'
-                )
-              }
-              className="text-[10px] font-headline font-medium px-2.5 py-1 rounded-full bg-surface-container hover:bg-surface-container-high whitespace-nowrap"
-            >
-              /alergias
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                handleApplyMacro(
-                  '📍 Nuestras zonas de reparto directo cubren Palermo Soho, Recoleta y Belgrano. También puedes retirar en local con 15% OFF.'
-                )
-              }
-              className="text-[10px] font-headline font-medium px-2.5 py-1 rounded-full bg-surface-container hover:bg-surface-container-high whitespace-nowrap"
-            >
-              /zonas
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                handleApplyMacro(
-                  '🕒 Horario de servicio: Martes a Domingo de 19:30 a 23:45 hs.'
-                )
-              }
-              className="text-[10px] font-headline font-medium px-2.5 py-1 rounded-full bg-surface-container hover:bg-surface-container-high whitespace-nowrap"
-            >
-              /horarios
-            </button>
-          </div>
-
-          {/* Message Input form */}
-          <form onSubmit={handleSendMessage} className="p-2.5 bg-surface-container-low border-t border-outline-variant/20 flex gap-2">
-            <input
-              type="text"
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              placeholder="Escribe una respuesta o usa una macro..."
-              className="flex-1 px-3 py-2 text-xs rounded-xl bg-surface border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
-            />
-            <button
-              type="submit"
-              className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary-container active:scale-95 transition-all"
-            >
-              <span className="material-symbols-outlined text-[18px]">send</span>
-            </button>
-          </form>
-        </div>
-
-        {/* 3. Live Order Builder from Chat (Right, 4 cols) */}
-        <div className="lg:col-span-4 p-4 flex flex-col h-full bg-surface-container-low/30 overflow-y-auto space-y-4">
-          <div>
-            <span className="font-headline text-[10px] uppercase tracking-wider text-secondary font-bold">
-              Asistente de Venta en Vivo
-            </span>
-            <h3 className="font-headline font-bold text-sm text-on-surface">
-              Creador de Pedido desde Chat
-            </h3>
-            <p className="text-[11px] text-on-surface-variant">
-              Arma el pedido para {selectedConv.customerName} y genera un link de pago directo.
-            </p>
-          </div>
-
-          <div className="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/30 space-y-2">
-            <div className="font-headline font-bold text-xs text-on-surface">
-              Piezas en Borrador:
-            </div>
-            {orderDraft.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center text-xs py-1 border-b border-outline-variant/10">
-                <span className="text-on-surface font-medium truncate pr-2">
-                  {item.qty}x {item.name}
-                </span>
-                <span className="font-headline font-bold text-on-surface flex-shrink-0">
-                  ${(item.price * item.qty).toLocaleString('es-AR')}
-                </span>
               </div>
-            ))}
 
-            <div className="pt-2 flex justify-between font-headline font-bold text-xs text-primary">
-              <span>Total Comanda:</span>
-              <span>${draftTotal.toLocaleString('es-AR')}</span>
+              {/* Bot Toggle Switch */}
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <span className="text-xs font-headline font-bold block">
+                    {activeConv.botActive ? 'Bot IA Shokunin' : 'Atención Manual'}
+                  </span>
+                  <span className="text-[10px] text-on-surface-variant block">
+                    {activeConv.botActive ? 'Responde automáticamente' : 'Operador humano en control'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleBot}
+                  className={`w-11 h-6 rounded-full transition-colors relative flex items-center p-0.5 ${
+                    activeConv.botActive ? 'bg-tertiary' : 'bg-outline-variant'
+                  }`}
+                  title="Activa o pausa el Bot IA para este cliente"
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                      activeConv.botActive ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+
+            {/* Messages Thread */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {loadingMessages ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="text-center text-xs text-on-surface-variant py-8">
+                  Comienza a escribir para iniciar la conversación.
+                </div>
+              ) : (
+                messages.map((m) => {
+                  const isCustomer = m.senderType === 'CUSTOMER';
+                  const isBot = m.senderType === 'BOT';
+                  return (
+                    <div
+                      key={m.id}
+                      className={`flex flex-col ${isCustomer ? 'items-start' : 'items-end'}`}
+                    >
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm ${
+                          isCustomer
+                            ? 'bg-surface-container-high text-on-surface rounded-tl-sm'
+                            : isBot
+                            ? 'bg-tertiary-container/30 text-on-surface border border-tertiary/20 rounded-tr-sm'
+                            : 'bg-primary text-white rounded-tr-sm'
+                        }`}
+                      >
+                        {!isCustomer && (
+                          <span className="text-[9px] font-bold block opacity-75 mb-0.5">
+                            {isBot ? '🤖 Bot Shokunin' : '👤 Asesor Yankun'}
+                          </span>
+                        )}
+                        <p className="whitespace-pre-line leading-relaxed">{m.text}</p>
+                        <span className="text-[9px] opacity-60 block text-right mt-1">
+                          {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+
+            {/* Input Bar */}
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-outline-variant/20 bg-surface-container-lowest flex gap-2">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Escribe una respuesta para enviar por WhatsApp..."
+                className="flex-1 px-4 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/40 text-on-surface focus:outline-none focus:border-primary"
+              />
+              <button
+                type="submit"
+                disabled={sending || !inputText.trim()}
+                className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-headline font-bold flex items-center gap-1.5 hover:bg-primary/90 active:scale-95 disabled:opacity-50 transition-all shadow-sm"
+              >
+                <span>Enviar</span>
+                <span className="material-symbols-outlined text-[16px]">send</span>
+              </button>
+            </form>
           </div>
-
-          <button
-            type="button"
-            onClick={handleGenerateOrderLink}
-            className="w-full py-2.5 rounded-full bg-secondary hover:bg-secondary/90 text-white font-headline font-bold text-xs shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-[16px]">link</span>
-            <span>Generar y Pegar Link en Chat</span>
-          </button>
-
-          {generatedLink && (
-            <div className="p-2.5 rounded-xl bg-tertiary-container/20 border border-tertiary/40 text-[11px] space-y-1">
-              <span className="font-headline font-bold text-tertiary block">
-                ✓ Link de Comanda Generado:
-              </span>
-              <p className="text-on-surface break-all font-mono text-[10px] bg-surface p-1.5 rounded">
-                {generatedLink}
-              </p>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-on-surface-variant">
+            <span className="material-symbols-outlined text-4xl mb-2 text-outline">chat</span>
+            <p className="text-sm font-headline font-bold">Selecciona una conversación</p>
+            <p className="text-xs mt-1">O simula un mensaje entrante para probar el sistema en vivo.</p>
+          </div>
+        )}
       </div>
     </div>
   );

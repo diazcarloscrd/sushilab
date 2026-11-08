@@ -10,6 +10,7 @@ interface ProductItem {
   description: string;
   price: number;
   costPrice: number;
+  stock: number;
   piecesCount: number;
   image: string;
   active: boolean;
@@ -55,28 +56,49 @@ export default function AdminCatalogoPage() {
     }
   };
 
+  const handleUpdateStock = async (id: string, delta: number) => {
+    const current = products.find((p) => p.id === id);
+    if (!current) return;
+    const newStock = Math.max(0, (current.stock || 0) + delta);
+
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, stock: newStock, active: newStock > 0 } : p))
+    );
+
+    try {
+      await fetch('/api/admin/products', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, stock: newStock }),
+      });
+    } catch (e) {
+      console.error('Error updating stock:', e);
+      fetchProducts();
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/30">
         <div>
           <span className="font-headline text-xs uppercase tracking-wider text-secondary font-bold">
-            Escandallo & Rentabilidad
+            Bahía Blanca • Gestión Gastronómica
           </span>
           <h1 className="font-headline font-bold text-2xl text-on-surface mt-0.5">
-            Gestión de Catálogo & Fichas de Autor
+            Catálogo & Control de Existencias
           </h1>
           <p className="text-xs text-on-surface-variant">
-            Administra precios de venta, costos de materia prima, márgenes brutos y activación online.
+            Supervisa precios, existencias por turno, márgenes brutos y activación en la tienda online.
           </p>
         </div>
 
         <Link
           href="/admin/catalogo/nuevo"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary hover:bg-primary-container text-white font-headline text-xs font-bold shadow-sm transition-all active:scale-95"
+          className="px-4 py-2.5 rounded-xl bg-primary text-white font-headline text-xs font-bold hover:bg-primary/90 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto"
         >
-          <span className="material-symbols-outlined text-[18px]">add_circle</span>
-          <span>Nueva Pieza de Autor</span>
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          <span>Crear Nueva Receta</span>
         </Link>
       </div>
 
@@ -84,7 +106,7 @@ export default function AdminCatalogoPage() {
       <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-card border border-outline-variant/30 space-y-4">
         {loading ? (
           <div className="py-12 text-center text-xs text-on-surface-variant">
-            Cargando recetas de autor...
+            Cargando catálogo de Bahía Blanca...
           </div>
         ) : products.length === 0 ? (
           <div className="py-12 text-center text-xs text-on-surface-variant">
@@ -100,6 +122,7 @@ export default function AdminCatalogoPage() {
                   <th className="py-3 px-3">Precio Venta</th>
                   <th className="py-3 px-3">Costo Materia Prima</th>
                   <th className="py-3 px-3">Margen Bruto</th>
+                  <th className="py-3 px-3">Existencias (Turno)</th>
                   <th className="py-3 px-3">Estado Online</th>
                 </tr>
               </thead>
@@ -114,6 +137,7 @@ export default function AdminCatalogoPage() {
                     <tr key={p.id} className="hover:bg-surface-container-low transition-colors">
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={p.image}
                             alt={p.name}
@@ -161,17 +185,48 @@ export default function AdminCatalogoPage() {
                         </span>
                       </td>
 
+                      {/* Control de Stock */}
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStock(p.id, -5)}
+                            className="w-6 h-6 rounded bg-surface-container hover:bg-surface-container-high font-bold flex items-center justify-center text-xs"
+                            title="Descontar 5"
+                          >
+                            -
+                          </button>
+                          <span
+                            className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                              (p.stock || 0) <= 5
+                                ? 'bg-error-container text-error'
+                                : 'bg-surface-container-high text-on-surface'
+                            }`}
+                          >
+                            {p.stock ?? 50} un.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStock(p.id, 5)}
+                            className="w-6 h-6 rounded bg-surface-container hover:bg-surface-container-high font-bold flex items-center justify-center text-xs"
+                            title="Sumar 5"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
+
                       <td className="py-3 px-3">
                         <button
                           type="button"
                           onClick={() => handleToggleActive(p.id, p.active)}
                           className={`px-3 py-1 rounded-full text-[10px] font-headline font-bold transition-all ${
-                            p.active
-                              ? 'bg-primary text-white shadow-sm'
-                              : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                            p.active && (p.stock || 0) > 0
+                              ? 'bg-tertiary-container text-on-tertiary-container hover:bg-tertiary-container/80'
+                              : 'bg-outline-variant/30 text-on-surface-variant hover:bg-outline-variant/50'
                           }`}
                         >
-                          {p.active ? 'Activo en Web' : 'Pausado'}
+                          {p.active && (p.stock || 0) > 0 ? '✓ Disponible' : 'Pausado'}
                         </button>
                       </td>
                     </tr>

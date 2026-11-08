@@ -8,7 +8,6 @@ import ProductCard from '@/components/client/ProductCard';
 import ProductCustomizerModal, { ProductData } from '@/components/client/ProductCustomizerModal';
 import { useCartStore } from '@/lib/store/useCartStore';
 
-// Default initial categories matching the designs
 const CATEGORIES = [
   { id: 'all', name: 'Todo el Menú', icon: '✨' },
   { id: 'omakase', name: 'Recomendados Omakase', icon: '🍣' },
@@ -24,16 +23,29 @@ export default function HomePage() {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [couponAppliedNotice, setCouponAppliedNotice] = useState<boolean>(false);
+  const [storeStatus, setStoreStatus] = useState<{ isOpen: boolean; openHours: string }>({
+    isOpen: true,
+    openHours: '19:30 a 23:45 hs',
+  });
 
-  const applyCoupon = useCartStore((s) => s.applyCoupon);
+  const setCouponDiscount = useCartStore((s) => s.setCouponDiscount);
 
   useEffect(() => {
-    async function fetchMenu() {
+    async function fetchMenuAndStatus() {
       try {
-        const res = await fetch('/api/products');
-        if (res.ok) {
-          const data = await res.json();
+        const [productsRes, settingsRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/settings/public'),
+        ]);
+
+        if (productsRes.ok) {
+          const data = await productsRes.json();
           setProducts(data);
+        }
+
+        if (settingsRes.ok) {
+          const sData = await settingsRes.json();
+          setStoreStatus({ isOpen: sData.isOpen, openHours: sData.openHours });
         }
       } catch (err) {
         console.error('Error cargando menú:', err);
@@ -41,11 +53,11 @@ export default function HomePage() {
         setLoading(false);
       }
     }
-    fetchMenu();
+    fetchMenuAndStatus();
   }, []);
 
   const handleApplyWelcomeCoupon = () => {
-    applyCoupon('KANSO15');
+    setCouponDiscount('KANSO15', 15);
     setCouponAppliedNotice(true);
     setTimeout(() => setCouponAppliedNotice(false), 3000);
   };
@@ -63,6 +75,18 @@ export default function HomePage() {
       <Header />
 
       <main className="max-w-3xl mx-auto pt-20 px-4 space-y-4">
+        {/* Banner de Estado del Local si está cerrado */}
+        {!storeStatus.isOpen && (
+          <div className="bg-secondary-container/30 border border-secondary/40 text-on-secondary-container rounded-xl p-3 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-secondary">schedule</span>
+              <span>
+                <strong>Local cerrado por el momento.</strong> Horario de atención: {storeStatus.openHours}. ¡Puedes programar tu pedido para hoy!
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Visual Storytelling Hero: Shokunin Heritage */}
         <section className="relative w-full rounded-2xl overflow-hidden shadow-sm bg-surface-container-low border border-outline-variant/30">
           <div
@@ -76,16 +100,16 @@ export default function HomePage() {
             {/* Shokunin Kanji Badge */}
             <div className="absolute top-3 right-3 bg-surface/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
               <span className="font-headline text-xs text-primary font-bold">職人技</span>
-              <span className="font-headline text-xs text-on-surface font-semibold">Shokunin</span>
+              <span className="font-headline text-xs text-on-surface font-semibold">Bahía Blanca</span>
             </div>
 
             {/* Hero Copy */}
             <div className="absolute bottom-3 left-4 right-4 flex flex-col gap-1 text-on-primary">
               <span className="font-headline text-[11px] uppercase tracking-wider text-secondary-fixed font-bold">
-                Gastronomía Nikkei & Tradicional
+                Sushi de Autor en Bahía Blanca
               </span>
               <h2 className="font-headline font-bold text-xl sm:text-2xl text-inverse-on-surface leading-tight">
-                El auténtico arte del Sushi de Autor en tu mesa
+                El auténtico arte del Shari Akazu y técnica Edo
               </h2>
             </div>
           </div>
@@ -96,17 +120,17 @@ export default function HomePage() {
               <span className="material-symbols-outlined text-primary text-[17px]">timer</span>
               <span className="font-headline font-semibold">25–35 min</span>
               <span className="w-1 h-1 rounded-full bg-outline-variant" />
-              <span className="font-headline font-bold text-tertiary">Envío Gratis</span>
+              <span className="font-headline font-bold text-tertiary">Envío Directo</span>
             </div>
             <div className="flex items-center gap-1 bg-surface px-2.5 py-0.5 rounded-full shadow-sm">
               <span className="material-symbols-outlined text-secondary text-[14px]">star</span>
               <span className="font-headline font-bold text-on-surface">4.9</span>
-              <span className="text-[11px] text-on-surface-variant">(1.8k)</span>
+              <span className="text-[11px] text-on-surface-variant">(Bahía Blanca)</span>
             </div>
           </div>
         </section>
 
-        {/* Special Promotion Banner: Vermilion Lacquer Accents */}
+        {/* Special Promotion Banner */}
         <section className="relative overflow-hidden bg-primary-container text-on-primary rounded-xl p-3.5 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
@@ -133,7 +157,7 @@ export default function HomePage() {
           </button>
         </section>
 
-        {/* Category Filter Rail (Single thumb friendly horizontal scroll) */}
+        {/* Category Filter Rail */}
         <section className="pt-2 pb-1">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             {CATEGORIES.map((cat) => {
@@ -160,7 +184,7 @@ export default function HomePage() {
         <div className="bg-surface-container-low px-3.5 py-2 rounded-lg flex items-center justify-between text-on-surface-variant text-xs border border-outline-variant/30">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-tertiary text-[16px]">verified</span>
-            <span className="font-medium">Pescado fresco seleccionado del día & Arroz Akazu</span>
+            <span className="font-medium">Salmón fresco seleccionado & Arroz Akazu en Bahía Blanca</span>
           </div>
           <span className="font-headline font-bold text-primary text-[11px]">100% Shokunin</span>
         </div>
