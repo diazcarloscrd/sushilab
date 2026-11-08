@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 export default function AdminLoginPage() {
   const router = useRouter();
   const [authMode, setAuthMode] = useState<'credentials' | 'pin'>('credentials');
-  const [email, setEmail] = useState('admin@yankun');
-  const [password, setPassword] = useState('adminYankun2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [pinDigits, setPinDigits] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -144,7 +144,8 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@yankun o admin@yankunsushi.com"
+                placeholder="Usuario o correo electrónico"
+                autoComplete="username"
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
@@ -159,6 +160,7 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
+                autoComplete="current-password"
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>

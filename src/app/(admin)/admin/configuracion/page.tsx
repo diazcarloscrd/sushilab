@@ -23,8 +23,8 @@ export default function AdminConfiguracionPage() {
   const [errorMessage, setErrorMessage] = useState('');
 
   // Perfil del administrador
-  const [adminName, setAdminName] = useState('Itamae Yankun (Master Owner)');
-  const [adminEmail, setAdminEmail] = useState('admin@yankun');
+  const [adminName, setAdminName] = useState('YanKunSushiLab!');
+  const [adminEmail, setAdminEmail] = useState('yankunsushilab!');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingCreds, setSavingCreds] = useState(false);

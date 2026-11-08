@@ -18,11 +18,11 @@ async function main() {
   await prisma.storeSetting.deleteMany();
 
   // 2. Administrador Principal
-  const passwordHash = await bcrypt.hash('adminYankun2026!', 10);
+  const passwordHash = await bcrypt.hash('$Yankun_Sushilab', 10);
   const adminUser = await prisma.user.create({
     data: {
-      email: 'admin@yankunsushi.com',
-      name: 'Itamae Yankun (Master Owner)',
+      email: 'yankunsushilab!',
+      name: 'YanKunSushiLab!',
       passwordHash,
       role: Role.SUPERADMIN,
       active: true,

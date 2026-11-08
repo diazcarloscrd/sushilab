@@ -98,15 +98,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ingresa email y contraseña' }, { status: 400 });
     }
 
-    let cleanEmail = email.toLowerCase().trim();
-    if (
-      cleanEmail === 'admin@yankun' ||
-      cleanEmail === 'admin' ||
-      cleanEmail === 'admin@yankunsushi' ||
-      cleanEmail === 'admin@yankunsushilab.com'
-    ) {
-      cleanEmail = 'admin@yankunsushi.com';
-    }
+    const rawInput = email.trim();
+    const cleanEmail = rawInput.toLowerCase();
     const loginRateLimitKey = `login_attempt_${ip}_${cleanEmail}`;
     const rateCheck = checkRateLimit(loginRateLimitKey, 5, 15 * 60 * 1000, 15 * 60 * 1000);
 
@@ -119,11 +112,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Consultar tabla User en Supabase con cliente seguro de servidor
+    // Consultar tabla User en Supabase: búsqueda flexible por username o email
     const { data: dbUser, error: userError } = await supabaseServer
       .from('User')
       .select('id, email, name, passwordHash, role, active')
-      .eq('email', cleanEmail)
+      .or(`email.ilike.${cleanEmail},name.ilike.${rawInput},email.ilike.${cleanEmail.replace(/!$/, '')}`)
+      .eq('active', true)
       .maybeSingle();
 
     if (userError || !dbUser || !dbUser.active) {
