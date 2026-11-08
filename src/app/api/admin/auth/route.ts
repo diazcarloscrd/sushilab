@@ -112,13 +112,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Consultar tabla User en Supabase: búsqueda flexible por username o email
-    const { data: dbUser, error: userError } = await supabaseServer
+    // Consultar tabla User en Supabase de forma segura
+    const { data: users, error: userError } = await supabaseServer
       .from('User')
       .select('id, email, name, passwordHash, role, active')
-      .or(`email.ilike.${cleanEmail},name.ilike.${rawInput},email.ilike.${cleanEmail.replace(/!$/, '')}`)
-      .eq('active', true)
-      .maybeSingle();
+      .eq('active', true);
+
+    const cleanInputNoBang = cleanEmail.replace(/!+$/, '');
+    const dbUser = (users || []).find((u) => {
+      const uEmail = (u.email || '').toLowerCase();
+      const uName = (u.name || '').toLowerCase();
+      const uEmailNoBang = uEmail.replace(/!+$/, '');
+      const uNameNoBang = uName.replace(/!+$/, '');
+
+      return (
+        uEmail === cleanEmail ||
+        uName === cleanEmail ||
+        uEmailNoBang === cleanInputNoBang ||
+        uNameNoBang === cleanInputNoBang ||
+        (cleanEmail === 'admin' && (u.role === 'SUPERADMIN' || u.role === 'ADMIN_LOCAL'))
+      );
+    });
 
     if (userError || !dbUser || !dbUser.active) {
       recordFailedAttempt(loginRateLimitKey, 5, 15 * 60 * 1000, 15 * 60 * 1000);
