@@ -46,16 +46,21 @@ export async function PATCH(
     if (paymentStatus) updateData.paymentStatus = paymentStatus;
     if (estimatedMinutes !== undefined) updateData.estimatedMinutes = estimatedMinutes;
 
-    const { data, error } = await supabase
+    const { data: updatedOrder, error } = await supabase
       .from('Order')
       .update(updateData)
       .eq('id', id)
-      .select('*, items:OrderItem(*)')
+      .select()
       .single();
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    const { data: items } = await supabase
+      .from('OrderItem')
+      .select('*')
+      .eq('orderId', id);
+
+    return NextResponse.json({ ...updatedOrder, items: items || [] });
   } catch (err: any) {
     console.error('Error updating order:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
