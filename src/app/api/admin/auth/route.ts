@@ -90,7 +90,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ingresa email y contraseña' }, { status: 400 });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    let cleanEmail = email.toLowerCase().trim();
+    if (
+      cleanEmail === 'admin@yankun' ||
+      cleanEmail === 'admin' ||
+      cleanEmail === 'admin@yankunsushi' ||
+      cleanEmail === 'admin@yankunsushilab.com'
+    ) {
+      cleanEmail = 'admin@yankunsushi.com';
+    }
     const loginRateLimitKey = `login_attempt_${ip}_${cleanEmail}`;
     const rateCheck = checkRateLimit(loginRateLimitKey, 5, 15 * 60 * 1000, 15 * 60 * 1000);
 

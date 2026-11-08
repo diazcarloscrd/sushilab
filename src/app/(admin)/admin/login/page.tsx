@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 export default function AdminLoginPage() {
   const router = useRouter();
   const [authMode, setAuthMode] = useState<'credentials' | 'pin'>('credentials');
-  const [email, setEmail] = useState('admin@yankunsushi.com');
+  const [email, setEmail] = useState('admin@yankun');
   const [password, setPassword] = useState('adminYankun2026!');
   const [pinDigits, setPinDigits] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -137,14 +137,14 @@ export default function AdminLoginPage() {
           <form onSubmit={handleCredentialsSubmit} className="w-full space-y-4">
             <div>
               <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
-                Correo Electrónico:
+                Usuario o Correo Electrónico:
               </label>
               <input
-                type="email"
+                type="text"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@yankunsushi.com"
+                placeholder="admin@yankun o admin@yankunsushi.com"
                 className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>

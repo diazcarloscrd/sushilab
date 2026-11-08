@@ -64,32 +64,26 @@ export default function Header() {
               <span className="material-symbols-outlined text-primary text-[13px]">location_on</span>
               <span className="truncate max-w-[170px] font-medium">
                 {deliveryType === 'TAKE_AWAY'
-                  ? 'Retiro: Alsina 350 (B. Blanca)'
-                  : (deliveryZoneName || 'Bahía Blanca')}
+                  ? 'Retiro: Alsina 350 (Bahía Blanca)'
+                  : (deliveryZoneName && !deliveryZoneName.toLowerCase().includes('macrocentro')
+                      ? (deliveryZoneName.includes('Bahía Blanca') ? deliveryZoneName : `${deliveryZoneName} — B. Blanca`)
+                      : 'Bahía Blanca')}
               </span>
             </div>
           </div>
         </Link>
 
-        {/* Right Action Icons */}
+        {/* Right Action Icons (Sin enlaces visibles a admin para clientes) */}
         <div className="flex items-center gap-2">
-          <Link
-            href="/admin/login"
-            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface-variant font-medium active:scale-95 transition-all"
-            title="Acceso Propietario / KDS"
-          >
-            <span className="material-symbols-outlined text-[15px] text-primary">lock</span>
-            <span className="hidden sm:inline font-headline text-xs font-semibold">Staff</span>
-          </Link>
-
           <a
             href={`https://wa.me/${cleanWhatsapp}?text=Hola%20Yankun%20Sushi%20Lab%20Bah%C3%ADa%20Blanca,%20quisiera%20hacer%20un%20pedido`}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-tertiary-container/30 text-tertiary hover:bg-tertiary-container/50 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tertiary-container/30 text-tertiary hover:bg-tertiary-container/50 active:scale-95 transition-all text-xs font-headline font-semibold"
             aria-label="Atención por WhatsApp Bahía Blanca"
           >
-            <span className="material-symbols-outlined text-[18px]">chat</span>
+            <span className="material-symbols-outlined text-[17px]">chat</span>
+            <span className="hidden sm:inline">WhatsApp</span>
           </a>
         </div>
       </div>
