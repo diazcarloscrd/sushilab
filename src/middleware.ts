@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const JWT_SECRET_STRING = process.env.JWT_SECRET || 'yankun_super_secret_jwt_key_2026_shokunin';
+const JWT_SECRET_STRING = process.env.JWT_SECRET;
+if (!JWT_SECRET_STRING) {
+  throw new Error('FATAL: Variable de entorno JWT_SECRET no configurada.');
+}
 const secretKey = new TextEncoder().encode(JWT_SECRET_STRING);
 
 export async function middleware(req: NextRequest) {
@@ -32,7 +35,7 @@ export async function middleware(req: NextRequest) {
 
     // Restricciones de Rol: COCINERO solo puede operar en la pantalla de Cocina KDS
     if (role === 'COCINERO') {
-      const allowedPaths = ['/admin/cocina', '/api/admin/cocina', '/api/admin/orders'];
+      const allowedPaths = ['/admin/cocina', '/api/admin/cocina', '/api/admin/orders', '/admin/inventario', '/api/admin/inventory'];
       const isAllowed = allowedPaths.some((p) => pathname.startsWith(p));
       if (!isAllowed) {
         if (pathname.startsWith('/api/admin')) {

@@ -11,7 +11,11 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
-  const configuredToken = process.env.WHATSAPP_VERIFY_TOKEN || 'yankun_secure_token';
+  const configuredToken = process.env.WHATSAPP_VERIFY_TOKEN;
+
+  if (!configuredToken) {
+    return new Response('Webhook no configurado', { status: 500 });
+  }
 
   if (mode === 'subscribe' && token === configuredToken) {
     console.log('✅ Webhook de WhatsApp verificado correctamente con Meta');

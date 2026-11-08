@@ -20,12 +20,13 @@ export async function GET() {
     if (orderErr) throw orderErr;
 
     const orders = allOrders || [];
-    const todayStr = new Date().toDateString();
+    const arFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+    const todayArStr = arFormatter.format(new Date());
 
     // Filtros
     const validOrders = orders.filter((o) => o.status !== 'CANCELADO');
     const todayValidOrders = validOrders.filter(
-      (o) => new Date(o.createdAt).toDateString() === todayStr
+      (o) => arFormatter.format(new Date(o.createdAt)) === todayArStr
     );
 
     // Ventas de hoy (excluyendo cancelados)

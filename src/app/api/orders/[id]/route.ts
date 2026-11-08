@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { getAdminSession } from '@/lib/auth';
+import { transitionOrder } from '@/lib/orders/transitionOrder';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,101 +44,42 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { status, paymentStatus, estimatedMinutes, notes } = body;
+    const { status, paymentStatus, estimatedMinutes, notes, cancelMode } = body;
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
 
-    // 1. Obtener la orden actual
-    const { data: currentOrder, error: fetchErr } = await supabaseServer
-      .from('Order')
-      .select('*')
-      .eq('id', id)
-      .single();
+    let updatedOrder: any = null;
 
-    if (fetchErr || !currentOrder) {
-      return NextResponse.json({ error: 'Comanda no encontrada' }, { status: 404 });
-    }
-
-    const updateData: any = { updatedAt: new Date().toISOString() };
-    let statusChanged = false;
-    const previousStatus = currentOrder.status;
-
-    if (status && status !== previousStatus) {
-      // 2. Control de Transiciones Válidas de Estados
-      const VALID_TRANSITIONS: Record<string, string[]> = {
-        PENDIENTE_PAGO: ['EN_COCINA', 'CANCELADO'],
-        PENDIENTE_VERIFICACION: ['EN_COCINA', 'CANCELADO'],
-        CREADO: ['EN_COCINA', 'CANCELADO'],
-        EN_COCINA: ['LISTO', 'CANCELADO'],
-        LISTO: ['EN_CAMINO', 'ENTREGADO', 'CANCELADO'],
-        EN_CAMINO: ['ENTREGADO', 'CANCELADO'],
-        ENTREGADO: ['CANCELADO'], // Solo en caso extraordinario
-        CANCELADO: [],
-      };
-
-      const allowedNext = VALID_TRANSITIONS[previousStatus] || [];
-      const isSuperadmin = session.role === 'SUPERADMIN';
-
-      if (!allowedNext.includes(status) && !isSuperadmin) {
-        return NextResponse.json(
-          {
-            error: `Transición de estado inválida: no se puede pasar de "${previousStatus}" a "${status}".`,
-          },
-          { status: 400 }
-        );
-      }
-
-      updateData.status = status;
-      statusChanged = true;
-    }
-
-    if (paymentStatus) {
-      updateData.paymentStatus = paymentStatus;
-    }
-
-    if (estimatedMinutes !== undefined) {
-      updateData.estimatedMinutes = Number(estimatedMinutes);
-    }
-
-    // 3. Ejecutar actualización
-    const { data: updatedOrder, error: updateErr } = await supabaseServer
-      .from('Order')
-      .update(updateData)
-      .eq('id', id)
-      .select('*, items:OrderItem(*)')
-      .single();
-
-    if (updateErr) throw updateErr;
-
-    // 4. Asentar en OrderStatusHistory si hubo cambio de estado
-    if (statusChanged) {
-      await supabaseServer.from('OrderStatusHistory').insert({
-        orderId: id,
-        previousStatus,
-        newStatus: status,
-        changedBy: `${session.name} (${session.role})`,
-        notes: notes || `Cambio de estado en panel de control`,
+    if (status) {
+      updatedOrder = await transitionOrder(id, status, `${session.name} (${session.role})`, {
+        notes,
+        paymentStatus,
+        cancelMode,
+        actorSession: session,
+        ip,
       });
+    }
 
-      // 5. Si pasa a ENTREGADO, computar el gasto histórico del cliente (Lógica de fidelidad real)
-      if (status === 'ENTREGADO' && updatedOrder.customerId) {
-        const { data: customer } = await supabaseServer
-          .from('Customer')
-          .select('id, totalSpent')
-          .eq('id', updatedOrder.customerId)
-          .maybeSingle();
+    // Si además se actualizaron minutos o notas sin cambio de estado
+    if (estimatedMinutes !== undefined || (!status && (paymentStatus || notes))) {
+      const extraUpdates: any = { updatedAt: new Date().toISOString() };
+      if (estimatedMinutes !== undefined) extraUpdates.estimatedMinutes = Number(estimatedMinutes);
+      if (paymentStatus && !status) extraUpdates.paymentStatus = paymentStatus;
+      if (notes && !status) extraUpdates.notes = notes;
 
-        if (customer) {
-          const newSpent = (customer.totalSpent || 0) + (updatedOrder.total || 0);
-          await supabaseServer
-            .from('Customer')
-            .update({ totalSpent: newSpent })
-            .eq('id', customer.id);
-        }
-      }
+      const { data: directUpdated, error: directErr } = await supabaseServer
+        .from('Order')
+        .update(extraUpdates)
+        .eq('id', id)
+        .select('*, items:OrderItem(*)')
+        .single();
+
+      if (directErr) throw directErr;
+      updatedOrder = directUpdated;
     }
 
     return NextResponse.json(updatedOrder);
   } catch (err: any) {
     console.error('Error updating order:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 }

@@ -43,6 +43,9 @@ export default function KitchenKdsPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'DELIVERY' | 'TAKE_AWAY' | 'VERIFICACION'>('ALL');
   const [selectedProofOrder, setSelectedProofOrder] = useState<Order | null>(null);
+  const [couriers, setCouriers] = useState<Array<{ id: string; name: string }>>([]);
+  const [dispatchModalOrder, setDispatchModalOrder] = useState<Order | null>(null);
+  const [selectedCourierId, setSelectedCourierId] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const previousOrdersCount = useRef<number>(0);
 
@@ -72,7 +75,10 @@ export default function KitchenKdsPage() {
   // Cargar pedidos activos de cocina
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await fetch('/api/orders?limit=40');
+      const [res, courRes] = await Promise.all([
+        fetch('/api/orders?limit=40'),
+        fetch('/api/admin/couriers'),
+      ]);
       if (res.ok) {
         const data = await res.json();
         const list: Order[] = data.orders || [];
@@ -87,6 +93,10 @@ export default function KitchenKdsPage() {
         }
         previousOrdersCount.current = kitchenOrders.length;
         setOrders(kitchenOrders);
+      }
+      if (courRes.ok) {
+        const cData = await courRes.json();
+        setCouriers(cData.couriers || []);
       }
     } catch (err) {
       console.error('Error fetching orders for KDS:', err);
@@ -484,7 +494,14 @@ export default function KitchenKdsPage() {
 
                   {order.status === 'LISTO' && (
                     <button
-                      onClick={() => handleUpdateStatus(order.id, 'EN_CAMINO')}
+                      onClick={() => {
+                        if (order.deliveryType === 'DELIVERY' && couriers.length > 0) {
+                          setDispatchModalOrder(order);
+                          setSelectedCourierId(couriers[0].id);
+                        } else {
+                          handleUpdateStatus(order.id, 'EN_CAMINO');
+                        }
+                      }}
                       className="flex-1 py-2.5 rounded-xl bg-tertiary text-white font-headline text-xs font-bold hover:bg-tertiary/90 transition-all shadow-sm flex items-center justify-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-[16px]">moped</span>
@@ -539,6 +556,66 @@ export default function KitchenKdsPage() {
                 className="px-5 py-2 rounded-xl bg-primary text-white text-xs font-headline font-bold hover:bg-primary/90 shadow-sm"
               >
                 Aprobar y Mandar a Cocina
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal para Asignar Cadete y Despachar */}
+      {dispatchModalOrder && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-surface rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-xl border border-outline-variant/40">
+            <h3 className="font-headline font-bold text-sm text-on-surface">
+              Asignar Cadete • Pedido #{dispatchModalOrder.orderNumber}
+            </h3>
+            <p className="text-xs text-on-surface-variant">
+              Dirección: <strong>{dispatchModalOrder.deliveryAddress}</strong>
+            </p>
+            <div className="space-y-2">
+              <label className="block text-[11px] font-semibold text-on-surface-variant">
+                Selecciona cadete de reparto:
+              </label>
+              <select
+                value={selectedCourierId}
+                onChange={(e) => setSelectedCourierId(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-xl bg-surface-container border border-outline-variant/60"
+              >
+                {couriers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setDispatchModalOrder(null)}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-surface-container"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!dispatchModalOrder) return;
+                  try {
+                    await fetch('/api/admin/couriers', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        action: 'DISPATCH_TRIP',
+                        courierId: selectedCourierId,
+                        orderIds: [dispatchModalOrder.id],
+                      }),
+                    });
+                    setDispatchModalOrder(null);
+                    fetchOrders();
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+                className="px-4 py-1.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-container"
+              >
+                Confirmar Salida
               </button>
             </div>
           </div>

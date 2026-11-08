@@ -1,10 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET_STRING = process.env.JWT_SECRET || 'yankun_super_secret_jwt_key_2026_shokunin';
+const JWT_SECRET_STRING = process.env.JWT_SECRET;
 
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('FATAL: Variable JWT_SECRET no configurada en entorno de producción.');
+if (!JWT_SECRET_STRING) {
+  throw new Error('FATAL: Variable de entorno JWT_SECRET no configurada.');
 }
 
 const secretKey = new TextEncoder().encode(JWT_SECRET_STRING);

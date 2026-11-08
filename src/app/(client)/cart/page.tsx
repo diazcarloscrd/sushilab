@@ -29,6 +29,16 @@ export default function CartPage() {
   const [geocoding, setGeocoding] = useState(false);
   const [scheduledOption, setScheduledOption] = useState<'ASAP' | 'SCHEDULED'>('ASAP');
   const [scheduledTime, setScheduledTime] = useState('21:00');
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [loyaltyBalance, setLoyaltyBalance] = useState<{ points: number; tier: string; pointValue: number; minRedeemPoints: number } | null>(null);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpNotice, setOtpNotice] = useState('');
+  const [redeemToken, setRedeemToken] = useState<string | null>(null);
+  const [pointsToRedeem, setPointsToRedeem] = useState<number>(0);
+  const [quoteData, setQuoteData] = useState<any>(null);
 
   const {
     items,
@@ -79,6 +89,102 @@ export default function CartPage() {
     }
     loadInitialData();
   }, [deliveryZoneId, setDeliveryZone]);
+
+  // Cargar saldo de fidelidad si se ingresa teléfono
+  useEffect(() => {
+    if (customer.phone && customer.phone.trim().length >= 8) {
+      fetch(`/api/loyalty/balance?phone=${encodeURIComponent(customer.phone.trim())}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.points !== undefined) {
+            setLoyaltyBalance(data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [customer.phone]);
+
+  // Cotización en vivo con motor de reglas y servidor (Debounce 400ms)
+  useEffect(() => {
+    if (!mounted || items.length === 0) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/cart/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items,
+            deliveryType,
+            paymentMethod,
+            deliveryZoneId,
+            couponCode: appliedCoupon,
+            customerPhone: customer.phone,
+            pointsToRedeem: redeemToken ? pointsToRedeem : 0,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setQuoteData(data);
+        }
+      } catch (e) {
+        console.error('Error fetching live quote:', e);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [mounted, items, deliveryType, paymentMethod, deliveryZoneId, appliedCoupon, customer.phone, redeemToken, pointsToRedeem]);
+
+  const handleRequestOtp = async () => {
+    if (!customer.phone || customer.phone.trim().length < 8) {
+      setErrorMessage('Ingresa un número de WhatsApp válido para recibir el código');
+      return;
+    }
+    setSendingOtp(true);
+    setOtpNotice('');
+    try {
+      const res = await fetch('/api/loyalty/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: customer.phone.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error enviando código');
+      setShowOtpInput(true);
+      setOtpNotice(data.devCode ? `Código dev: ${data.devCode}` : 'Código enviado a tu WhatsApp');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Error al solicitar código OTP');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setErrorMessage('Ingresa el código de 6 dígitos');
+      return;
+    }
+    setVerifyingOtp(true);
+    setErrorMessage('');
+    try {
+      const res = await fetch('/api/loyalty/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: customer.phone.trim(), code: otpCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Código incorrecto');
+      setRedeemToken(data.redeemToken);
+      if (loyaltyBalance) {
+        setPointsToRedeem(loyaltyBalance.points);
+      }
+      setShowOtpInput(false);
+      setOtpNotice('¡Puntos validados para este pedido!');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Error validando código');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -250,6 +356,9 @@ export default function CartPage() {
         notes: customer.notes || '',
         scheduledFor: scheduledForDate,
         cashAmountPaid: paymentMethod === 'EFECTIVO' && cashAmount ? parseFloat(cashAmount) : null,
+        marketingConsent,
+        pointsToRedeem: redeemToken ? pointsToRedeem : 0,
+        redeemToken: redeemToken || null,
         items: items.map((i) => ({
           productId: i.productId,
           name: i.name,
@@ -614,6 +723,18 @@ export default function CartPage() {
                     placeholder="Ej. +5492914445566"
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
                   />
+                  <div className="flex items-center gap-2 pt-1.5">
+                    <input
+                      type="checkbox"
+                      id="marketingConsentCheck"
+                      checked={marketingConsent}
+                      onChange={(e) => setMarketingConsent(e.target.checked)}
+                      className="rounded text-primary focus:ring-primary w-4 h-4 bg-surface-container"
+                    />
+                    <label htmlFor="marketingConsentCheck" className="text-[11px] text-on-surface-variant cursor-pointer">
+                      Quiero recibir promociones exclusivas y novedades por WhatsApp
+                    </label>
+                  </div>
                 </div>
 
                 <div>
@@ -802,29 +923,127 @@ export default function CartPage() {
               {couponSuccess && <p className="text-[10px] text-tertiary font-semibold">{couponSuccess}</p>}
             </div>
 
+            {/* Fidelidad & Puntos Yankun Club (Fase 7) */}
+            {loyaltyBalance && loyaltyBalance.points >= 100 && (
+              <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-card border border-secondary/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-secondary">loyalty</span>
+                    <span className="text-xs font-headline font-bold text-on-surface">Puntos Yankun Club</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-secondary-container/40 text-secondary uppercase">
+                      {loyaltyBalance.tier}
+                    </span>
+                  </div>
+                  <span className="text-xs font-headline font-bold text-primary">
+                    {loyaltyBalance.points} pts (= ${(loyaltyBalance.points * 50).toLocaleString('es-AR')})
+                  </span>
+                </div>
+
+                {redeemToken ? (
+                  <div className="p-2.5 rounded-xl bg-tertiary-container/30 border border-tertiary/40 flex items-center justify-between text-xs font-headline font-bold text-on-tertiary-container">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                      <span>Canje de puntos aplicado en tu comanda</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRedeemToken(null);
+                        setPointsToRedeem(0);
+                      }}
+                      className="text-error font-bold hover:underline"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {!showOtpInput ? (
+                      <button
+                        type="button"
+                        onClick={handleRequestOtp}
+                        disabled={sendingOtp}
+                        className="w-full py-2 px-3 rounded-xl bg-secondary text-on-secondary text-xs font-headline font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        {sendingOtp ? (
+                          <span>Enviando código...</span>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-[16px]">key</span>
+                            <span>Usar mis puntos (verificar por WhatsApp)</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                            placeholder="Código de 6 dígitos"
+                            className="flex-1 px-3 py-1.5 text-xs font-mono font-bold tracking-widest text-center rounded-xl bg-surface-container border border-outline-variant text-on-surface focus:outline-none focus:border-secondary"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleVerifyOtp}
+                            disabled={verifyingOtp}
+                            className="px-4 py-1.5 rounded-xl bg-primary text-white text-xs font-headline font-bold hover:bg-primary/90 transition-all"
+                          >
+                            {verifyingOtp ? '...' : 'Validar'}
+                          </button>
+                        </div>
+                        {otpNotice && <p className="text-[10px] text-primary font-medium">{otpNotice}</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Banner de Reglas Cercanas (Upsell / Beneficios) */}
+            {quoteData?.nearRules && quoteData.nearRules.length > 0 && (
+              <div className="p-3 rounded-xl bg-secondary-container/20 border border-secondary/30 text-secondary text-xs flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">lightbulb</span>
+                <span className="font-medium">{quoteData.nearRules[0]}</span>
+              </div>
+            )}
+
             {/* Resumen de Total */}
             <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-card border border-outline-variant/30 space-y-2.5 text-xs">
               <div className="flex justify-between text-on-surface-variant">
                 <span>Subtotal:</span>
-                <span>${subtotal.toLocaleString('es-AR')}</span>
+                <span>${(quoteData?.subtotal ?? subtotal).toLocaleString('es-AR')}</span>
               </div>
 
-              {discount > 0 && (
+              {quoteData?.discounts && quoteData.discounts.length > 0 ? (
+                quoteData.discounts.map((disc: any, idx: number) => (
+                  <div key={idx} className="flex justify-between text-secondary font-semibold">
+                    <span>{disc.label}:</span>
+                    <span>-${disc.amount.toLocaleString('es-AR')}</span>
+                  </div>
+                ))
+              ) : discount > 0 ? (
                 <div className="flex justify-between text-secondary font-semibold">
                   <span>Descuento aplicado:</span>
                   <span>-${discount.toLocaleString('es-AR')}</span>
                 </div>
-              )}
+              ) : null}
 
               <div className="flex justify-between text-on-surface-variant">
                 <span>Costo de envío ({deliveryType === 'TAKE_AWAY' ? 'Retiro Local' : deliveryZoneName || 'Bahía Blanca'}):</span>
-                <span>{deliveryType === 'TAKE_AWAY' || deliveryFee === 0 ? 'Sin cargo' : `$${deliveryFee.toLocaleString('es-AR')}`}</span>
+                <span>
+                  {deliveryType === 'TAKE_AWAY' || (quoteData?.deliveryFee ?? deliveryFee) === 0
+                    ? 'Sin cargo'
+                    : `$${(quoteData?.deliveryFee ?? deliveryFee).toLocaleString('es-AR')}`}
+                </span>
               </div>
 
               <div className="pt-2 border-t border-outline-variant/30 flex justify-between items-baseline font-headline font-bold text-base text-on-surface">
                 <span>Total a Pagar:</span>
                 <span className="text-xl text-primary font-extrabold">
-                  ${total.toLocaleString('es-AR')}
+                  ${(quoteData?.total ?? total).toLocaleString('es-AR')}
                 </span>
               </div>
             </div>

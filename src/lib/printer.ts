@@ -11,6 +11,8 @@ export interface OrderPrintData {
   address?: string;
   isTakeAway: boolean;
   notes?: string;
+  courierName?: string;
+  allergies?: string;
   items: Array<{
     name: string;
     quantity: number;
@@ -56,9 +58,14 @@ export function generateKitchenTicketText(order: OrderPrintData): string {
 
   ticket += ESC_ALIGN_LEFT;
   ticket += `Cliente: ${order.customerName}\n`;
+  if (order.allergies) {
+    ticket += ESC_BOLD_ON;
+    ticket += `ALERTA ALERGIA: ${order.allergies}\n`;
+    ticket += ESC_NORMAL;
+  }
   if (order.notes) {
     ticket += ESC_BOLD_ON;
-    ticket += `⚠️ OBS: ${order.notes}\n`;
+    ticket += `OBS: ${order.notes}\n`;
     ticket += ESC_NORMAL;
   }
   ticket += line;
@@ -69,11 +76,11 @@ export function generateKitchenTicketText(order: OrderPrintData): string {
   for (const item of order.items) {
     ticket += `${item.quantity.toString().padEnd(5)} ${item.name}\n`;
     if (item.baseRice) {
-      ticket += `      • Arroz: ${item.baseRice}\n`;
+      ticket += `      - Arroz: ${item.baseRice}\n`;
     }
     if (item.options && item.options.length > 0) {
       for (const opt of item.options) {
-        ticket += `      ✦ ${opt}\n`;
+        ticket += `      - ${opt}\n`;
       }
     }
   }
@@ -104,6 +111,9 @@ export function generateDispatchTicketText(order: OrderPrintData): string {
   ticket += `Destinatario: ${order.customerName}\n`;
   ticket += `Teléfono: ${order.customerPhone}\n`;
   ticket += `Dirección: ${order.address || 'Alsina 350 (Retiro en Local)'}\n`;
+  if (order.courierName) {
+    ticket += `Cadete Asignado: ${order.courierName}\n`;
+  }
   ticket += line;
 
   ticket += ESC_BOLD_ON + 'RESUMEN DE CUENTA:\n' + ESC_NORMAL;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCartStore, CartModifierExtra } from '@/lib/store/useCartStore';
 
 export interface ProductData {
@@ -51,6 +51,33 @@ export default function ProductCustomizerModal({
     }
     return ['Teriyaki artesanal'];
   });
+
+  const [dbExtras, setDbExtras] = useState<Array<{ id: string; name: string; price: number }>>([
+    { id: 'palta', name: 'Palta Hass laminada extra', price: 950 },
+    { id: 'masago', name: 'Caviar Masago crocante', price: 1400 },
+    { id: 'wasabi', name: 'Hon Wasabi fresco rallado en piel de tiburón', price: 1200 },
+    { id: 'gari', name: 'Gari jengibre artesanal', price: 400 },
+  ]);
+
+  useEffect(() => {
+    fetch('/api/modifiers')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((groups: any[]) => {
+        const extraGroup = groups.find((g) => g.id === 'grp_extras');
+        if (extraGroup?.options?.length) {
+          setDbExtras(
+            extraGroup.options
+              .filter((o: any) => o.active)
+              .map((o: any) => ({
+                id: o.code,
+                name: o.name,
+                price: Number(o.priceDelta) || 0,
+              }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const [selectedExtras, setSelectedExtras] = useState<CartModifierExtra[]>([]);
   const [notes, setNotes] = useState<string>('');
@@ -274,12 +301,7 @@ export default function ProductCustomizerModal({
               <span className="text-[10px] text-on-surface-variant font-medium">Opcional</span>
             </div>
             <div className="space-y-2">
-              {[
-                { id: 'palta', name: 'Palta Hass laminada extra', price: 950 },
-                { id: 'masago', name: 'Caviar Masago crocante', price: 1400 },
-                { id: 'wasabi', name: 'Hon Wasabi fresco rallado en piel de tiburón', price: 1200 },
-                { id: 'gari', name: 'Gari jengibre artesanal', price: 400 },
-              ].map((extra) => {
+              {dbExtras.map((extra) => {
                 const isSelected = selectedExtras.some((e) => e.id === extra.id);
                 return (
                   <button

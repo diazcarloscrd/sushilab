@@ -1,22 +1,30 @@
+import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cdhnpsowlsesoobrytvh.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkaG5wc293bHNlc29vYnJ5dHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDY1NTksImV4cCI6MjEwNzU4MjU1OX0.CzhYFCsCDGHm5jUhEvGIBhfS84AYChRrFYCkq2fNNK8';
-const serverSecret = process.env.INTERNAL_SERVER_SECRET || 'yankun_super_internal_secret_2026';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const internalSecret = process.env.INTERNAL_SERVER_SECRET;
 
-/**
- * Cliente de Supabase para el Servidor (Next.js Route Handlers y Server Components).
- * Emite la cabecera x-server-auth validada criptográficamente por PostgreSQL (Row Level Security),
- * otorgando permisos de administración completos y seguros sin exponer credenciales al navegador.
- */
-export const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Faltan variables de entorno para inicializar Supabase Server.');
+}
+
+const keyToUse = serviceRoleKey || supabaseAnonKey;
+const headers: Record<string, string> = {};
+
+if (serviceRoleKey) {
+  headers['Authorization'] = `Bearer ${serviceRoleKey}`;
+} else if (internalSecret) {
+  headers['x-server-auth'] = internalSecret;
+}
+
+export const supabaseServer = createClient(supabaseUrl, keyToUse, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
   },
   global: {
-    headers: {
-      'x-server-auth': serverSecret,
-    },
+    headers,
   },
 });

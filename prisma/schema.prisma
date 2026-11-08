@@ -55,6 +55,65 @@ enum MessageSender {
   AGENT
 }
 
+enum IngredientKind {
+  RAW
+  PREP
+  PACKAGING
+}
+
+enum BaseUnit {
+  G
+  ML
+  UNIT
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  SALE_REVERSAL
+  PRODUCTION_IN
+  PRODUCTION_OUT
+  WASTE
+  ADJUSTMENT
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  RECEIVED
+  CANCELLED
+}
+
+enum CashShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum CashMovementType {
+  EXPENSE
+  INCOME
+  WITHDRAWAL
+  COURIER_SETTLEMENT
+  PURCHASE_PAYMENT
+}
+
+enum PricingRuleKind {
+  PERCENT_ORDER
+  AMOUNT_ORDER
+  BUY_X_GET_Y
+  FREE_SHIPPING
+  PERCENT_ITEMS
+}
+
+enum LoyaltyLedgerType {
+  EARN
+  REDEEM
+  EXPIRE
+  ADJUST
+  REVERSAL
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -67,17 +126,43 @@ model User {
 }
 
 model Customer {
-  id              String   @id @default(uuid())
-  phone           String   @unique
-  name            String
-  email           String?
-  deliveryAddress String?
-  notes           String?
-  ordersCount     Int      @default(0)
-  totalSpent      Float    @default(0.0)
-  orders          Order[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                 String          @id @default(uuid())
+  phone              String          @unique
+  name               String
+  email              String?
+  deliveryAddress    String?
+  notes              String?
+  ordersCount        Int             @default(0)
+  totalSpent         Float           @default(0.0)
+  birthday           DateTime?
+  tags               String[]        @default([])
+  allergies          String?
+  marketingConsent   Boolean         @default(false)
+  marketingConsentAt DateTime?
+  firstOrderAt       DateTime?
+  lastOrderAt        DateTime?
+  avgTicket          Float?
+  segment            String?         @default("NUEVO") // NUEVO, FRECUENTE, VIP, EN_RIESGO, DORMIDO
+  spent90d           Float?          @default(0.0)
+  orders90d          Int?            @default(0)
+  favoriteProductIds String[]        @default([])
+  pointsBalance      Int             @default(0)
+  tier               String          @default("BRONCE") // BRONCE, PLATA, ORO
+  segmentUpdatedAt   DateTime?
+  orders             Order[]
+  customerNotes      CustomerNote[]
+  loyaltyLedgers     LoyaltyLedger[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model CustomerNote {
+  id         String   @id @default(uuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  text       String
+  userName   String?
+  createdAt  DateTime @default(now())
 }
 
 model Category {
@@ -93,32 +178,71 @@ model Category {
 }
 
 model Product {
-  id              String      @id @default(uuid())
+  id              String          @id @default(uuid())
   name            String
-  slug            String      @unique
+  slug            String          @unique
   description     String
   price           Float
-  costPrice       Float       @default(0.0)
-  stock           Int         @default(50)
-  piecesCount     Int?        @default(1)
+  costPrice       Float           @default(0.0)
+  stock           Int             @default(50)
+  piecesCount     Int?            @default(1)
   categoryId      String
-  category        Category    @relation(fields: [categoryId], references: [id])
-  isChefSelection Boolean     @default(false)
-  isBestSeller    Boolean     @default(false)
+  category        Category        @relation(fields: [categoryId], references: [id])
+  isChefSelection Boolean         @default(false)
+  isBestSeller    Boolean         @default(false)
   image           String
-  active          Boolean     @default(true)
-  modifiersJson   String?     // Opciones configurables (arroz, salsas, extras)
-  dietaryTags     String[]    @default([]) // ["GF", "OMAKASE", "VEGGIE"]
+  active          Boolean         @default(true)
+  modifiersJson   String?
+  dietaryTags     String[]        @default([])
+  recipeEnabled   Boolean         @default(false)
+  autoPaused      Boolean         @default(false)
+  availablePortions Int?
+  priceSetAt      DateTime?
+  costAtPriceSet  Float?
   orderItems      OrderItem[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  modifierGroups  ModifierGroup[]
+  recipeLines     RecipeLine[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model ModifierGroup {
+  id        String           @id @default(uuid())
+  productId String?
+  product   Product?         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  selection String           @default("MULTI") // 'SINGLE' | 'MULTI'
+  minSelect Int              @default(0)
+  maxSelect Int?
+  sortOrder Int              @default(0)
+  active    Boolean          @default(true)
+  options   ModifierOption[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model ModifierOption {
+  id          String        @id @default(uuid())
+  groupId     String
+  group       ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  code        String
+  name        String
+  priceDelta  Float         @default(0.0)
+  active      Boolean       @default(true)
+  sortOrder   Int           @default(0)
+  recipeLines RecipeLine[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([groupId, code])
 }
 
 model DeliveryZone {
   id             String   @id @default(uuid())
   name           String
-  polygonGeoJson String   // Coordenadas en formato JSON [{lat, lng}, ...]
+  polygonGeoJson String
   deliveryFee    Float    @default(0.0)
+  courierFee     Float    @default(0.0)
   minOrder       Float    @default(0.0)
   estimatedMin   Int      @default(25)
   estimatedMax   Int      @default(45)
@@ -142,18 +266,35 @@ model Order {
   deliveryFee      Float                @default(0.0)
   subtotal         Float
   discount         Float                @default(0.0)
+  discountBreakdown String?
   total            Float
   status           OrderStatus          @default(CREADO)
   paymentMethod    PaymentMethod        @default(EFECTIVO)
   paymentStatus    PaymentStatus        @default(PENDIENTE)
   paymentProofUrl  String?
+  mpPaymentId      String?              @unique
   notes            String?
   estimatedMinutes Int                  @default(35)
   scheduledFor     DateTime?
   cashAmountPaid   Float?
   cashChange       Float?
+  stockConsumedAt  DateTime?
+  shiftId          String?
+  shift            CashShift?           @relation(fields: [shiftId], references: [id])
+  cashCollectedBy  String?              // 'LOCAL' | 'COURIER'
+  courierId        String?
+  courier          Courier?             @relation(fields: [courierId], references: [id])
+  tripId           String?
+  trip             DeliveryTrip?        @relation(fields: [tripId], references: [id])
+  dispatchedAt     DateTime?
+  deliveredAt      DateTime?
+  courierFee       Float?
+  pointsRedeemed   Int                  @default(0)
+  pointsDiscount   Float                @default(0.0)
+  pointsEarned     Int                  @default(0)
   items            OrderItem[]
   statusHistory    OrderStatusHistory[]
+  stockMovements   StockMovement[]
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 }
@@ -167,9 +308,9 @@ model OrderItem {
   name       String
   price      Float
   quantity   Int      @default(1)
-  baseRice   String?  // Akazu rojo vs Blanco tradicional
-  saucesJson String?  // JSON con salsas seleccionadas
-  extrasJson String?  // JSON con extras (Caviar, Wasabi fresco, etc.)
+  baseRice   String?
+  saucesJson String?
+  extrasJson String?
   notes      String?
 }
 
@@ -182,6 +323,354 @@ model OrderStatusHistory {
   changedBy      String?  @default("SYSTEM")
   notes          String?
   createdAt      DateTime @default(now())
+}
+
+model Supplier {
+  id               String            @id @default(uuid())
+  name             String            @unique
+  phone            String?
+  cuit             String?
+  contactName      String?
+  notes            String?
+  leadTimeDays     Int               @default(1)
+  deliveryDays     Int[]             @default([1, 2, 3, 4, 5])
+  active           Boolean           @default(true)
+  ingredients      Ingredient[]
+  purchaseOrders   PurchaseOrder[]
+  purchaseReceipts PurchaseReceipt[]
+  priceHistories   IngredientPriceHistory[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model Ingredient {
+  id                String            @id @default(uuid())
+  name              String            @unique
+  kind              IngredientKind    @default(RAW)
+  baseUnit          BaseUnit          @default(G)
+  purchaseUnit      String?           @default("kg")
+  purchaseFactor    Float             @default(1000.0)
+  costPerBaseUnit   Float             @default(0.0)
+  stockQty          Float             @default(0.0)
+  minStock          Float             @default(0.0)
+  tracksBatches     Boolean           @default(false)
+  shelfLifeHours    Int?              @default(72)
+  isCritical        Boolean           @default(false)
+  prepOutputQty     Float?
+  prepYieldPct      Float?
+  supplierId        String?
+  supplier          Supplier?         @relation(fields: [supplierId], references: [id])
+  active            Boolean           @default(true)
+  batches           StockBatch[]
+  movements         StockMovement[]
+  consumedInRecipes RecipeLine[]      @relation("ConsumedIngredient")
+  prepRecipes       RecipeLine[]      @relation("PrepIngredient")
+  poLines           PurchaseOrderLine[]
+  receiptLines      PurchaseReceiptLine[]
+  priceHistories    IngredientPriceHistory[]
+  countLines        StockCountLine[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model RecipeLine {
+  id                 String          @id @default(uuid())
+  ingredientId       String
+  ingredient         Ingredient      @relation("ConsumedIngredient", fields: [ingredientId], references: [id], onDelete: Cascade)
+  productId          String?
+  product            Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modifierOptionId   String?
+  modifierOption     ModifierOption? @relation(fields: [modifierOptionId], references: [id], onDelete: Cascade)
+  prepIngredientId   String?
+  prepIngredient     Ingredient?     @relation("PrepIngredient", fields: [prepIngredientId], references: [id], onDelete: Cascade)
+  quantity           Float
+  notes              String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+}
+
+model StockBatch {
+  id           String          @id @default(uuid())
+  ingredientId String
+  ingredient   Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  code         String
+  qtyInitial   Float
+  qtyRemaining Float
+  unitCost     Float
+  receivedAt   DateTime        @default(now())
+  expiresAt    DateTime?
+  sourceType   String          @default("PURCHASE") // PURCHASE, PRODUCTION, ADJUSTMENT
+  sourceId     String?
+  movements    StockMovement[]
+  createdAt    DateTime        @default(now())
+
+  @@index([ingredientId, expiresAt])
+}
+
+model StockMovement {
+  id           String            @id @default(uuid())
+  ingredientId String
+  ingredient   Ingredient        @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  batchId      String?
+  batch        StockBatch?       @relation(fields: [batchId], references: [id])
+  type         StockMovementType
+  qty          Float
+  unitCost     Float             @default(0.0)
+  orderId      String?
+  order        Order?            @relation(fields: [orderId], references: [id])
+  refType      String?
+  refId        String?
+  reason       String?
+  userName     String?
+  createdAt    DateTime          @default(now())
+
+  @@index([ingredientId, createdAt])
+  @@index([orderId])
+}
+
+model StockCount {
+  id         String           @id @default(uuid())
+  status     String           @default("OPEN") // OPEN, CLOSED
+  startedAt  DateTime         @default(now())
+  closedAt   DateTime?
+  userName   String?
+  notes      String?
+  lines      StockCountLine[]
+  createdAt  DateTime         @default(now())
+}
+
+model StockCountLine {
+  id           String     @id @default(uuid())
+  countId      String
+  count        StockCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  expectedQty  Float
+  countedQty   Float
+  diffQty      Float
+  diffCost     Float
+}
+
+model PurchaseOrder {
+  id             String              @id @default(uuid())
+  number         Int                 @unique @default(autoincrement())
+  supplierId     String
+  supplier       Supplier            @relation(fields: [supplierId], references: [id])
+  status         PurchaseOrderStatus @default(DRAFT)
+  expectedAt     DateTime?
+  notes          String?
+  totalEstimated Float               @default(0.0)
+  createdBy      String?
+  lines          PurchaseOrderLine[]
+  receipts       PurchaseReceipt[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model PurchaseOrderLine {
+  id               String        @id @default(uuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  ingredientId     String
+  ingredient       Ingredient    @relation(fields: [ingredientId], references: [id])
+  qtyPurchaseUnits Float
+  unitPriceEst     Float
+  qtyReceivedBase  Float         @default(0.0)
+}
+
+model PurchaseReceipt {
+  id              String                @id @default(uuid())
+  number          Int                   @unique @default(autoincrement())
+  supplierId      String
+  supplier        Supplier              @relation(fields: [supplierId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?        @relation(fields: [purchaseOrderId], references: [id])
+  receivedAt      DateTime              @default(now())
+  invoiceNumber   String?
+  total           Float                 @default(0.0)
+  paidFromCash    Boolean               @default(false)
+  shiftId         String?
+  shift           CashShift?            @relation(fields: [shiftId], references: [id])
+  receivedBy      String?
+  notes           String?
+  lines           PurchaseReceiptLine[]
+  createdAt       DateTime              @default(now())
+}
+
+model PurchaseReceiptLine {
+  id               String          @id @default(uuid())
+  receiptId        String
+  receipt          PurchaseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  ingredientId     String
+  ingredient       Ingredient      @relation(fields: [ingredientId], references: [id])
+  qtyPurchaseUnits Float
+  unitPrice        Float
+  batchCode        String?
+  expiresAt        DateTime?
+}
+
+model IngredientPriceHistory {
+  id              String     @id @default(uuid())
+  ingredientId    String
+  ingredient      Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  supplierId      String?
+  supplier        Supplier?  @relation(fields: [supplierId], references: [id])
+  unitPrice       Float
+  costPerBaseUnit Float
+  receiptId       String?
+  createdAt       DateTime   @default(now())
+}
+
+model CashShift {
+  id            String            @id @default(uuid())
+  number        Int               @unique @default(autoincrement())
+  status        CashShiftStatus   @default(OPEN)
+  openedAt      DateTime          @default(now())
+  openedBy      String
+  openingFloat  Float             @default(0.0)
+  closedAt      DateTime?
+  closedBy      String?
+  expectedCash  Float?
+  countedCash   Float?
+  difference    Float?
+  cashBreakdown String?           // JSON
+  summary       String?           // JSON
+  notes         String?
+  orders        Order[]
+  movements     CashMovement[]
+  receipts      PurchaseReceipt[]
+  trips         DeliveryTrip[]
+  createdAt     DateTime          @default(now())
+}
+
+model CashMovement {
+  id        String           @id @default(uuid())
+  shiftId   String
+  shift     CashShift        @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  type      CashMovementType
+  amount    Float
+  method    String           @default("EFECTIVO")
+  category  String?          @default("Otros")
+  reason    String
+  courierId String?
+  refId     String?
+  userName  String?
+  createdAt DateTime         @default(now())
+}
+
+model Courier {
+  id        String         @id @default(uuid())
+  name      String
+  phone     String
+  active    Boolean        @default(true)
+  notes     String?
+  orders    Order[]
+  trips     DeliveryTrip[]
+  createdAt DateTime       @default(now())
+}
+
+model DeliveryTrip {
+  id         String    @id @default(uuid())
+  number     Int       @unique @default(autoincrement())
+  courierId  String
+  courier    Courier   @relation(fields: [courierId], references: [id])
+  shiftId    String?
+  shift      CashShift? @relation(fields: [shiftId], references: [id])
+  status     String    @default("OUT") // OUT, RETURNED
+  departedAt DateTime  @default(now())
+  returnedAt DateTime?
+  orders     Order[]
+  createdAt  DateTime  @default(now())
+}
+
+model PricingRule {
+  id              String          @id @default(uuid())
+  name            String
+  active          Boolean         @default(true)
+  priority        Int             @default(10)
+  stackable       Boolean         @default(false)
+  kind            PricingRuleKind @default(PERCENT_ORDER)
+  validFrom       DateTime?
+  validTo         DateTime?
+  daysOfWeek      Int[]           @default([])
+  startTime       String?
+  endTime         String?
+  minSubtotal     Float?
+  paymentMethods  String[]        @default([])
+  deliveryTypes   String[]        @default([])
+  productIds      String[]        @default([])
+  categoryIds     String[]        @default([])
+  segments        String[]        @default([])
+  tiers           String[]        @default([])
+  firstOrderOnly  Boolean         @default(false)
+  percent         Float?
+  amount          Float?
+  buyQty          Int?
+  getQty          Int?
+  maxDiscount     Float?
+  usageCount      Int             @default(0)
+  maxUses         Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model LoyaltyLedger {
+  id         String            @id @default(uuid())
+  customerId String
+  customer   Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orderId    String?
+  type       LoyaltyLedgerType
+  points     Int
+  remaining  Int               @default(0)
+  expiresAt  DateTime?
+  note       String?
+  userName   String?
+  createdAt  DateTime          @default(now())
+
+  @@index([customerId, expiresAt])
+}
+
+model OtpCode {
+  id         String    @id @default(uuid())
+  phone      String
+  purpose    String    @default("REDEEM")
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
+
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+}
+
+model DevOutbox {
+  id        String   @id @default(uuid())
+  phone     String
+  purpose   String
+  content   String
+  metadata  String?  // JSON
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  userName  String?
+  action    String
+  entity    String
+  entityId  String?
+  before    String?
+  after     String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId, createdAt])
 }
 
 model Conversation {
@@ -207,6 +696,7 @@ model Coupon {
   usedCount       Int       @default(0)
   expiresAt       DateTime?
   active          Boolean   @default(true)
+  stackable       Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -224,7 +714,7 @@ model ChatMessage {
 
 model BotRule {
   id              String   @id @default(uuid())
-  triggerKeyword  String   @unique // Ej. "/alergias", "/zonas", "/horarios"
+  triggerKeyword  String   @unique
   responseText    String
   isAiHandled     Boolean  @default(false)
   escalateToHuman Boolean  @default(false)

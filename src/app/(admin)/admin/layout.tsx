@@ -36,6 +36,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const allNavLinks = [
     { label: 'Dashboard CRM', href: '/admin/dashboard', icon: 'dashboard', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
     { label: 'Cocina KDS en Vivo', href: '/admin/cocina', icon: 'skillet', roles: ['SUPERADMIN', 'ADMIN_LOCAL', 'COCINERO'] },
+    { label: 'Inventario & Stock', href: '/admin/inventario', icon: 'inventory_2', roles: ['SUPERADMIN', 'ADMIN_LOCAL', 'COCINERO'] },
+    { label: 'Caja & Reparto', href: '/admin/caja-reparto', icon: 'point_of_sale', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
+    { label: 'Clientes CRM', href: '/admin/clientes', icon: 'group', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
     { label: 'Catálogo & Escandallo', href: '/admin/catalogo', icon: 'menu_book', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
     { label: 'Zonas de Reparto', href: '/admin/zonas-envio', icon: 'map', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },
     { label: 'Bandeja Omnicanal', href: '/admin/omnicanal', icon: 'forum', roles: ['SUPERADMIN', 'ADMIN_LOCAL'] },

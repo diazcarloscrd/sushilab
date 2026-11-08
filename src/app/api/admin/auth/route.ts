@@ -8,6 +8,7 @@ import {
   resetRateLimit,
 } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,14 +48,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'PIN requerido' }, { status: 400 });
       }
 
-      const configuredPin = process.env.ADMIN_PIN_MASTER || '888888';
+      const configuredPin = process.env.ADMIN_PIN_MASTER;
+      if (!configuredPin) {
+        return NextResponse.json({ error: 'El acceso por PIN no está habilitado.' }, { status: 403 });
+      }
 
-      // Comparación segura
-      if (pin.trim() !== configuredPin.trim()) {
+      // Comparación segura en tiempo constante
+      const pinBuf = Buffer.from(pin.trim());
+      const confBuf = Buffer.from(configuredPin.trim());
+      const isPinValid = pinBuf.length === confBuf.length && crypto.timingSafeEqual(pinBuf, confBuf);
+
+      if (!isPinValid) {
         recordFailedAttempt(pinRateLimitKey, 5, 15 * 60 * 1000, 15 * 60 * 1000);
         return NextResponse.json(
           {
-            error: `PIN Maestro incorrecto. Intentos restantes: ${rateCheck.remaining - 1}`,
+            error: `PIN incorrecto. Intentos restantes: ${rateCheck.remaining - 1}`,
           },
           { status: 401 }
         );

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { getAdminSession } from '@/lib/auth';
+import { calculateOrderQuote, DbProductForQuote, DbModifierOptionForQuote } from '@/lib/orders/quote';
+import { evaluatePricingRules, CartItemForPricing, PricingRuleCondition } from '@/lib/pricing/engine';
+import { calculatePointsDiscount } from '@/lib/loyalty/engine';
+import { verifyRedeemToken } from '@/lib/loyalty/token';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +18,6 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
     const offset = (page - 1) * limit;
 
-    // Si no es admin, solo permitir consultar por un id o número específico
     const orderId = searchParams.get('orderId');
     if (!session && !orderId) {
       return NextResponse.json(
@@ -68,23 +72,33 @@ export async function POST(req: NextRequest) {
       items = [],
       scheduledFor,
       cashAmountPaid,
+      marketingConsent = false,
+      pointsToRedeem = 0,
+      redeemToken = null,
     } = body;
 
     if (!customerName?.trim() || !customerPhone?.trim() || !items.length) {
       return NextResponse.json(
-        { error: 'Faltan campos obligatorios para generar la comanda (Nombre, Teléfono o Items vacíos)' },
+        { error: 'Faltan campos requeridos (Nombre, Teléfono o Items vacíos)' },
         { status: 400 }
       );
     }
 
-    // 1. Verificar si el local está abierto
+    // 1. Verificar Turno de Caja Abierto o Local Abierto
+    const { data: openShift } = await supabaseServer
+      .from('CashShift')
+      .select('id')
+      .eq('status', 'OPEN')
+      .maybeSingle();
+
     const { data: storeOpenSetting } = await supabaseServer
       .from('StoreSetting')
       .select('value')
       .eq('key', 'STORE_IS_OPEN')
       .maybeSingle();
 
-    const isStoreOpen = storeOpenSetting?.value !== 'false';
+    const isStoreOpen = Boolean(openShift) || storeOpenSetting?.value !== 'false';
+
     if (!isStoreOpen && !scheduledFor) {
       return NextResponse.json(
         {
@@ -95,84 +109,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. RECALCULAR PRECIOS EN SERVIDOR (C5 Solución Definitiva)
+    // 2. Cargar Productos de la Base de Datos
     const productIds = items
       .map((i: any) => i.productId)
       .filter((id: any) => Boolean(id));
 
-    const { data: dbProducts, error: prodErr } = await supabaseServer
+    const { data: dbProductsRaw, error: prodErr } = await supabaseServer
       .from('Product')
-      .select('id, name, price, stock, active')
+      .select('id, name, price, stock, active, autoPaused')
       .in('id', productIds);
 
-    if (prodErr || !dbProducts) {
-      throw new Error('Error validando disponibilidad de los productos en el catálogo');
+    if (prodErr || !dbProductsRaw) {
+      throw new Error('Error al validar productos en el catálogo');
     }
 
-    const productMap = new Map<string, any>();
-    dbProducts.forEach((p) => productMap.set(p.id, p));
+    const productMap = new Map<string, DbProductForQuote>();
+    dbProductsRaw.forEach((p) => productMap.set(p.id, p));
 
-    // Precios oficiales de extras para evitar manipulación en frontend
-    const OFFICIAL_EXTRAS_PRICES: Record<string, number> = {
-      palta: 950,
-      masago: 1400,
-      wasabi: 1200,
-      gari: 400,
-    };
+    // 3. Cargar Modificadores y Opciones oficiales de la Base de Datos
+    const { data: dbModifiersRaw } = await supabaseServer
+      .from('ModifierOption')
+      .select('code, name, priceDelta, active')
+      .eq('active', true);
 
-    let serverSubtotal = 0;
-    const validatedOrderItems: any[] = [];
+    const modifierMap = new Map<string, DbModifierOptionForQuote>();
+    (dbModifiersRaw || []).forEach((m) => modifierMap.set(m.code, m));
 
-    for (const item of items) {
-      const dbProduct = productMap.get(item.productId);
-      if (!dbProduct) {
-        return NextResponse.json(
-          { error: `El producto "${item.name}" ya no se encuentra en el menú` },
-          { status: 400 }
-        );
-      }
+    // 4. Resolver y Validar Zona de Envío
+    let isWithinDeliveryZone = true;
+    let zoneDeliveryFee = 0;
+    let zoneMinOrder = 0;
+    let resolvedZoneId = deliveryZoneId || null;
 
-      if (!dbProduct.active || dbProduct.stock <= 0) {
-        return NextResponse.json(
-          { error: `El producto "${dbProduct.name}" se encuentra agotado` },
-          { status: 400 }
-        );
-      }
-
-      const qty = Math.max(1, parseInt(item.quantity) || 1);
-      let itemUnitPrice = dbProduct.price;
-
-      // Parsear extras si existen y sumar sus valores reales
-      let parsedExtras: any[] = [];
-      try {
-        parsedExtras = Array.isArray(item.extras)
-          ? item.extras
-          : (typeof item.extrasJson === 'string' ? JSON.parse(item.extrasJson) : []);
-      } catch {
-        parsedExtras = [];
-      }
-
-      for (const extra of parsedExtras) {
-        const extraPrice = OFFICIAL_EXTRAS_PRICES[extra.id] || Number(extra.price) || 0;
-        itemUnitPrice += extraPrice;
-      }
-
-      serverSubtotal += itemUnitPrice * qty;
-
-      validatedOrderItems.push({
-        productId: dbProduct.id,
-        name: dbProduct.name,
-        price: itemUnitPrice,
-        quantity: qty,
-        baseRice: item.baseRice || null,
-        saucesJson: typeof item.saucesJson === 'string' ? item.saucesJson : JSON.stringify(item.sauces || []),
-        extrasJson: JSON.stringify(parsedExtras),
-        notes: item.notes || null,
-      });
-    }
-
-    // 3. Validar Tarifa de Envío real en Bahía Blanca
-    let serverDeliveryFee = 0;
     if (deliveryType === 'DELIVERY') {
       if (deliveryZoneId) {
         const { data: zone } = await supabaseServer
@@ -182,63 +150,184 @@ export async function POST(req: NextRequest) {
           .maybeSingle();
 
         if (zone && zone.active) {
-          serverDeliveryFee = zone.deliveryFee;
-          if (serverSubtotal < zone.minOrder) {
-            return NextResponse.json(
-              { error: `El pedido mínimo para esta zona de Bahía Blanca es de $${zone.minOrder.toLocaleString('es-AR')}` },
-              { status: 400 }
-            );
-          }
+          zoneDeliveryFee = zone.deliveryFee;
+          zoneMinOrder = zone.minOrder;
         } else {
-          serverDeliveryFee = 1200; // Tarifa centro base
+          isWithinDeliveryZone = false;
         }
       } else {
-        serverDeliveryFee = 1200;
+        // Si es delivery pero no seleccionó zona válida
+        isWithinDeliveryZone = false;
       }
     }
 
-    // 4. Calcular Descuentos Oficiales
-    let serverDiscount = 0;
-
-    // Descuento Take Away (15% oficial)
-    if (deliveryType === 'TAKE_AWAY') {
-      const { data: takeawaySetting } = await supabaseServer
-        .from('StoreSetting')
-        .select('value')
-        .eq('key', 'TAKEAWAY_DISCOUNT_PERCENT')
-        .maybeSingle();
-      const pct = Number(takeawaySetting?.value || '15');
-      serverDiscount = Math.round(serverSubtotal * (pct / 100));
-    } else if (couponCode?.trim()) {
-      // Validar Cupón contra la base de datos
-      const { data: coupon } = await supabaseServer
+    // 5. Cargar Cupón si aplica
+    let couponData: any = null;
+    if (couponCode?.trim()) {
+      const { data: cp } = await supabaseServer
         .from('Coupon')
         .select('*')
         .eq('code', couponCode.trim().toUpperCase())
         .eq('active', true)
         .maybeSingle();
+      couponData = cp;
+    }
 
-      if (coupon && serverSubtotal >= coupon.minOrder) {
-        if (!coupon.expiresAt || new Date(coupon.expiresAt) >= new Date()) {
-          if (!coupon.maxUses || coupon.usedCount < coupon.maxUses) {
-            if (coupon.discountPercent > 0) {
-              serverDiscount = Math.round(serverSubtotal * (coupon.discountPercent / 100));
-            } else if (coupon.discountAmount > 0) {
-              serverDiscount = Math.min(serverSubtotal, coupon.discountAmount);
-            }
-            // Incrementar uso del cupón
-            await supabaseServer
-              .from('Coupon')
-              .update({ usedCount: coupon.usedCount + 1 })
-              .eq('id', coupon.id);
-          }
-        }
+    // 6. Cargar Cliente y Reglas de Precio oficiales para cotización avanzada
+    const cleanPhone = customerPhone.trim();
+    const { data: existingCustomer } = await supabaseServer
+      .from('Customer')
+      .select('id, deliveryAddress, tags, segment, tier, ordersCount, pointsBalance')
+      .eq('phone', cleanPhone)
+      .maybeSingle();
+
+    // Validar token de canje de puntos si el usuario solicitó usar puntos
+    const requestedPoints = Math.max(0, Number(pointsToRedeem) || 0);
+    if (requestedPoints > 0) {
+      if (!redeemToken) {
+        return NextResponse.json({ error: 'Se requiere token de verificación OTP para canjear puntos' }, { status: 400 });
+      }
+      const verifiedPayload = await verifyRedeemToken(redeemToken);
+      if (!verifiedPayload || verifiedPayload.phone !== cleanPhone) {
+        return NextResponse.json({ error: 'Token de canje inválido o expirado' }, { status: 403 });
+      }
+      if (!existingCustomer || (existingCustomer.pointsBalance || 0) < requestedPoints) {
+        return NextResponse.json({ error: 'Saldo de puntos insuficiente' }, { status: 400 });
       }
     }
 
-    const serverTotal = Math.max(0, serverSubtotal - serverDiscount + serverDeliveryFee);
+    // 7. Cotización base de comanda (validación de productos y adicionales)
+    const quote = calculateOrderQuote(items, productMap, modifierMap, {
+      deliveryType,
+      deliveryFee: zoneDeliveryFee,
+      minOrderZone: zoneMinOrder,
+      isWithinDeliveryZone,
+      coupon: couponData,
+      takeawayDiscountPercent: 0, // Las reglas de precio manejan el retiro en local
+    });
 
-    // 5. Determinar Estado Inicial de la Orden y Pago
+    if (!quote.valid) {
+      return NextResponse.json({ error: quote.error }, { status: 400 });
+    }
+
+    // 7.1 Evaluación con Motor de Reglas de Precio
+    const { data: rulesRaw } = await supabaseServer
+      .from('PricingRule')
+      .select('*')
+      .eq('active', true)
+      .order('priority', { ascending: false });
+
+    const pricingRules: PricingRuleCondition[] = (rulesRaw || []).map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      active: r.active,
+      priority: r.priority,
+      stackable: r.stackable,
+      kind: r.kind,
+      validFrom: r.validFrom,
+      validTo: r.validTo,
+      daysOfWeek: r.daysOfWeek,
+      startTime: r.startTime,
+      endTime: r.endTime,
+      minSubtotal: r.minSubtotal,
+      paymentMethods: r.paymentMethods,
+      deliveryTypes: r.deliveryTypes,
+      productIds: r.productIds,
+      categoryIds: r.categoryIds,
+      segments: r.segments,
+      tiers: r.tiers,
+      firstOrderOnly: r.firstOrderOnly,
+      percent: r.percent,
+      amount: r.amount,
+      buyQty: r.buyQty,
+      getQty: r.getQty,
+      maxDiscount: r.maxDiscount,
+    }));
+
+    const cartItemsForPricing: CartItemForPricing[] = quote.validatedItems.map((item) => ({
+      productId: item.productId,
+      name: item.name,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
+    }));
+
+    const customerContext = existingCustomer ? {
+      segment: existingCustomer.segment || 'NUEVO',
+      tier: existingCustomer.tier || 'BRONCE',
+      isFirstOrder: (existingCustomer.ordersCount || 0) === 0,
+    } : null;
+
+    const couponContext = couponData ? {
+      code: couponData.code,
+      discountPercent: couponData.discountPercent || 0,
+      discountAmount: couponData.discountAmount || 0,
+      minOrder: couponData.minOrder || 0,
+    } : null;
+
+    const pricingResult = evaluatePricingRules(cartItemsForPricing, pricingRules, {
+      deliveryType,
+      paymentMethod,
+      deliveryFee: zoneDeliveryFee,
+      customer: customerContext,
+      coupon: couponContext,
+    });
+
+    // 7.2 Canje de Puntos de Fidelidad
+    let pointsDiscount = 0;
+    let acceptedPoints = 0;
+    if (requestedPoints >= 100 && existingCustomer) {
+      const netSub = Math.max(0, pricingResult.subtotal - pricingResult.discountTotal);
+      const ptsRes = calculatePointsDiscount(requestedPoints, netSub, existingCustomer.pointsBalance || 0);
+      pointsDiscount = ptsRes.discountAmount;
+      acceptedPoints = ptsRes.pointsAccepted;
+    }
+
+    const appliedDiscounts = [...pricingResult.discounts];
+    if (pointsDiscount > 0) {
+      appliedDiscounts.push({
+        source: 'POINTS',
+        id: 'points_redeem',
+        label: `Canje de ${acceptedPoints} puntos`,
+        amount: pointsDiscount,
+      });
+    }
+
+    const finalDiscountTotal = pricingResult.discountTotal + pointsDiscount;
+    const finalTotal = Math.max(0, pricingResult.subtotal + zoneDeliveryFee - finalDiscountTotal);
+
+    // 8. Incrementar Cupón de forma atómica si fue utilizado
+    if (couponData && pricingResult.discounts.some((d) => d.source === 'COUPON')) {
+      const { data: updatedCoupon, error: couponUpdateErr } = await supabaseServer
+        .from('Coupon')
+        .update({ usedCount: (couponData.usedCount || 0) + 1 })
+        .eq('id', couponData.id)
+        .select('id, usedCount')
+        .single();
+
+      if (couponUpdateErr || !updatedCoupon) {
+        return NextResponse.json({ error: 'El cupón no pudo ser aplicado o ya alcanzó su límite' }, { status: 400 });
+      }
+    }
+
+    // 8.1 Descontar puntos canjeados de inmediato
+    if (acceptedPoints > 0 && existingCustomer) {
+      await supabaseServer
+        .from('Customer')
+        .update({ pointsBalance: Math.max(0, (existingCustomer.pointsBalance || 0) - acceptedPoints) })
+        .eq('id', existingCustomer.id);
+
+      await supabaseServer.from('LoyaltyLedger').insert({
+        id: `red_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        customerId: existingCustomer.id,
+        type: 'REDEEM',
+        points: -acceptedPoints,
+        remaining: 0,
+        note: `Canje de puntos en comanda`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // 9. Determinar Estados Iniciales
     let initialStatus = 'EN_COCINA';
     let initialPaymentStatus = 'PENDIENTE';
 
@@ -249,41 +338,42 @@ export async function POST(req: NextRequest) {
       initialStatus = 'PENDIENTE_VERIFICACION';
       initialPaymentStatus = 'PENDIENTE';
     } else if (paymentMethod === 'EFECTIVO') {
-      initialStatus = 'EN_COCINA';
+      initialStatus = isStoreOpen ? 'EN_COCINA' : 'CREADO';
       initialPaymentStatus = 'PENDIENTE';
     }
 
-    // Cálculo de vuelto en efectivo
     const parsedCashPaid = Number(cashAmountPaid) || null;
-    const cashChange = parsedCashPaid && parsedCashPaid > serverTotal ? parsedCashPaid - serverTotal : null;
+    const cashChange = parsedCashPaid && parsedCashPaid > finalTotal ? parsedCashPaid - finalTotal : null;
 
-    // 6. Gestionar Cliente (sin inflar totalSpent antes de entrega)
-    let customerId = null;
-    const { data: existingCustomer } = await supabaseServer
-      .from('Customer')
-      .select('id, ordersCount, deliveryAddress')
-      .eq('phone', customerPhone.trim())
-      .maybeSingle();
+    // 10. Upsert de Cliente (sin inflar ventas históricas hasta la entrega)
+    let customerId: string | null = null;
 
     if (existingCustomer) {
       customerId = existingCustomer.id;
+      const updateCustomerPayload: any = {
+        name: customerName.trim(),
+        deliveryAddress: deliveryAddress || existingCustomer.deliveryAddress,
+      };
+      if (marketingConsent) {
+        updateCustomerPayload.marketingConsent = true;
+        updateCustomerPayload.marketingConsentAt = new Date().toISOString();
+      }
       await supabaseServer
         .from('Customer')
-        .update({
-          name: customerName.trim(),
-          deliveryAddress: deliveryAddress || existingCustomer.deliveryAddress,
-          ordersCount: (existingCustomer.ordersCount || 0) + 1,
-        })
+        .update(updateCustomerPayload)
         .eq('id', customerId);
     } else {
       const { data: newCustomer } = await supabaseServer
         .from('Customer')
         .insert({
           name: customerName.trim(),
-          phone: customerPhone.trim(),
-          deliveryAddress,
-          ordersCount: 1,
-          totalSpent: 0, // Se computa cuando el pedido se marca como ENTREGADO
+          phone: cleanPhone,
+          deliveryAddress: deliveryAddress || null,
+          ordersCount: 0,
+          totalSpent: 0,
+          marketingConsent: Boolean(marketingConsent),
+          marketingConsentAt: marketingConsent ? new Date().toISOString() : null,
+          firstOrderAt: new Date().toISOString(),
         })
         .select('id')
         .single();
@@ -293,20 +383,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 7. Insertar la Orden
+    // 11. Crear Orden en Base de Datos
     const { data: order, error: orderError } = await supabaseServer
       .from('Order')
       .insert({
         customerId,
         customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
+        customerPhone: cleanPhone,
         deliveryType,
         deliveryAddress: deliveryType === 'TAKE_AWAY' ? 'Retiro en Local (Alsina 350, Bahía Blanca)' : deliveryAddress,
-        deliveryZoneId: deliveryType === 'DELIVERY' ? deliveryZoneId : null,
-        deliveryFee: serverDeliveryFee,
-        subtotal: serverSubtotal,
-        discount: serverDiscount,
-        total: serverTotal,
+        deliveryZoneId: deliveryType === 'DELIVERY' ? resolvedZoneId : null,
+        deliveryFee: zoneDeliveryFee,
+        subtotal: pricingResult.subtotal,
+        discount: finalDiscountTotal,
+        total: finalTotal,
+        discountBreakdown: JSON.stringify(appliedDiscounts),
+        pointsRedeemed: acceptedPoints,
+        pointsDiscount,
         status: initialStatus,
         paymentMethod,
         paymentStatus: initialPaymentStatus,
@@ -316,49 +409,67 @@ export async function POST(req: NextRequest) {
         scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : null,
         cashAmountPaid: parsedCashPaid,
         cashChange,
+        shiftId: openShift?.id || null,
+        cashCollectedBy: paymentMethod === 'EFECTIVO' ? (deliveryType === 'TAKE_AWAY' ? 'LOCAL' : 'COURIER') : null,
       })
       .select()
       .single();
 
     if (orderError || !order) {
-      throw orderError || new Error('No se pudo asentar la comanda en la base de datos');
+      throw orderError || new Error('No se pudo registrar la comanda');
     }
 
-    // 8. Insertar Items asociados a la Orden
-    const itemsToInsert = validatedOrderItems.map((item) => ({
-      ...item,
+    // 12. Insertar Items de la Orden
+    const itemsToInsert = quote.validatedItems.map((item) => ({
       orderId: order.id,
+      productId: item.productId,
+      name: item.name,
+      price: item.unitPrice,
+      quantity: item.quantity,
+      baseRice: item.baseRice,
+      saucesJson: item.saucesJson,
+      extrasJson: item.extrasJson,
+      notes: item.notes,
     }));
-    await supabaseServer.from('OrderItem').insert(itemsToInsert);
 
-    // 9. Registrar en OrderStatusHistory
+    const { error: itemsError } = await supabaseServer.from('OrderItem').insert(itemsToInsert);
+    if (itemsError) {
+      console.error('Error insertando OrderItems:', itemsError);
+    }
+
+    // 13. Registrar en OrderStatusHistory
     await supabaseServer.from('OrderStatusHistory').insert({
       orderId: order.id,
       previousStatus: null,
       newStatus: initialStatus,
       changedBy: 'WEB_CHECKOUT',
-      notes: `Comanda ingresada por cliente. Total recalculado: $${serverTotal}`,
+      notes: `Comanda ingresada por cliente. Total recalculado: $${quote.total}`,
+      createdAt: new Date().toISOString(),
     });
 
-    // 10. Descontar Stock de Productos (Control de Existencias)
-    for (const item of validatedOrderItems) {
-      const product = productMap.get(item.productId);
-      if (product) {
-        const remainingStock = Math.max(0, (product.stock || 0) - item.quantity);
-        await supabaseServer
-          .from('Product')
-          .update({
-            stock: remainingStock,
-            active: remainingStock > 0, // Auto-pausar si llega a 0
-          })
-          .eq('id', product.id);
+    // 13.1 Si ingresa directamente en cocina, descontar insumos
+    if (initialStatus === 'EN_COCINA') {
+      try {
+        const { consumeOrderStock } = await import('@/lib/inventory/stockService');
+        await consumeOrderStock(order.id);
+      } catch (stockErr) {
+        console.error('Error consumiendo stock inicial:', stockErr);
       }
     }
+
+    // 14. Registrar Auditoría
+    await logAudit({
+      userName: customerName,
+      action: 'ORDER_CREATED',
+      entity: 'Order',
+      entityId: order.id,
+      after: { total: quote.total, itemsCount: items.length, status: initialStatus },
+    });
 
     return NextResponse.json(
       {
         ...order,
-        items: validatedOrderItems,
+        items: quote.validatedItems,
       },
       { status: 201 }
     );
