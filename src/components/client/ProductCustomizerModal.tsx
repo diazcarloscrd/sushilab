@@ -13,6 +13,8 @@ export interface ProductData {
   image: string;
   modifiersJson?: string | null;
   dietaryTags?: string[];
+  categoryId?: string | null;
+  category?: { id: string; name: string } | null;
 }
 
 interface ProductCustomizerModalProps {

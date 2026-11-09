@@ -18,6 +18,14 @@ export default function AdminConfiguracionPage() {
   const [takeawayDiscount, setTakeawayDiscount] = useState('15');
   const [cashDiscount, setCashDiscount] = useState('10');
   const [openHours, setOpenHours] = useState('Martes a Domingo de 19:30 a 23:45 hs');
+  const [kitchenPrepTime, setKitchenPrepTime] = useState('35');
+  const [announcementBanner, setAnnouncementBanner] = useState('');
+  const [minOrderAmount, setMinOrderAmount] = useState('5000');
+  const [mpEnabled, setMpEnabled] = useState(true);
+  const [transferEnabled, setTransferEnabled] = useState(true);
+  const [cashEnabled, setCashEnabled] = useState(true);
+  const [instagramUrl, setInstagramUrl] = useState('https://instagram.com/yankunsushilab');
+  const [whatsappTemplate, setWhatsappTemplate] = useState('¡Hola Yankun Sushi Lab! Quisiera hacer una consulta sobre mi pedido.');
   const [savedNotice, setSavedNotice] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -84,6 +92,14 @@ export default function AdminConfiguracionPage() {
           if (map.TAKEAWAY_DISCOUNT_PERCENT) setTakeawayDiscount(map.TAKEAWAY_DISCOUNT_PERCENT);
           if (map.CASH_DISCOUNT_PERCENT) setCashDiscount(map.CASH_DISCOUNT_PERCENT);
           if (map.STORE_OPEN_HOURS) setOpenHours(map.STORE_OPEN_HOURS);
+          if (map.KITCHEN_ESTIMATED_TIME_MIN) setKitchenPrepTime(map.KITCHEN_ESTIMATED_TIME_MIN);
+          if (map.TOP_ANNOUNCEMENT_BANNER !== undefined) setAnnouncementBanner(map.TOP_ANNOUNCEMENT_BANNER);
+          if (map.MIN_ORDER_AMOUNT) setMinOrderAmount(map.MIN_ORDER_AMOUNT);
+          if (map.PAYMENT_MP_ENABLED !== undefined) setMpEnabled(map.PAYMENT_MP_ENABLED !== 'false');
+          if (map.PAYMENT_TRANSFER_ENABLED !== undefined) setTransferEnabled(map.PAYMENT_TRANSFER_ENABLED !== 'false');
+          if (map.PAYMENT_CASH_ENABLED !== undefined) setCashEnabled(map.PAYMENT_CASH_ENABLED !== 'false');
+          if (map.INSTAGRAM_URL) setInstagramUrl(map.INSTAGRAM_URL);
+          if (map.WHATSAPP_MESSAGE_TEMPLATE) setWhatsappTemplate(map.WHATSAPP_MESSAGE_TEMPLATE);
           if (map.LOYALTY_ENABLED) setLoyaltyEnabled(map.LOYALTY_ENABLED === 'true');
         }
 
@@ -221,6 +237,14 @@ export default function AdminConfiguracionPage() {
           TAKEAWAY_DISCOUNT_PERCENT: takeawayDiscount,
           CASH_DISCOUNT_PERCENT: cashDiscount,
           STORE_OPEN_HOURS: openHours,
+          KITCHEN_ESTIMATED_TIME_MIN: kitchenPrepTime,
+          TOP_ANNOUNCEMENT_BANNER: announcementBanner,
+          MIN_ORDER_AMOUNT: minOrderAmount,
+          PAYMENT_MP_ENABLED: mpEnabled ? 'true' : 'false',
+          PAYMENT_TRANSFER_ENABLED: transferEnabled ? 'true' : 'false',
+          PAYMENT_CASH_ENABLED: cashEnabled ? 'true' : 'false',
+          INSTAGRAM_URL: instagramUrl,
+          WHATSAPP_MESSAGE_TEMPLATE: whatsappTemplate,
           LOYALTY_ENABLED: loyaltyEnabled ? 'true' : 'false',
         },
       };
@@ -502,6 +526,166 @@ export default function AdminConfiguracionPage() {
                     type="text"
                     value={holder}
                     onChange={(e) => setHolder(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Operación en Tiempo Real & Avisos */}
+            <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-card border border-outline-variant/30 space-y-4">
+              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-primary">timer</span>
+                Operación en Tiempo Real & Avisos
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
+                    Demora Estimada de Cocina (Minutos):
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    step="5"
+                    value={kitchenPrepTime}
+                    onChange={(e) => setKitchenPrepTime(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary font-mono font-bold"
+                  />
+                  <p className="text-[10px] text-on-surface-variant mt-0.5">Se refleja en vivo en el encabezado del cliente</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
+                    Pedido Mínimo de Compra ($ ARS):
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={minOrderAmount}
+                    onChange={(e) => setMinOrderAmount(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
+                  Banner de Aviso / Promoción Superior Web (Opcional):
+                </label>
+                <input
+                  type="text"
+                  value={announcementBanner}
+                  onChange={(e) => setAnnouncementBanner(e.target.value)}
+                  placeholder="Ej: 🍣 ¡Martes y Miércoles 15% OFF en Take Away abonando en efectivo!"
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
+                />
+                <p className="text-[10px] text-on-surface-variant mt-0.5">Deja vacío si no deseas mostrar ninguna franja de alerta</p>
+              </div>
+            </div>
+
+            {/* Métodos de Pago & Descuentos Automáticos */}
+            <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-card border border-outline-variant/30 space-y-4">
+              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-primary">payments</span>
+                Métodos de Pago Habilitados & Descuentos
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-xl bg-surface-container border border-outline-variant/30 space-y-2">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-xs font-headline font-bold text-on-surface">Mercado Pago</span>
+                    <input
+                      type="checkbox"
+                      checked={mpEnabled}
+                      onChange={(e) => setMpEnabled(e.target.checked)}
+                      className="rounded accent-primary w-4 h-4"
+                    />
+                  </label>
+                  <p className="text-[10px] text-on-surface-variant">Tarjetas, Débito y Saldo MP</p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-surface-container border border-outline-variant/30 space-y-2">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-xs font-headline font-bold text-on-surface">Transferencia</span>
+                    <input
+                      type="checkbox"
+                      checked={transferEnabled}
+                      onChange={(e) => setTransferEnabled(e.target.checked)}
+                      className="rounded accent-primary w-4 h-4"
+                    />
+                  </label>
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <span className="text-[10px] text-on-surface-variant">Desc. Takeaway:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={takeawayDiscount}
+                      onChange={(e) => setTakeawayDiscount(e.target.value)}
+                      className="w-14 px-1.5 py-0.5 text-xs text-center rounded bg-surface-container-high border border-outline-variant/40 font-bold"
+                    />
+                    <span className="text-xs font-bold">%</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-surface-container border border-outline-variant/30 space-y-2">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-xs font-headline font-bold text-on-surface">Efectivo</span>
+                    <input
+                      type="checkbox"
+                      checked={cashEnabled}
+                      onChange={(e) => setCashEnabled(e.target.checked)}
+                      className="rounded accent-primary w-4 h-4"
+                    />
+                  </label>
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <span className="text-[10px] text-on-surface-variant">Desc. Efectivo:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={cashDiscount}
+                      onChange={(e) => setCashDiscount(e.target.value)}
+                      className="w-14 px-1.5 py-0.5 text-xs text-center rounded bg-surface-container-high border border-outline-variant/40 font-bold"
+                    />
+                    <span className="text-xs font-bold">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Canales de Contacto & Redes Oficiales */}
+            <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-card border border-outline-variant/30 space-y-4">
+              <h3 className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-primary">chat</span>
+                Canales de Contacto & Redes Oficiales
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
+                    Perfil de Instagram Oficial:
+                  </label>
+                  <input
+                    type="url"
+                    value={instagramUrl}
+                    onChange={(e) => setInstagramUrl(e.target.value)}
+                    placeholder="https://instagram.com/..."
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-headline font-semibold text-on-surface mb-1">
+                    Mensaje Inicial Predeterminado de WhatsApp:
+                  </label>
+                  <input
+                    type="text"
+                    value={whatsappTemplate}
+                    onChange={(e) => setWhatsappTemplate(e.target.value)}
+                    placeholder="¡Hola Yankun! Quisiera consultar..."
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-surface-container border border-outline-variant/50 text-on-surface focus:outline-none focus:border-primary"
                   />
                 </div>

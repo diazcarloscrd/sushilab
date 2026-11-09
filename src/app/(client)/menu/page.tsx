@@ -7,37 +7,59 @@ import FloatingCartBar from '@/components/client/FloatingCartBar';
 import ProductCard from '@/components/client/ProductCard';
 import ProductCustomizerModal, { ProductData } from '@/components/client/ProductCustomizerModal';
 
+interface CategoryData {
+  id: string;
+  name: string;
+  slug: string;
+  order: number;
+}
+
 export default function MenuPage() {
   const [products, setProducts] = useState<ProductData[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeCategoryId, setActiveCategoryId] = useState<string>('ALL');
   const [activeDietaryFilter, setActiveDietaryFilter] = useState<string>('ALL');
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
 
   useEffect(() => {
-    async function loadMenu() {
+    async function loadMenuData() {
       try {
-        const res = await fetch('/api/products');
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data);
+        setLoading(true);
+        const [prodRes, catRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/categories'),
+        ]);
+
+        if (prodRes.ok) {
+          const prodData = await prodRes.json();
+          setProducts(prodData);
+        }
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          setCategories(catData);
         }
       } catch (err) {
-        console.error('Error fetching menu:', err);
+        console.error('Error fetching menu data:', err);
       } finally {
         setLoading(false);
       }
     }
-    loadMenu();
+    loadMenuData();
   }, []);
 
-  // Filter logic
+  // Filter logic: search + category + dietary
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (!matchesSearch) return false;
+
+    if (activeCategoryId !== 'ALL') {
+      if (p.categoryId !== activeCategoryId) return false;
+    }
 
     if (activeDietaryFilter === 'ALL') return true;
     if (activeDietaryFilter === 'GF') return p.dietaryTags?.includes('GF');
@@ -50,7 +72,7 @@ export default function MenuPage() {
     <div className="bg-surface min-h-screen pb-32">
       <Header />
 
-      <main className="max-w-3xl mx-auto pt-20 px-4 space-y-4">
+      <main className="max-w-3xl mx-auto pt-24 px-4 space-y-4">
         {/* Title & Craftsmanship guarantee */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5">
@@ -65,7 +87,7 @@ export default function MenuPage() {
             Menú de Autor & Omakase
           </h1>
           <p className="text-xs text-on-surface-variant">
-            Pescados del día con shari madurado en Akazu rojo y salsas elaboradas en nuestro laboratorio.
+            Pescados frescos del día con shari madurado en Akazu rojo y salsas elaboradas en nuestro laboratorio.
           </p>
         </div>
 
@@ -91,10 +113,44 @@ export default function MenuPage() {
           )}
         </div>
 
+        {/* Dynamic Category Navigation Pills */}
+        {categories.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              <button
+                onClick={() => setActiveCategoryId('ALL')}
+                className={`px-3.5 py-1.5 rounded-xl font-headline text-xs whitespace-nowrap active:scale-95 transition-all ${
+                  activeCategoryId === 'ALL'
+                    ? 'bg-primary text-white font-bold shadow-sm'
+                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high font-medium'
+                }`}
+              >
+                Todas las Cartas
+              </button>
+              {categories.map((cat) => {
+                const isSelected = activeCategoryId === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategoryId(cat.id)}
+                    className={`px-3.5 py-1.5 rounded-xl font-headline text-xs whitespace-nowrap active:scale-95 transition-all ${
+                      isSelected
+                        ? 'bg-primary text-white font-bold shadow-sm'
+                        : 'bg-surface-container text-on-surface hover:bg-surface-container-high font-medium'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Dietary Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 border-t border-outline-variant/20 pt-2">
           {[
-            { id: 'ALL', label: 'Todos' },
+            { id: 'ALL', label: 'Todo' },
             { id: 'OMAKASE', label: '✨ Omakase' },
             { id: 'GF', label: '🌾 Celíaco Friendly (GF)' },
             { id: 'VEGGIE', label: '🥑 Vegetariano' },
@@ -104,10 +160,10 @@ export default function MenuPage() {
               <button
                 key={pill.id}
                 onClick={() => setActiveDietaryFilter(pill.id)}
-                className={`px-3.5 py-1.5 rounded-full font-headline text-xs whitespace-nowrap active:scale-95 transition-all ${
+                className={`px-3 py-1 rounded-full font-headline text-[11px] whitespace-nowrap active:scale-95 transition-all ${
                   active
-                    ? 'bg-primary text-white font-bold shadow-sm'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high font-medium'
+                    ? 'bg-secondary text-on-secondary font-bold shadow-sm'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-medium'
                 }`}
               >
                 {pill.label}
@@ -127,10 +183,11 @@ export default function MenuPage() {
             <div className="py-16 text-center text-on-surface-variant text-sm bg-surface-container-low rounded-xl p-6 border border-outline-variant/30">
               <span className="material-symbols-outlined text-4xl text-outline mb-2">dinner_dining</span>
               <p className="font-headline font-semibold text-on-surface">No encontramos piezas con ese criterio</p>
-              <p className="text-xs mt-1">Prueba con otra palabra clave o restablece los filtros.</p>
+              <p className="text-xs mt-1">Prueba con otra categoría, palabra clave o restablece los filtros.</p>
               <button
                 onClick={() => {
                   setSearchQuery('');
+                  setActiveCategoryId('ALL');
                   setActiveDietaryFilter('ALL');
                 }}
                 className="mt-3 text-xs font-headline font-bold text-primary hover:underline"

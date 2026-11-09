@@ -24,9 +24,20 @@ export async function GET() {
       isOpen: config.STORE_IS_OPEN === 'true',
       openHours: config.STORE_OPEN_HOURS || 'Martes a Domingo de 19:30 a 23:45 hs',
       whatsapp: config.WHATSAPP_SUPPORT || '+5492915556677',
+      whatsappMessageTemplate:
+        config.WHATSAPP_MESSAGE_TEMPLATE ||
+        '¡Hola Yankun Sushi Lab! Quisiera hacer una consulta sobre mi pedido.',
+      instagramUrl: config.INSTAGRAM_URL || 'https://instagram.com/yankunsushilab',
       takeawayDiscount: Number(config.TAKEAWAY_DISCOUNT_PERCENT || '15'),
       cashDiscount: Number(config.CASH_DISCOUNT_PERCENT || '10'),
       minOrderAmount: Number(config.MIN_ORDER_AMOUNT || '5000'),
+      kitchenEstimatedMinutes: Number(config.KITCHEN_ESTIMATED_TIME_MIN || '35'),
+      announcementBanner: config.TOP_ANNOUNCEMENT_BANNER || '',
+      paymentMethods: {
+        mpEnabled: config.PAYMENT_MP_ENABLED !== 'false',
+        transferEnabled: config.PAYMENT_TRANSFER_ENABLED !== 'false',
+        cashEnabled: config.PAYMENT_CASH_ENABLED !== 'false',
+      },
       bankDetails: {
         cbu: config.BANK_CBU || '',
         alias: config.BANK_ALIAS || 'YANKUN.SUSHI.BBLA',
@@ -43,9 +54,19 @@ export async function GET() {
         isOpen: true,
         openHours: 'Martes a Domingo de 19:30 a 23:45 hs',
         whatsapp: '+5492915556677',
+        whatsappMessageTemplate:
+          '¡Hola Yankun Sushi Lab! Quisiera hacer una consulta sobre mi pedido.',
+        instagramUrl: 'https://instagram.com/yankunsushilab',
         takeawayDiscount: 15,
         cashDiscount: 10,
         minOrderAmount: 5000,
+        kitchenEstimatedMinutes: 35,
+        announcementBanner: '',
+        paymentMethods: {
+          mpEnabled: true,
+          transferEnabled: true,
+          cashEnabled: true,
+        },
         bankDetails: {
           cbu: '0000003100012345678901',
           alias: 'YANKUN.SUSHI.BBLA',

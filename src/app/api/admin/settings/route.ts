@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabaseServer';
+import { getAdminSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const session = await getAdminSession();
+    if (!session || session.role === 'COCINERO' || session.role === 'REPARTIDOR') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const { data, error } = await supabaseServer
       .from('StoreSetting')
       .select('*')
@@ -20,6 +26,11 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
+    const session = await getAdminSession();
+    if (!session || (session.role !== 'SUPERADMIN' && session.role !== 'ADMIN_LOCAL')) {
+      return NextResponse.json({ error: 'Se requieren permisos de Administrador' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { settings } = body; // Array of { key, value } or object of key-value
 
@@ -35,7 +46,7 @@ export async function PUT(req: NextRequest) {
       await supabaseServer
         .from('StoreSetting')
         .upsert(
-          { key: item.key, value: item.value, updatedAt: new Date().toISOString() },
+          { key: item.key, value: String(item.value), updatedAt: new Date().toISOString() },
           { onConflict: 'key' }
         );
     }
